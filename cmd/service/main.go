@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"privatemail/domain/example"
+	"privatemail/domain/user"
+	domain "privatemail/domain/domain"
+	"privatemail/domain/email"
 	"privatemail/internal/api"
 	v1 "privatemail/internal/api/v1"
 	"privatemail/internal/config"
@@ -65,10 +67,17 @@ func main() {
 	}
 	repo := pg.NewRepository(conn)
 
-	// Handlers V1 and their dependencies
+	// Use cases and their dependencies
 	// ------------------------------------------
+	userUseCase := user.NewUseCase(repo.UserRepo)
+	domainUseCase := domain.NewUseCase(repo.DomainRepo)
+	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo)
+	
+	// Handlers V1
 	apiV1 := v1.ApiHandlers{
-		ExampleUseCase: example.New(repo),
+		UserUseCase:   userUseCase,
+		DomainUseCase: domainUseCase,
+		EmailUseCase:  emailUseCase,
 	}
 
 	router := api.Router()
