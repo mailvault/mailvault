@@ -4,15 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"privatemail/domain/user"
-	domain "privatemail/domain/domain"
-	"privatemail/domain/email"
-	"privatemail/internal/api"
-	v1 "privatemail/internal/api/v1"
-	"privatemail/internal/config"
-	"privatemail/internal/repository/pg"
 	"log/slog"
+	"mailsafe/domain/auth"
+	domainpkg "mailsafe/domain/domain"
+	"mailsafe/domain/email"
+	"mailsafe/domain/user"
+	"mailsafe/internal/api"
+	v1 "mailsafe/internal/api/v1"
+	"mailsafe/internal/config"
+	"mailsafe/internal/repository/pg"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 
@@ -67,14 +69,29 @@ func main() {
 	}
 	repo := pg.NewRepository(conn)
 
+	// Authentication provider
+	// ------------------------------------------
+	authProvider, err := auth.NewAuthProvider(auth.Config{
+		Provider:       cfg.AuthProvider,
+		SupabaseURL:    cfg.SupabaseURL,
+		SupabaseAPIKey: cfg.SupabaseAPIKey,
+	})
+	if err != nil {
+		log.Error("failed to setup auth provider",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
 	// Use cases and their dependencies
 	// ------------------------------------------
 	userUseCase := user.NewUseCase(repo.UserRepo)
-	domainUseCase := domain.NewUseCase(repo.DomainRepo)
-	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo)
-	
+	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo)
+	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
+
 	// Handlers V1
 	apiV1 := v1.ApiHandlers{
+		AuthProvider:  authProvider,
 		UserUseCase:   userUseCase,
 		DomainUseCase: domainUseCase,
 		EmailUseCase:  emailUseCase,
@@ -99,4 +116,11 @@ func main() {
 			slog.String("error", serverErr.Error()),
 		)
 	}
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

@@ -3,9 +3,9 @@ package pg
 import (
 	"context"
 
-	"privatemail/domain/user"
-	domain "privatemail/domain/domain"
-	"privatemail/domain/email"
+	"mailsafe/domain/user"
+	domain "mailsafe/domain/domain"
+	"mailsafe/domain/email"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"

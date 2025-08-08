@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
-	"privatemail/domain/entities"
-	"privatemail/domain/email"
+	"mailsafe/domain/entities"
+	"mailsafe/domain/email"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"

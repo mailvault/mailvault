@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -15,12 +15,14 @@ import (
 type UseCase struct {
 	emailRepo         EmailAddressRepository
 	receivedEmailRepo ReceivedEmailRepository
+	domainRepo        DomainRepository
 }
 
-func NewUseCase(emailRepo EmailAddressRepository, receivedEmailRepo ReceivedEmailRepository) *UseCase {
+func NewUseCase(emailRepo EmailAddressRepository, receivedEmailRepo ReceivedEmailRepository, domainRepo DomainRepository) *UseCase {
 	return &UseCase{
 		emailRepo:         emailRepo,
 		receivedEmailRepo: receivedEmailRepo,
+		domainRepo:        domainRepo,
 	}
 }
 
@@ -37,13 +39,26 @@ type UpdateEmailAddressInput struct {
 }
 
 type ProcessIncomingEmailInput struct {
-	FromAddress   string `json:"from_address"`
-	ToAddress     string `json:"to_address"`
-	Subject       string `json:"subject"`
-	EncryptedBody string `json:"encrypted_body"`
+	EmailAddressID uuid.UUID `json:"email_address_id"`
+	FromAddress    string    `json:"from_address"`
+	Subject        string    `json:"subject"`
+	Body           string    `json:"body"`
+	DomainID       uuid.UUID `json:"domain_id"`
 }
 
-func (uc *UseCase) CreateEmailAddress(ctx context.Context, req CreateEmailAddressInput) (*entities.EmailAddress, error) {
+func (uc *UseCase) CreateEmailAddress(ctx context.Context, emailAddress *entities.EmailAddress) error {
+	if !emailAddress.IsValid() {
+		return fmt.Errorf("invalid email address data")
+	}
+
+	if err := uc.emailRepo.Create(ctx, emailAddress); err != nil {
+		return fmt.Errorf("failed to create email address: %w", err)
+	}
+
+	return nil
+}
+
+func (uc *UseCase) CreateEmailAddressFromInput(ctx context.Context, req CreateEmailAddressInput) (*entities.EmailAddress, error) {
 	if req.DomainID == uuid.Nil {
 		return nil, fmt.Errorf("domain ID is required")
 	}
@@ -173,6 +188,31 @@ func (uc *UseCase) UpdateEmailAddress(ctx context.Context, id uuid.UUID, req Upd
 	return emailAddress, nil
 }
 
+func (uc *UseCase) GetEmailAddressByAddress(ctx context.Context, fullAddress string) (*entities.EmailAddress, error) {
+	// Parse email address
+	parts := strings.Split(fullAddress, "@")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid email address format: %s", fullAddress)
+	}
+
+	localPart := strings.ToLower(parts[0])
+	domainName := strings.ToLower(parts[1])
+
+	// Get domain
+	domain, err := uc.domainRepo.GetByDomain(ctx, domainName)
+	if err != nil {
+		return nil, fmt.Errorf("domain not found: %w", err)
+	}
+
+	// Try to find specific email address
+	emailAddress, err := uc.emailRepo.GetByLocalPartAndDomain(ctx, localPart, domain.ID)
+	if err != nil {
+		return nil, fmt.Errorf("email address not found: %w", err)
+	}
+
+	return emailAddress, nil
+}
+
 func (uc *UseCase) DeleteEmailAddress(ctx context.Context, id uuid.UUID) error {
 	if id == uuid.Nil {
 		return fmt.Errorf("email address ID is required")
@@ -185,63 +225,46 @@ func (uc *UseCase) DeleteEmailAddress(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, domainID uuid.UUID, req ProcessIncomingEmailInput) (*entities.ReceivedEmail, error) {
-	if domainID == uuid.Nil {
-		return nil, fmt.Errorf("domain ID is required")
+func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, req ProcessIncomingEmailInput) error {
+	if req.EmailAddressID == uuid.Nil {
+		return fmt.Errorf("email address ID is required")
 	}
 
 	if req.FromAddress == "" {
-		return nil, fmt.Errorf("from address is required")
+		return fmt.Errorf("from address is required")
 	}
 
-	if req.ToAddress == "" {
-		return nil, fmt.Errorf("to address is required")
-	}
-
-	if req.EncryptedBody == "" {
-		return nil, fmt.Errorf("encrypted body is required")
-	}
-
-	// Extract local part from to address
-	parts := strings.Split(req.ToAddress, "@")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid email address format: %s", req.ToAddress)
-	}
-	localPart := strings.ToLower(parts[0])
-
-	// Try to find specific email address first
-	var emailAddress *entities.EmailAddress
-	emailAddress, err := uc.emailRepo.GetByLocalPartAndDomain(ctx, localPart, domainID)
-	if err != nil || emailAddress == nil {
-		// If not found, try to get catch-all
-		emailAddress, err = uc.emailRepo.GetCatchAllByDomainID(ctx, domainID)
-		if err != nil || emailAddress == nil {
-			return nil, fmt.Errorf("no matching email address found for %s", req.ToAddress)
-		}
+	if req.Body == "" {
+		return fmt.Errorf("body is required")
 	}
 
 	// Create received email record
+	var subject *string
+	if req.Subject != "" {
+		subject = &req.Subject
+	}
+	
 	receivedEmail := &entities.ReceivedEmail{
 		ID:             uuid.Must(uuid.NewV4()),
-		EmailAddressID: &emailAddress.ID,
+		EmailAddressID: &req.EmailAddressID,
 		FromAddress:    req.FromAddress,
-		Subject:        &req.Subject,
-		EncryptedBody:  req.EncryptedBody,
+		Subject:        subject,
+		EncryptedBody:  req.Body, // For now, store as-is. TODO: Add encryption
 		ReceivedAt:     time.Now().UTC(),
 	}
 
 	if !receivedEmail.IsValid() {
-		return nil, fmt.Errorf("invalid received email data")
+		return fmt.Errorf("invalid received email data")
 	}
 
 	if err := uc.receivedEmailRepo.Create(ctx, receivedEmail); err != nil {
-		return nil, fmt.Errorf("failed to store received email: %w", err)
+		return fmt.Errorf("failed to store received email: %w", err)
 	}
 
 	// TODO: Trigger webhook if configured
 	// TODO: Forward email if configured
 
-	return receivedEmail, nil
+	return nil
 }
 
 func (uc *UseCase) GetReceivedEmails(ctx context.Context, emailAddressID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error) {

@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 )
 
 type Provider interface {

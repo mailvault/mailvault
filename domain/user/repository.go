@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )

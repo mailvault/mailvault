@@ -3,9 +3,9 @@ package auth
 import "fmt"
 
 type Config struct {
-	Provider        string `yaml:"provider"`
-	SupabaseURL     string `yaml:"supabase_url"`
-	SupabaseAPIKey  string `yaml:"supabase_api_key"`
+	Provider       string
+	SupabaseURL    string
+	SupabaseAPIKey string
 }
 
 func NewAuthProvider(config Config) (Provider, error) {

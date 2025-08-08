@@ -3,7 +3,7 @@ package email
 import (
 	"context"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -24,4 +24,8 @@ type ReceivedEmailRepository interface {
 	GetByEmailAddressID(ctx context.Context, emailAddressID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
 	Count(ctx context.Context, emailAddressID uuid.UUID) (int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type DomainRepository interface {
+	GetByDomain(ctx context.Context, domain string) (*entities.Domain, error)
 }
