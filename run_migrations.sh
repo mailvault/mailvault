@@ -7,5 +7,4 @@ export DATABASE_USER=postgres
 export DATABASE_PASSWORD=postgres
 export DATABASE_NAME=privatemail
 
-make migration/up
-
+make migration/$1

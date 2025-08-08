@@ -17,7 +17,7 @@ services:
     networks:
       - app
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d privatemail"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -39,6 +39,54 @@ services:
   #     DATABASE_NAME: app
   #   command: make migration/up
   #   restart: "no"
+
+  api:
+    container_name: privatemail-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_ENGINE: postgres
+      API_ADDRESS: 0.0.0.0:8000
+      DATABASE_HOST: db
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: privatemail
+      DATABASE_PORT: 5432
+      DATABASE_SSLMODE: disable
+    networks:
+      - app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  smtp:
+    container_name: privatemail-smtp
+    build:
+      context: .
+      dockerfile: Dockerfile.smtpd
+    restart: unless-stopped
+    ports:
+      - "25:25"
+      - "587:587"
+    environment:
+      SMTP_ADDR: :25
+      SMTP_DOMAIN: privatemail.local
+      DATABASE_HOST: db
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: privatemail
+      DATABASE_PORT: 5432
+      DATABASE_SSLMODE: disable
+    networks:
+      - app
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   privatemail_db:
