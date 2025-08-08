@@ -113,25 +113,27 @@ Test Details:
 If you receive this email, the SMTP server is working correctly!
 EOF
 
-    # Send email using SMTP commands
+    # Convert email content to proper CRLF line endings for SMTP
+    sed -i 's/$/\r/' /tmp/test_email.txt
+    
+    # Send email using SMTP commands with proper CRLF line endings
     {
         sleep 1
-        echo "EHLO $TEST_DOMAIN"
+        echo -e "EHLO $TEST_DOMAIN\r"
         sleep 1
-        echo "MAIL FROM:<$FROM_EMAIL>"
+        echo -e "MAIL FROM:<$FROM_EMAIL>\r"
         sleep 1
-        echo "RCPT TO:<$TO_EMAIL>"
+        echo -e "RCPT TO:<$TO_EMAIL>\r"
         sleep 1
-        echo "DATA"
+        echo -e "DATA\r"
         sleep 1
         cat /tmp/test_email.txt
-        echo ""
-        echo "."
+        echo -e "\r\n.\r"
         sleep 1
-        echo "QUIT"
+        echo -e "QUIT\r"
     } | timeout 30 nc $SMTP_HOST $SMTP_PORT > /tmp/smtp_send_response.txt 2>/dev/null
     
-    if grep -q "250.*OK" /tmp/smtp_send_response.txt; then
+    if grep -q "250.*OK\|250.*queued" /tmp/smtp_send_response.txt; then
         log_success "Email sent successfully via SMTP"
         log_info "Message ID: $message_id"
         return 0
@@ -240,7 +242,7 @@ test_smtp_multiple_recipients() {
         echo ""
         echo "This is a test email sent to multiple recipients."
         echo ""
-        echo "."
+        echo -e "\r\n.\r"
         sleep 1
         echo "QUIT"
     } | timeout 30 nc $SMTP_HOST $SMTP_PORT > /tmp/smtp_multi_response.txt 2>/dev/null
@@ -297,9 +299,7 @@ run_tests() {
     
     for test in "${tests[@]}"; do
         echo ""
-        if $test; then
-            ((passed++))
-        fi
+        "$test"
     done
     
     echo ""

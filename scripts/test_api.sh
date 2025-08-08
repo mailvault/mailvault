@@ -7,9 +7,9 @@ set -e
 
 # Configuration
 API_BASE_URL="${API_BASE_URL:-http://localhost:3000}"
-TEST_EMAIL="${TEST_EMAIL:-test@example.com}"
+TEST_EMAIL="${TEST_EMAIL:-recipient@privatemail.local}"
 TEST_PASSWORD="${TEST_PASSWORD:-testpassword123}"
-TEST_DOMAIN="${TEST_DOMAIN:-example.com}"
+TEST_DOMAIN="${TEST_DOMAIN:-privatemail.local}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -238,7 +238,7 @@ test_send_email() {
     response=$(curl -s -w "\n%{http_code}" -X POST "$API_BASE_URL/api/v1/send" \
         -H "Content-Type: application/json" \
         -H "X-API-Key: $API_KEY" \
-        -d "{\"to\":\"recipient@example.com\",\"from\":\"sender@$TEST_DOMAIN\",\"subject\":\"Test Email\",\"body\":\"This is a test email.\"}")
+        -d "{\"to\":[\"recipient@example.com\"],\"from\":\"sender@$TEST_DOMAIN\",\"subject\":\"Test Email\",\"text_body\":\"This is a test email.\"}")
     
     http_code=$(echo "$response" | tail -n1)
     body=$(echo "$response" | head -n -1)
@@ -307,7 +307,7 @@ run_tests() {
     #local total=${#tests[@]}
     
     # Set up cleanup trap
-    trap cleanup EXIT
+    #trap cleanup EXIT
     
     for test in "${tests[@]}"; do
         echo "test: $test"
