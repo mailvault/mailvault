@@ -18,6 +18,7 @@ endef
 .PHONY: build
 build:
 	$(call goBuild,service,"service")
+	$(call goBuild,smtpd,"smtpd")
 
 # ###########
 # Setup

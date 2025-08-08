@@ -1,0 +1,176 @@
+package smtp
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"strings"
+	"time"
+
+	"mailsafe/domain/email"
+	"mailsafe/domain/entities"
+
+	"github.com/emersion/go-smtp"
+	"github.com/gofrs/uuid/v5"
+)
+
+// Session represents an SMTP session
+type Session struct {
+	backend *Backend
+	conn    *smtp.Conn
+	logger  *slog.Logger
+	from    string
+	to      []string
+}
+
+// AuthPlain handles PLAIN authentication (optional)
+func (s *Session) AuthPlain(username, password string) error {
+	// For now, we don't require authentication for receiving emails
+	// This could be extended to support authenticated relaying
+	return nil
+}
+
+// Mail sets the return path for the email
+func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
+	s.logger.Info("SMTP Mail from", "from", from)
+	s.from = from
+	return nil
+}
+
+// Rcpt sets a recipient for the email
+func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
+	s.logger.Info("SMTP Rcpt to", "to", to)
+	s.to = append(s.to, to)
+	return nil
+}
+
+// Data receives the email data
+func (s *Session) Data(r io.Reader) error {
+	// Read the entire email body
+	body, err := io.ReadAll(r)
+	if err != nil {
+		s.logger.Error("Failed to read email body", "error", err)
+		return err
+	}
+
+	s.logger.Info("SMTP Data received", "from", s.from, "to", s.to, "size", len(body))
+
+	// Process each recipient
+	for _, recipient := range s.to {
+		err := s.processEmail(recipient, body)
+		if err != nil {
+			s.logger.Error("Failed to process email", "recipient", recipient, "error", err)
+			// Continue processing other recipients even if one fails
+		}
+	}
+
+	return nil
+}
+
+// processEmail handles incoming email for a specific recipient
+func (s *Session) processEmail(recipient string, body []byte) error {
+	// Extract domain from recipient email
+	parts := strings.Split(recipient, "@")
+	if len(parts) != 2 {
+		return &smtp.SMTPError{Code: 550, Message: "Invalid recipient address"}
+	}
+
+	localPart := parts[0]
+	domainName := parts[1]
+
+	// Get domain configuration
+	domain, err := s.backend.domainUseCase.GetDomainByName(context.Background(), domainName)
+	if err != nil {
+		s.logger.Error("Domain not found", "domain", domainName, "error", err)
+		return &smtp.SMTPError{Code: 550, Message: "Domain not configured"}
+	}
+
+	// Check if domain is verified
+	if !domain.Verified {
+		s.logger.Warn("Email rejected: domain not verified", "domain", domainName)
+		return &smtp.SMTPError{Code: 550, Message: "Domain not verified"}
+	}
+
+	// Try to find specific email address first
+	emailAddress, err := s.backend.emailUseCase.GetEmailAddressByAddress(context.Background(), recipient)
+	if err != nil {
+		// If specific email not found, check if domain has catch-all enabled
+		// For now, we'll create the email address if it doesn't exist and domain allows it
+		s.logger.Info("Email address not found, checking domain policy", "email", recipient)
+		
+		// Create new email address (this could be configurable per domain)
+		emailAddress = &entities.EmailAddress{
+			ID:               uuid.Must(uuid.NewV4()),
+			DomainID:         domain.ID,
+			LocalPart:        localPart,
+			IsCatchAll:       false,
+			ForwardAddresses: []string{}, // No forwarding by default
+			CreatedAt:        time.Now(),
+			UpdatedAt:        time.Now(),
+		}
+
+		err = s.backend.emailUseCase.CreateEmailAddress(context.Background(), emailAddress)
+		if err != nil {
+			s.logger.Error("Failed to create email address", "email", recipient, "error", err)
+			return err
+		}
+	}
+
+	// Parse email headers to extract subject and from address
+	subject, fromAddr := s.parseEmailHeaders(string(body))
+
+	// Process the incoming email
+	err = s.backend.emailUseCase.ProcessIncomingEmail(context.Background(), email.ProcessIncomingEmailInput{
+		EmailAddressID: emailAddress.ID,
+		FromAddress:    fromAddr,
+		Subject:        subject,
+		Body:           string(body),
+		DomainID:       domain.ID,
+	})
+
+	if err != nil {
+		s.logger.Error("Failed to process incoming email", "error", err)
+		return err
+	}
+
+	s.logger.Info("Email processed successfully", "recipient", recipient, "from", fromAddr, "subject", subject)
+	return nil
+}
+
+// parseEmailHeaders extracts basic information from email headers
+func (s *Session) parseEmailHeaders(body string) (subject, from string) {
+	lines := strings.Split(body, "\n")
+	
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			break // End of headers
+		}
+		
+		if strings.HasPrefix(strings.ToLower(line), "subject:") {
+			subject = strings.TrimSpace(line[8:]) // Remove "Subject: "
+		} else if strings.HasPrefix(strings.ToLower(line), "from:") {
+			from = strings.TrimSpace(line[5:]) // Remove "From: "
+		}
+	}
+	
+	if subject == "" {
+		subject = "(No Subject)"
+	}
+	if from == "" {
+		from = "(Unknown Sender)"
+	}
+	
+	return subject, from
+}
+
+// Reset resets the session state
+func (s *Session) Reset() {
+	s.from = ""
+	s.to = nil
+}
+
+// Logout ends the session
+func (s *Session) Logout() error {
+	return nil
+}
