@@ -3,9 +3,10 @@ package user
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -21,9 +22,9 @@ func NewUseCase(repo Repository) *UseCase {
 }
 
 type CreateUserInput struct {
-	Email          string  `json:"email"`
-	AuthProvider   string  `json:"auth_provider"`
-	AuthProviderID *string `json:"auth_provider_id"`
+	Email          string `json:"email"`
+	AuthProvider   string `json:"auth_provider"`
+	AuthProviderID string `json:"auth_provider_id"`
 }
 
 func (uc *UseCase) CreateUser(ctx context.Context, req CreateUserInput) (*entities.User, error) {
@@ -53,6 +54,8 @@ func (uc *UseCase) CreateUser(ctx context.Context, req CreateUserInput) (*entiti
 	if !user.IsValid() {
 		return nil, fmt.Errorf("invalid user data")
 	}
+
+	slog.Info("creating user", "user", user)
 
 	if err := uc.repo.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -102,9 +105,9 @@ func (uc *UseCase) GetOrCreateUserByAuthProvider(ctx context.Context, provider, 
 	user, err = uc.repo.GetByEmail(ctx, email)
 	if err == nil && user != nil {
 		// Update user with auth provider info if it's different
-		if user.AuthProvider != provider || (user.AuthProviderID != nil && *user.AuthProviderID != providerID) {
+		if user.AuthProvider != provider || user.AuthProviderID != providerID {
 			user.AuthProvider = provider
-			user.AuthProviderID = &providerID
+			user.AuthProviderID = providerID
 			user.UpdatedAt = time.Now()
 
 			if err := uc.repo.Update(ctx, user); err != nil {
@@ -118,6 +121,6 @@ func (uc *UseCase) GetOrCreateUserByAuthProvider(ctx context.Context, provider, 
 	return uc.CreateUser(ctx, CreateUserInput{
 		Email:          email,
 		AuthProvider:   provider,
-		AuthProviderID: &providerID,
+		AuthProviderID: providerID,
 	})
 }

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -141,6 +141,19 @@ func (uc *UseCase) GetDomainByAPIKey(ctx context.Context, apiKey string) (*entit
 	domain, err := uc.repo.GetByAPIKey(ctx, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get domain by API key: %w", err)
+	}
+
+	return domain, nil
+}
+
+func (uc *UseCase) GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error) {
+	if domainName == "" {
+		return nil, fmt.Errorf("domain name is required")
+	}
+
+	domain, err := uc.repo.GetByDomain(ctx, strings.ToLower(domainName))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain by name: %w", err)
 	}
 
 	return domain, nil

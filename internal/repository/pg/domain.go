@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 
-	"privatemail/domain/entities"
-	domain "privatemail/domain/domain"
+	"mailsafe/domain/entities"
+	domain "mailsafe/domain/domain"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"

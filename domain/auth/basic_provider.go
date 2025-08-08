@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"privatemail/domain/entities"
+	"mailsafe/domain/entities"
 )
 
 type BasicProvider struct {
