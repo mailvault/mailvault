@@ -8,6 +8,8 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/repository.go . Repository
+
 type Repository interface {
 	Create(ctx context.Context, domain *entities.Domain) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error)

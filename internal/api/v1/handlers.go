@@ -4,9 +4,6 @@ import (
 	"net/http"
 
 	"mailsafe/domain/auth"
-	domainpkg "mailsafe/domain/domain"
-	"mailsafe/domain/email"
-	"mailsafe/domain/user"
 	"mailsafe/internal/api/middleware"
 	"mailsafe/internal/config"
 
@@ -16,9 +13,9 @@ import (
 
 type ApiHandlers struct {
 	AuthProvider  auth.Provider
-	UserUseCase   *user.UseCase
-	DomainUseCase *domainpkg.UseCase
-	EmailUseCase  *email.UseCase
+	UserUseCase   UserUseCase
+	DomainUseCase DomainUseCase
+	EmailUseCase  EmailUseCase
 	Config        config.Config
 }
 
@@ -87,9 +84,4 @@ func errorResponse(w http.ResponseWriter, r *http.Request, code int, err error) 
 	render.JSON(w, r, ErrorResponseBody{
 		Error: err.Error(),
 	})
-}
-
-func unknownErrorResponse(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusInternalServerError)
-	render.PlainText(w, r, http.StatusText(http.StatusInternalServerError))
 }
