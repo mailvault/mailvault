@@ -1,21 +1,35 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
-	"mailsafe/domain/entities"
 	"mailsafe/domain/email"
+	"mailsafe/domain/entities"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gofrs/uuid/v5"
 )
+
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/email_usecase.go . EmailUseCase
+
+// EmailUseCase defines the behavior required by this package from the email use case.
+type EmailUseCase interface {
+	CreateEmailAddressFromInput(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error)
+	GetEmailAddressesByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error)
+	GetEmailAddressByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)
+	UpdateEmailAddress(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error)
+	DeleteEmailAddress(ctx context.Context, id uuid.UUID) error
+	GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
+}
 
 // EmailsHandlers contains email-related endpoints
 type EmailsHandlers struct {
-	emailUseCase *email.UseCase
+	emailUseCase EmailUseCase
 }
 
-func NewEmailsHandlers(emailUseCase *email.UseCase) *EmailsHandlers {
+func NewEmailsHandlers(emailUseCase EmailUseCase) *EmailsHandlers {
 	return &EmailsHandlers{
 		emailUseCase: emailUseCase,
 	}
@@ -28,7 +42,7 @@ type CreateEmailRequest struct {
 	ForwardAddresses []string `json:"forward_addresses,omitempty"`
 }
 
-// UpdateEmailRequest represents email address update request  
+// UpdateEmailRequest represents email address update request
 type UpdateEmailRequest struct {
 	IsCatchAll       *bool    `json:"is_catch_all,omitempty"`
 	ForwardAddresses []string `json:"forward_addresses,omitempty"`
@@ -185,7 +199,7 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 	}
 
 	pagination := getPaginationParams(r)
-	
+
 	receivedEmails, err := h.emailUseCase.GetReceivedEmails(r.Context(), emailID, pagination.Limit, pagination.Offset)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)

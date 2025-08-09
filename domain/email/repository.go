@@ -8,6 +8,10 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/email_address_repository.go . EmailAddressRepository
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/received_email_repository.go . ReceivedEmailRepository
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/domain_repository.go . DomainRepository
+
 type EmailAddressRepository interface {
 	Create(ctx context.Context, emailAddress *entities.EmailAddress) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)

@@ -92,5 +92,5 @@ func createdResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
 
 // noContentResponse sends a 204 no content response
 func noContentResponse(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -1,29 +1,38 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"mailsafe/domain/auth"
-	"mailsafe/domain/user"
+	"mailsafe/domain/entities"
 
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"github.com/gofrs/uuid/v5"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/user_usecase.go . UserUseCase
+type UserUseCase interface {
+	GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
+	GetOrCreateUserByAuthProvider(ctx context.Context, provider, providerID, email string) (*entities.User, error)
+}
 
 // AuthHandlers contains authentication-related endpoints
 type AuthHandlers struct {
 	authProvider auth.Provider
-	userUseCase  *user.UseCase
+	userUseCase  UserUseCase
 	validator    *validator.Validate
 	jwtSecret    []byte
 	jwtTTL       time.Duration
 }
 
-func NewAuthHandlers(authProvider auth.Provider, userUseCase *user.UseCase, jwtSecret []byte, jwtTTL time.Duration) *AuthHandlers {
+func NewAuthHandlers(authProvider auth.Provider, userUseCase UserUseCase, jwtSecret []byte, jwtTTL time.Duration) *AuthHandlers {
 	return &AuthHandlers{
 		authProvider: authProvider,
 		userUseCase:  userUseCase,

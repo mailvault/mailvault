@@ -1,21 +1,36 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
-	"mailsafe/domain/entities"
 	domainpkg "mailsafe/domain/domain"
+	"mailsafe/domain/entities"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gofrs/uuid/v5"
 )
+
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/domain_usecase.go . DomainUseCase
+
+// DomainUseCase defines the behavior required by this package from the domain use case.
+type DomainUseCase interface {
+	CreateDomain(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error)
+	GetDomainsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error)
+	GetDomainByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error)
+	UpdateDomain(ctx context.Context, id uuid.UUID, req domainpkg.UpdateDomainInput) (*entities.Domain, error)
+	DeleteDomain(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
+	GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error)
+	GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error)
+}
 
 // DomainsHandlers contains domain-related endpoints
 type DomainsHandlers struct {
-	domainUseCase *domainpkg.UseCase
+	domainUseCase DomainUseCase
 }
 
-func NewDomainsHandlers(domainUseCase *domainpkg.UseCase) *DomainsHandlers {
+func NewDomainsHandlers(domainUseCase DomainUseCase) *DomainsHandlers {
 	return &DomainsHandlers{
 		domainUseCase: domainUseCase,
 	}
@@ -23,10 +38,10 @@ func NewDomainsHandlers(domainUseCase *domainpkg.UseCase) *DomainsHandlers {
 
 // CreateDomainRequest represents domain creation request
 type CreateDomainRequest struct {
-	Domain         string                  `json:"domain" validate:"required"`
-	PublicKey      string                  `json:"public_key" validate:"required"`
-	WebhookConfig  *WebhookConfigRequest   `json:"webhook_config,omitempty"`
-	StorageEnabled *bool                   `json:"storage_enabled,omitempty"`
+	Domain         string                `json:"domain" validate:"required"`
+	PublicKey      string                `json:"public_key" validate:"required"`
+	WebhookConfig  *WebhookConfigRequest `json:"webhook_config,omitempty"`
+	StorageEnabled *bool                 `json:"storage_enabled,omitempty"`
 }
 
 // UpdateDomainRequest represents domain update request
@@ -47,15 +62,15 @@ type WebhookConfigRequest struct {
 
 // DomainResult represents domain data in responses
 type DomainResult struct {
-	ID             string                `json:"id"`
-	Domain         string                `json:"domain"`
-	PublicKey      string                `json:"public_key"`
-	APIKey         string                `json:"api_key"`
-	Verified       bool                  `json:"verified"`
-	WebhookConfig  *WebhookConfigResult  `json:"webhook_config,omitempty"`
-	StorageEnabled bool                  `json:"storage_enabled"`
-	CreatedAt      string                `json:"created_at"`
-	UpdatedAt      string                `json:"updated_at"`
+	ID             string               `json:"id"`
+	Domain         string               `json:"domain"`
+	PublicKey      string               `json:"public_key"`
+	APIKey         string               `json:"api_key"`
+	Verified       bool                 `json:"verified"`
+	WebhookConfig  *WebhookConfigResult `json:"webhook_config,omitempty"`
+	StorageEnabled bool                 `json:"storage_enabled"`
+	CreatedAt      string               `json:"created_at"`
+	UpdatedAt      string               `json:"updated_at"`
 }
 
 // WebhookConfigResult represents webhook configuration in responses
@@ -188,7 +203,7 @@ func (h *DomainsHandlers) UpdateDomain(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, r, http.StatusNotFound, err)
 		return
 	}
-	
+
 	if domain.UserID != userID {
 		errorResponse(w, r, http.StatusForbidden, ErrUnauthorized)
 		return

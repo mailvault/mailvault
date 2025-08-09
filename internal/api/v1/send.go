@@ -1,23 +1,31 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 
-	domainpkg "mailsafe/domain/domain"
+	"mailsafe/domain/entities"
 
 	"github.com/go-chi/render"
 )
 
-// SendHandlers contains email sending endpoints
-type SendHandlers struct {
-	domainUseCase *domainpkg.UseCase
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/send_usecase.go . SendUseCase
+
+// SendUseCase defines the behavior required by this package from the send use case.
+type SendUseCase interface {
+	GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error)
 }
 
-func NewSendHandlers(domainUseCase *domainpkg.UseCase) *SendHandlers {
+// SendHandlers contains email sending endpoints
+type SendHandlers struct {
+	sendUseCase SendUseCase
+}
+
+func NewSendHandlers(sendUseCase SendUseCase) *SendHandlers {
 	return &SendHandlers{
-		domainUseCase: domainUseCase,
+		sendUseCase: sendUseCase,
 	}
 }
 
@@ -56,9 +64,9 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate API key and get domain
-	domain, err := h.domainUseCase.GetDomainByAPIKey(r.Context(), apiKey)
+	domain, err := h.sendUseCase.GetDomainByAPIKey(r.Context(), apiKey)
 	if err != nil {
-		errorResponse(w, r, http.StatusUnauthorized, ErrUnauthorized)
+		errorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
