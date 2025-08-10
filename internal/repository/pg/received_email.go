@@ -26,9 +26,10 @@ func (r *ReceivedEmailRepository) Create(ctx context.Context, receivedEmail *ent
 	query := `
 		INSERT INTO received_emails (id, email_address_id, from_address, subject, encrypted_body, received_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING sequence_number
 	`
 	
-	_, err := r.db.Exec(ctx, query,
+	row := r.db.QueryRow(ctx, query,
 		receivedEmail.ID,
 		receivedEmail.EmailAddressID,
 		receivedEmail.FromAddress,
@@ -37,12 +38,12 @@ func (r *ReceivedEmailRepository) Create(ctx context.Context, receivedEmail *ent
 		receivedEmail.ReceivedAt,
 	)
 	
-	return err
+	return row.Scan(&receivedEmail.SequenceNumber)
 }
 
 func (r *ReceivedEmailRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.ReceivedEmail, error) {
 	query := `
-		SELECT id, email_address_id, from_address, subject, encrypted_body, received_at
+		SELECT id, email_address_id, sequence_number, from_address, subject, encrypted_body, received_at
 		FROM received_emails
 		WHERE id = $1
 	`
@@ -52,10 +53,10 @@ func (r *ReceivedEmailRepository) GetByID(ctx context.Context, id uuid.UUID) (*e
 
 func (r *ReceivedEmailRepository) GetByEmailAddressID(ctx context.Context, emailAddressID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error) {
 	query := `
-		SELECT id, email_address_id, from_address, subject, encrypted_body, received_at
+		SELECT id, email_address_id, sequence_number, from_address, subject, encrypted_body, received_at
 		FROM received_emails
 		WHERE email_address_id = $1
-		ORDER BY received_at DESC
+		ORDER BY sequence_number DESC
 		LIMIT $2 OFFSET $3
 	`
 	
@@ -119,6 +120,7 @@ func (r *ReceivedEmailRepository) scanReceivedEmail(row pgx.Row) (*entities.Rece
 	err := row.Scan(
 		&e.ID,
 		&e.EmailAddressID,
+		&e.SequenceNumber,
 		&e.FromAddress,
 		&e.Subject,
 		&e.EncryptedBody,
@@ -141,6 +143,7 @@ func (r *ReceivedEmailRepository) scanReceivedEmailFromRows(rows pgx.Rows) (*ent
 	err := rows.Scan(
 		&e.ID,
 		&e.EmailAddressID,
+		&e.SequenceNumber,
 		&e.FromAddress,
 		&e.Subject,
 		&e.EncryptedBody,
