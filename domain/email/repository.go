@@ -31,5 +31,6 @@ type ReceivedEmailRepository interface {
 }
 
 type DomainRepository interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error)
 	GetByDomain(ctx context.Context, domain string) (*entities.Domain, error)
 }

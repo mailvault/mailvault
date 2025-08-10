@@ -64,6 +64,9 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 				r.Delete("/{emailId}", emailsHandlers.DeleteEmailAddress)
 				r.Get("/{emailId}/received", emailsHandlers.GetReceivedEmails)
 			})
+
+			// Direct access to received emails by ID
+			r.Get("/received/{receivedEmailId}", emailsHandlers.GetReceivedEmail)
 		})
 
 		// Public email sending endpoint (API key auth)

@@ -22,6 +22,7 @@ type EmailUseCase interface {
 	UpdateEmailAddress(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error)
 	DeleteEmailAddress(ctx context.Context, id uuid.UUID) error
 	GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
+	GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error)
 }
 
 // EmailsHandlers contains email-related endpoints
@@ -62,11 +63,12 @@ type EmailAddressResult struct {
 
 // ReceivedEmailResult represents received email data in responses
 type ReceivedEmailResult struct {
-	ID            string `json:"id"`
-	FromAddress   string `json:"from_address"`
-	Subject       string `json:"subject"`
-	EncryptedBody string `json:"encrypted_body"`
-	ReceivedAt    string `json:"received_at"`
+	ID             string `json:"id"`
+	SequenceNumber int    `json:"sequence_number"`
+	FromAddress    string `json:"from_address"`
+	Subject        string `json:"subject"`
+	EncryptedBody  string `json:"encrypted_body"`
+	ReceivedAt     string `json:"received_at"`
 }
 
 // CreateEmailAddress creates a new email address for a domain
@@ -226,6 +228,32 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 	successResponse(w, r, response)
 }
 
+// GetReceivedEmail gets a specific received email by ID
+func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request) {
+	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
+	receivedEmailID, err := parseUUID(receivedEmailIDStr)
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Get user ID from context
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		errorResponse(w, r, http.StatusUnauthorized, err)
+		return
+	}
+
+	receivedEmail, err := h.emailUseCase.GetReceivedEmailByID(r.Context(), receivedEmailID, userID)
+	if err != nil {
+		errorResponse(w, r, http.StatusNotFound, err)
+		return
+	}
+
+	result := h.mapReceivedEmailToResult(receivedEmail)
+	successResponse(w, r, result)
+}
+
 // mapEmailAddressToResult converts email address entity to API result
 func (h *EmailsHandlers) mapEmailAddressToResult(emailAddress *entities.EmailAddress, domain string) *EmailAddressResult {
 	fullAddress := emailAddress.LocalPart + "@" + domain
@@ -253,10 +281,11 @@ func (h *EmailsHandlers) mapReceivedEmailToResult(receivedEmail *entities.Receiv
 	}
 
 	return &ReceivedEmailResult{
-		ID:            receivedEmail.ID.String(),
-		FromAddress:   receivedEmail.FromAddress,
-		Subject:       subject,
-		EncryptedBody: receivedEmail.EncryptedBody,
-		ReceivedAt:    receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:             receivedEmail.ID.String(),
+		SequenceNumber: receivedEmail.SequenceNumber,
+		FromAddress:    receivedEmail.FromAddress,
+		Subject:        subject,
+		EncryptedBody:  receivedEmail.EncryptedBody,
+		ReceivedAt:     receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

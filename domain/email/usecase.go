@@ -287,6 +287,45 @@ func (uc *UseCase) GetReceivedEmails(ctx context.Context, emailAddressID uuid.UU
 	return emails, nil
 }
 
+func (uc *UseCase) GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error) {
+	if receivedEmailID == uuid.Nil {
+		return nil, fmt.Errorf("received email ID is required")
+	}
+	
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("user ID is required")
+	}
+
+	// Get the received email
+	receivedEmail, err := uc.receivedEmailRepo.GetByID(ctx, receivedEmailID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get received email: %w", err)
+	}
+
+	// Verify that this email belongs to an email address owned by the user
+	if receivedEmail.EmailAddressID == nil {
+		return nil, fmt.Errorf("received email has no associated email address")
+	}
+
+	emailAddress, err := uc.emailRepo.GetByID(ctx, *receivedEmail.EmailAddressID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get email address: %w", err)
+	}
+
+	// Get the domain to verify ownership
+	domain, err := uc.domainRepo.GetByID(ctx, emailAddress.DomainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	// Check if the user owns this domain
+	if domain.UserID != userID {
+		return nil, fmt.Errorf("access denied: email does not belong to user")
+	}
+
+	return receivedEmail, nil
+}
+
 // Validation helpers
 func isValidLocalPart(localPart string) bool {
 	// Basic local part validation (simplified)
