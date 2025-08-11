@@ -5,6 +5,7 @@ package mocks
 
 import (
 	"context"
+	"github.com/gofrs/uuid/v5"
 	"mailsafe/domain/entities"
 	"sync"
 )
@@ -18,6 +19,9 @@ import (
 //			GetByDomainFunc: func(ctx context.Context, domain string) (*entities.Domain, error) {
 //				panic("mock out the GetByDomain method")
 //			},
+//			GetByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+//				panic("mock out the GetByID method")
+//			},
 //		}
 //
 //		// use mockedDomainRepository in code that requires email.DomainRepository
@@ -28,6 +32,9 @@ type DomainRepositoryMock struct {
 	// GetByDomainFunc mocks the GetByDomain method.
 	GetByDomainFunc func(ctx context.Context, domain string) (*entities.Domain, error)
 
+	// GetByIDFunc mocks the GetByID method.
+	GetByIDFunc func(ctx context.Context, id uuid.UUID) (*entities.Domain, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// GetByDomain holds details about calls to the GetByDomain method.
@@ -37,8 +44,16 @@ type DomainRepositoryMock struct {
 			// Domain is the domain argument value.
 			Domain string
 		}
+		// GetByID holds details about calls to the GetByID method.
+		GetByID []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID uuid.UUID
+		}
 	}
 	lockGetByDomain sync.RWMutex
+	lockGetByID     sync.RWMutex
 }
 
 // GetByDomain calls GetByDomainFunc.
@@ -78,5 +93,45 @@ func (mock *DomainRepositoryMock) GetByDomainCalls() []struct {
 	mock.lockGetByDomain.RLock()
 	calls = mock.calls.GetByDomain
 	mock.lockGetByDomain.RUnlock()
+	return calls
+}
+
+// GetByID calls GetByIDFunc.
+func (mock *DomainRepositoryMock) GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+	callInfo := struct {
+		Ctx context.Context
+		ID  uuid.UUID
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockGetByID.Lock()
+	mock.calls.GetByID = append(mock.calls.GetByID, callInfo)
+	mock.lockGetByID.Unlock()
+	if mock.GetByIDFunc == nil {
+		var (
+			domainOut *entities.Domain
+			errOut    error
+		)
+		return domainOut, errOut
+	}
+	return mock.GetByIDFunc(ctx, id)
+}
+
+// GetByIDCalls gets all the calls that were made to GetByID.
+// Check the length with:
+//
+//	len(mockedDomainRepository.GetByIDCalls())
+func (mock *DomainRepositoryMock) GetByIDCalls() []struct {
+	Ctx context.Context
+	ID  uuid.UUID
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  uuid.UUID
+	}
+	mock.lockGetByID.RLock()
+	calls = mock.calls.GetByID
+	mock.lockGetByID.RUnlock()
 	return calls
 }
