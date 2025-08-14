@@ -2,38 +2,59 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
-	domainUseCase "mailsafe/domain/domain"
-	"mailsafe/domain/email"
-	"mailsafe/internal/repository/pg"
-	"mailsafe/internal/smtp"
+	"mailvault/app/smtp"
+	domainUseCase "mailvault/domain/domain"
+	"mailvault/domain/email"
+	"mailvault/gateway/repository/pg"
 
 	"github.com/guilhermebr/gox/logger"
 	"github.com/guilhermebr/gox/postgres"
-	"github.com/joho/godotenv"
+)
+
+// Injected on build time by ldflags.
+var (
+	BuildCommit = "undefined"
+	BuildTime   = "undefined"
 )
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: .env file not found")
+	var cfg Config
+	if err := cfg.Load(""); err != nil {
+		panic(fmt.Errorf("loading config: %w", err))
 	}
 
 	// Initialize logger
 	logger, err := logger.NewLogger("")
 	if err != nil {
-		log.Fatal("Failed to create logger:", err)
+		panic(fmt.Errorf("creating logger: %w", err))
 	}
+
+	logger = logger.With(
+		slog.String("environment", cfg.Environment),
+	)
+
+	log := logger.With(
+		slog.String("environment", cfg.Environment),
+		slog.String("build_commit", BuildCommit),
+		slog.String("build_time", BuildTime),
+		slog.Int("go_max_procs", runtime.GOMAXPROCS(0)),
+		slog.Int("runtime_num_cpu", runtime.NumCPU()),
+	)
 
 	// Initialize database connection
 	db, err := postgres.New(context.Background(), "")
 	if err != nil {
-		logger.Error("Failed to connect to database", "error", err)
-		os.Exit(1)
+		log.Error("failed to connect to database",
+			slog.String("error", err.Error()),
+		)
+		return
 	}
 	defer db.Close()
 
@@ -45,17 +66,33 @@ func main() {
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
 
 	// Create SMTP server
-	smtpServer, err := smtp.NewServer(domainUseCase, emailUseCase, logger)
+	smtpCfg := smtp.Config{
+		Addr:        cfg.Addr,
+		Domain:      cfg.Domain,
+		Debug:       cfg.Debug,
+		TLSMode:     smtp.TLSMode(cfg.TLSMode),
+		TLSCert:     cfg.TLSCert,
+		TLSKey:      cfg.TLSKey,
+		TLSImplicit: cfg.TLSImplicit,
+	}
+
+	backend := smtp.NewBackend(domainUseCase, emailUseCase, logger)
+
+	smtpServer, err := smtp.NewServer(smtpCfg, backend, logger)
 	if err != nil {
-		logger.Error("Failed to create SMTP server", "error", err)
-		os.Exit(1)
+		log.Error("failed to create SMTP server",
+			slog.String("error", err.Error()),
+		)
+		return
 	}
 
 	// Start server in goroutine
 	go func() {
 		if err := smtpServer.Start(); err != nil {
-			logger.Error("SMTP server failed", "error", err)
-			os.Exit(1)
+			log.Error("SMTP server failed",
+				slog.String("error", err.Error()),
+			)
+			return
 		}
 	}()
 
@@ -64,20 +101,15 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	logger.Info("Shutting down SMTP server...")
+	log.Info("shutting down SMTP server...")
 
 	// Stop server gracefully
 	ctx := context.Background()
 	if err := smtpServer.Stop(ctx); err != nil {
-		logger.Error("Error during SMTP server shutdown", "error", err)
+		log.Error("error during SMTP server shutdown",
+			slog.String("error", err.Error()),
+		)
 	}
 
-	logger.Info("SMTP server stopped")
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
+	log.Info("SMTP server stopped")
 }
