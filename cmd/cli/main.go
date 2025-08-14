@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"mailsafe/internal/cli"
+	"mailvault/app/cli"
 )
 
 func main() {

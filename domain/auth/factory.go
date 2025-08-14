@@ -17,6 +17,8 @@ func NewAuthProvider(config Config) (Provider, error) {
 		return NewSupabaseProvider(config.SupabaseURL, config.SupabaseAPIKey), nil
 	case "basic":
 		return NewBasicProvider(), nil
+	case "mock":
+		return NewMockProvider(), nil
 	default:
 		return nil, fmt.Errorf("unsupported auth provider: %s", config.Provider)
 	}

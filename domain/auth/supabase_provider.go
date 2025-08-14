@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"mailsafe/domain/entities"
+	"mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/supabase-community/gotrue-go/types"

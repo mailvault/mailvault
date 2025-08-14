@@ -5,16 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mailsafe/domain/auth"
-	domainpkg "mailsafe/domain/domain"
-	"mailsafe/domain/email"
-	"mailsafe/domain/user"
-	"mailsafe/internal/api"
-	v1 "mailsafe/internal/api/v1"
-	"mailsafe/internal/config"
-	"mailsafe/internal/repository/pg"
+	"mailvault/app/api"
+	v1 "mailvault/app/api/v1"
+	"mailvault/domain/auth"
+	domainpkg "mailvault/domain/domain"
+	"mailvault/domain/email"
+	"mailvault/domain/user"
+	"mailvault/gateway/repository/pg"
 	"net/http"
-	"os"
 	"runtime"
 	"time"
 
@@ -31,7 +29,7 @@ var (
 func main() {
 	ctx := context.Background()
 
-	var cfg config.Config
+	var cfg Config
 	if err := cfg.Load(""); err != nil {
 		panic(fmt.Errorf("loading config: %w", err))
 	}
@@ -95,6 +93,8 @@ func main() {
 		UserUseCase:   userUseCase,
 		DomainUseCase: domainUseCase,
 		EmailUseCase:  emailUseCase,
+		AuthSecretKey: cfg.AuthSecretKey,
+		AuthTokenTTL:  cfg.AuthTokenTTL,
 	}
 
 	router := api.Router()
@@ -116,11 +116,4 @@ func main() {
 			slog.String("error", serverErr.Error()),
 		)
 	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

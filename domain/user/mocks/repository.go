@@ -6,7 +6,7 @@ package mocks
 import (
 	"context"
 	"github.com/gofrs/uuid/v5"
-	"mailsafe/domain/entities"
+	"mailvault/domain/entities"
 	"sync"
 )
 
