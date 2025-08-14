@@ -47,6 +47,17 @@ type SendEmailResponse struct {
 }
 
 // SendEmail sends an email using the domain's API key
+// @Summary Send email
+// @Description Send an email using domain API key authentication. The from address must belong to the authenticated domain.
+// @Tags Email Sending
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param request body SendEmailRequest true "Email sending details"
+// @Success 202 {object} SendEmailResponse "Email queued for delivery"
+// @Failure 400 {object} ErrorResponseBody "Bad request - invalid email data"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized - invalid or missing API key"
+// @Router /send [post]
 func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 	// Extract API key from header
 	apiKey := r.Header.Get("X-API-Key")

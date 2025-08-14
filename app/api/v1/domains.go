@@ -82,6 +82,17 @@ type WebhookConfigResult struct {
 }
 
 // CreateDomain creates a new domain
+// @Summary Create a new domain
+// @Description Register a new domain for the authenticated user with encryption keys and optional webhook configuration
+// @Tags Domains
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body CreateDomainRequest true "Domain creation details"
+// @Success 201 {object} DomainResult "Domain created successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Router /domains [post]
 func (h *DomainsHandlers) CreateDomain(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromContext(r)
 	if err != nil {
@@ -124,6 +135,15 @@ func (h *DomainsHandlers) CreateDomain(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetDomains gets all domains for the authenticated user
+// @Summary Get user domains
+// @Description Retrieve all domains belonging to the authenticated user
+// @Tags Domains
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} DomainResult "List of user domains"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Router /domains [get]
 func (h *DomainsHandlers) GetDomains(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromContext(r)
 	if err != nil {
@@ -146,6 +166,18 @@ func (h *DomainsHandlers) GetDomains(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetDomain gets a specific domain by ID
+// @Summary Get domain by ID
+// @Description Retrieve a specific domain by its ID (must belong to authenticated user)
+// @Tags Domains
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Domain ID" format(uuid)
+// @Success 200 {object} DomainResult "Domain details"
+// @Failure 400 {object} ErrorResponseBody "Bad request - invalid domain ID"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 403 {object} ErrorResponseBody "Forbidden - domain does not belong to user"
+// @Failure 404 {object} ErrorResponseBody "Domain not found"
+// @Router /domains/{id} [get]
 func (h *DomainsHandlers) GetDomain(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "id")
 	domainID, err := parseUUID(domainIDStr)
@@ -177,6 +209,20 @@ func (h *DomainsHandlers) GetDomain(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateDomain updates an existing domain
+// @Summary Update domain
+// @Description Update domain settings including public key, verification status, and webhook configuration
+// @Tags Domains
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Domain ID" format(uuid)
+// @Param request body UpdateDomainRequest true "Domain update details"
+// @Success 200 {object} DomainResult "Domain updated successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 403 {object} ErrorResponseBody "Forbidden - domain does not belong to user"
+// @Failure 404 {object} ErrorResponseBody "Domain not found"
+// @Router /domains/{id} [put]
 func (h *DomainsHandlers) UpdateDomain(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "id")
 	domainID, err := parseUUID(domainIDStr)
@@ -237,6 +283,16 @@ func (h *DomainsHandlers) UpdateDomain(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteDomain deletes a domain
+// @Summary Delete domain
+// @Description Delete a domain and all associated email addresses and received emails
+// @Tags Domains
+// @Security BearerAuth
+// @Param id path string true "Domain ID" format(uuid)
+// @Success 204 "Domain deleted successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} ErrorResponseBody "Domain not found or does not belong to user"
+// @Router /domains/{id} [delete]
 func (h *DomainsHandlers) DeleteDomain(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "id")
 	domainID, err := parseUUID(domainIDStr)
