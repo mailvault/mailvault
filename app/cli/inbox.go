@@ -93,7 +93,7 @@ func runInboxList(cmd *cobra.Command, args []string) error {
 			}
 			return listEmailsForAddressResolved(client, domain, emailAddr)
 		}
-		
+
 		// Otherwise treat as domain
 		domain, err := client.ResolveDomainReference(args[0])
 		if err != nil {
@@ -361,7 +361,7 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	client := NewClient(config.ServerURL)
 	client.SetToken(config.AccessToken)
 
@@ -411,7 +411,7 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 	}
 
 	var targetEmail *ReceivedEmail
-	
+
 	// If email reference is provided, use it to find the email
 	if emailReference != "" {
 		targetEmail, err = client.FindReceivedEmailByReference(domain.ID, emailAddr.ID, emailReference)
@@ -428,21 +428,21 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 
 	// Display email details
 	shortIDStr := shortID(parseUUIDString(targetEmail.ID))
-	
+
 	fmt.Printf("Email Details:\n")
 	fmt.Printf("  Sequence:     #%d\n", targetEmail.SequenceNumber)
 	fmt.Printf("  Short ID:     %s\n", shortIDStr)
 	fmt.Printf("  Full ID:      %s\n", targetEmail.ID)
 	fmt.Printf("  From:         %s\n", targetEmail.FromAddress)
-	
+
 	if targetEmail.Subject != "" {
 		fmt.Printf("  Subject:      %s\n", targetEmail.Subject)
 	} else {
 		fmt.Printf("  Subject:      (No Subject)\n")
 	}
-	
+
 	fmt.Printf("  Received At:  %s\n", targetEmail.ReceivedAt)
-	
+
 	addressDisplay := emailAddr.LocalPart + "@" + domain.Domain
 	if emailAddr.IsCatchAll {
 		addressDisplay = "*@" + domain.Domain + " (catch-all)"
@@ -450,7 +450,8 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Delivered To: %s\n", addressDisplay)
 
 	fmt.Printf("\n")
-	displayEmailBody(targetEmail.Body)
+	// SDK uses EncryptedBody field name
+	displayEmailBody(targetEmail.EncryptedBody)
 
 	return nil
 }
@@ -472,7 +473,7 @@ func interactiveEmailSelectionResolved(client *Client, domain *Domain, emailAddr
 	}
 
 	fmt.Printf("Select email to view from %s:\n\n", addressDisplay)
-	
+
 	// Display numbered list
 	for i, email := range emails {
 		subject := email.Subject
@@ -482,28 +483,28 @@ func interactiveEmailSelectionResolved(client *Client, domain *Domain, emailAddr
 		if len(subject) > 50 {
 			subject = subject[:47] + "..."
 		}
-		
+
 		shortIDStr := shortID(parseUUIDString(email.ID))
-		
-		fmt.Printf("%2d) #%-3d %s - %s - %s\n", 
-			i+1, 
-			email.SequenceNumber, 
-			shortIDStr, 
-			email.FromAddress, 
+
+		fmt.Printf("%2d) #%-3d %s - %s - %s\n",
+			i+1,
+			email.SequenceNumber,
+			shortIDStr,
+			email.FromAddress,
 			subject)
 	}
 
 	fmt.Printf("\nEnter selection (1-%d): ", len(emails))
-	
+
 	var selection int
 	if _, err := fmt.Scanln(&selection); err != nil {
 		return nil, fmt.Errorf("failed to read selection: %w", err)
 	}
-	
+
 	if selection < 1 || selection > len(emails) {
 		return nil, fmt.Errorf("invalid selection")
 	}
-	
+
 	return emails[selection-1], nil
 }
 
@@ -520,7 +521,7 @@ func interactiveEmailSelection(client *Client, domainID, emailID string) (*Recei
 	}
 
 	fmt.Printf("Select email to view:\n\n")
-	
+
 	// Display numbered list
 	for i, email := range emails {
 		subject := email.Subject
@@ -530,28 +531,28 @@ func interactiveEmailSelection(client *Client, domainID, emailID string) (*Recei
 		if len(subject) > 50 {
 			subject = subject[:47] + "..."
 		}
-		
+
 		shortIDStr := shortID(parseUUIDString(email.ID))
-		
-		fmt.Printf("%2d) #%-3d %s - %s - %s\n", 
-			i+1, 
-			email.SequenceNumber, 
-			shortIDStr, 
-			email.FromAddress, 
+
+		fmt.Printf("%2d) #%-3d %s - %s - %s\n",
+			i+1,
+			email.SequenceNumber,
+			shortIDStr,
+			email.FromAddress,
 			subject)
 	}
 
 	fmt.Printf("\nEnter selection (1-%d): ", len(emails))
-	
+
 	var selection int
 	if _, err := fmt.Scanln(&selection); err != nil {
 		return nil, fmt.Errorf("failed to read selection: %w", err)
 	}
-	
+
 	if selection < 1 || selection > len(emails) {
 		return nil, fmt.Errorf("invalid selection")
 	}
-	
+
 	return emails[selection-1], nil
 }
 
@@ -559,7 +560,7 @@ func interactiveEmailSelection(client *Client, domainID, emailID string) (*Recei
 func displayEmailBody(body string) {
 	// Check if it looks like encrypted content (base64, PGP, etc.)
 	isEncrypted := isLikelyEncrypted(body)
-	
+
 	if isEncrypted {
 		fmt.Printf("📧 Email Content (Encrypted):\n")
 		fmt.Printf("╭─────────────────────────────────────────────────────╮\n")
@@ -567,10 +568,10 @@ func displayEmailBody(body string) {
 		fmt.Printf("│ decrypted with your domain's private key.          │\n")
 		fmt.Printf("╰─────────────────────────────────────────────────────╯\n")
 		fmt.Printf("\nEncrypted Content Preview:\n")
-		
+
 		// Show first and last few characters to indicate it's encrypted data
 		if len(body) > 100 {
-			fmt.Printf("%s...\n...[%d characters total]...\n...%s\n", 
+			fmt.Printf("%s...\n...[%d characters total]...\n...%s\n",
 				body[:50], len(body), body[len(body)-50:])
 		} else {
 			fmt.Printf("%s\n", body)
@@ -579,7 +580,7 @@ func displayEmailBody(body string) {
 		// Display as plain text (for development/testing)
 		fmt.Printf("📧 Email Content (Plain Text):\n")
 		fmt.Printf("┌─────────────────────────────────────────────────────┐\n")
-		
+
 		// Split into lines and display with proper formatting
 		lines := strings.Split(body, "\n")
 		for _, line := range lines {
@@ -596,10 +597,10 @@ func displayEmailBody(body string) {
 				fmt.Printf("│ %-51s │\n", line)
 			}
 		}
-		
+
 		fmt.Printf("└─────────────────────────────────────────────────────┘\n")
 	}
-	
+
 	// Add usage instructions
 	fmt.Printf("\n💡 Usage:\n")
 	if isEncrypted {
@@ -615,18 +616,18 @@ func displayEmailBody(body string) {
 func isLikelyEncrypted(content string) bool {
 	// Simple heuristics to detect encrypted content
 	content = strings.TrimSpace(content)
-	
+
 	// Check for PGP markers
 	if strings.Contains(content, "-----BEGIN PGP MESSAGE-----") ||
 		strings.Contains(content, "-----BEGIN ENCRYPTED MESSAGE-----") {
 		return true
 	}
-	
+
 	// Check if it looks like base64 (high ratio of alphanumeric chars)
 	if len(content) > 50 {
 		alphanumeric := 0
 		for _, r := range content {
-			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || 
+			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') ||
 				(r >= '0' && r <= '9') || r == '+' || r == '/' || r == '=' {
 				alphanumeric++
 			}
@@ -636,7 +637,7 @@ func isLikelyEncrypted(content string) bool {
 			return true
 		}
 	}
-	
+
 	// Default to plain text for now (development mode)
 	return false
 }

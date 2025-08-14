@@ -49,7 +49,7 @@ func runUserInfo(cmd *cobra.Command, args []string) error {
 	fmt.Printf("User Information:\n")
 	fmt.Printf("  ID:       %s\n", user.ID)
 	fmt.Printf("  Email:    %s\n", user.Email)
-	fmt.Printf("  Provider: %s\n", user.Provider)
+	fmt.Printf("  Provider: %s\n", user.AuthProvider)
 	fmt.Printf("  Server:   %s\n", config.ServerURL)
 
 	return nil
