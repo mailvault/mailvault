@@ -74,8 +74,17 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	})
 }
 
+// Health returns the health status of the API
+// @Summary Health check
+// @Description Check if the API is running and healthy
+// @Tags System
+// @Produce json
+// @Success 200 {object} map[string]string "API is healthy"
+// @Router /health [get]
 func (h *ApiHandlers) Health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
 }
 
 type ErrorResponseBody struct {

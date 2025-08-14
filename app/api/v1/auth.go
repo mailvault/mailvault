@@ -69,6 +69,16 @@ type UserResult struct {
 }
 
 // Register creates a new user account
+// @Summary Register a new user
+// @Description Create a new user account with email and password
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "Registration details"
+// @Success 201 {object} AuthResponse "User created successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Router /auth/register [post]
 func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -127,6 +137,17 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login authenticates a user
+// @Summary Login user
+// @Description Authenticate user with email and password
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} AuthResponse "Login successful"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Router /auth/login [post]
 func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -173,6 +194,15 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Me returns current user information
+// @Summary Get current user
+// @Description Get information about the currently authenticated user
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UserResult "Current user information"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} ErrorResponseBody "User not found"
+// @Router /auth/me [get]
 func (h *AuthHandlers) Me(w http.ResponseWriter, r *http.Request) {
 	// Get user from context (set by auth middleware)
 	userID, ok := r.Context().Value("user_id").(string)

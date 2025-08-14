@@ -72,6 +72,18 @@ type ReceivedEmailResult struct {
 }
 
 // CreateEmailAddress creates a new email address for a domain
+// @Summary Create email address
+// @Description Create a new email address for a specific domain with optional forwarding and catch-all settings
+// @Tags Emails
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param domainId path string true "Domain ID" format(uuid)
+// @Param request body CreateEmailRequest true "Email address creation details"
+// @Success 201 {object} EmailAddressResult "Email address created successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Router /domains/{domainId}/emails [post]
 func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "domainId")
 	domainID, err := parseUUID(domainIDStr)
@@ -103,6 +115,17 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 }
 
 // GetEmailAddresses gets all email addresses for a domain
+// @Summary Get domain email addresses
+// @Description Retrieve all email addresses configured for a specific domain
+// @Tags Emails
+// @Produce json
+// @Security BearerAuth
+// @Param domainId path string true "Domain ID" format(uuid)
+// @Success 200 {array} EmailAddressResult "List of email addresses"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Router /domains/{domainId}/emails [get]
 func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "domainId")
 	domainID, err := parseUUID(domainIDStr)
@@ -126,6 +149,18 @@ func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Reques
 }
 
 // GetEmailAddress gets a specific email address by ID
+// @Summary Get email address by ID
+// @Description Retrieve a specific email address by its ID
+// @Tags Emails
+// @Produce json
+// @Security BearerAuth
+// @Param domainId path string true "Domain ID" format(uuid)
+// @Param emailId path string true "Email Address ID" format(uuid)
+// @Success 200 {object} EmailAddressResult "Email address details"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} ErrorResponseBody "Email address not found"
+// @Router /domains/{domainId}/emails/{emailId} [get]
 func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
 	emailID, err := parseUUID(emailIDStr)
@@ -145,6 +180,19 @@ func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request)
 }
 
 // UpdateEmailAddress updates an existing email address
+// @Summary Update email address
+// @Description Update email address settings such as catch-all and forwarding configuration
+// @Tags Emails
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param domainId path string true "Domain ID" format(uuid)
+// @Param emailId path string true "Email Address ID" format(uuid)
+// @Param request body UpdateEmailRequest true "Email address update details"
+// @Success 200 {object} EmailAddressResult "Email address updated successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Router /domains/{domainId}/emails/{emailId} [put]
 func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
 	emailID, err := parseUUID(emailIDStr)
@@ -174,6 +222,16 @@ func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Reque
 }
 
 // DeleteEmailAddress deletes an email address
+// @Summary Delete email address
+// @Description Delete an email address and all associated received emails
+// @Tags Emails
+// @Security BearerAuth
+// @Param domainId path string true "Domain ID" format(uuid)
+// @Param emailId path string true "Email Address ID" format(uuid)
+// @Success 204 "Email address deleted successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Router /domains/{domainId}/emails/{emailId} [delete]
 func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
 	emailID, err := parseUUID(emailIDStr)
@@ -192,6 +250,20 @@ func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Reque
 }
 
 // GetReceivedEmails gets received emails for an email address
+// @Summary Get received emails
+// @Description Retrieve received emails for a specific email address with pagination
+// @Tags Emails
+// @Produce json
+// @Security BearerAuth
+// @Param domainId path string true "Domain ID" format(uuid)
+// @Param emailId path string true "Email Address ID" format(uuid)
+// @Param limit query int false "Number of emails per page" default(10)
+// @Param offset query int false "Number of emails to skip" default(0)
+// @Success 200 {object} PaginatedResponse "Paginated list of received emails"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Router /domains/{domainId}/emails/{emailId}/received [get]
 func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
 	emailID, err := parseUUID(emailIDStr)
@@ -229,6 +301,17 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 }
 
 // GetReceivedEmail gets a specific received email by ID
+// @Summary Get received email by ID
+// @Description Retrieve a specific received email by its ID (must belong to authenticated user)
+// @Tags Emails
+// @Produce json
+// @Security BearerAuth
+// @Param receivedEmailId path string true "Received Email ID" format(uuid)
+// @Success 200 {object} ReceivedEmailResult "Received email details"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} ErrorResponseBody "Received email not found"
+// @Router /domains/received/{receivedEmailId} [get]
 func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request) {
 	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
 	receivedEmailID, err := parseUUID(receivedEmailIDStr)

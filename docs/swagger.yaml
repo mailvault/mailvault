@@ -1,0 +1,850 @@
+basePath: /api/v1
+definitions:
+  app_api_v1.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/app_api_v1.UserResult'
+    type: object
+  app_api_v1.CreateDomainRequest:
+    properties:
+      domain:
+        type: string
+      public_key:
+        type: string
+      storage_enabled:
+        type: boolean
+      webhook_config:
+        $ref: '#/definitions/app_api_v1.WebhookConfigRequest'
+    required:
+    - domain
+    - public_key
+    type: object
+  app_api_v1.CreateEmailRequest:
+    properties:
+      forward_addresses:
+        items:
+          type: string
+        type: array
+      is_catch_all:
+        type: boolean
+      local_part:
+        type: string
+    required:
+    - local_part
+    type: object
+  app_api_v1.DomainResult:
+    properties:
+      api_key:
+        type: string
+      created_at:
+        type: string
+      domain:
+        type: string
+      id:
+        type: string
+      public_key:
+        type: string
+      storage_enabled:
+        type: boolean
+      updated_at:
+        type: string
+      verified:
+        type: boolean
+      webhook_config:
+        $ref: '#/definitions/app_api_v1.WebhookConfigResult'
+    type: object
+  app_api_v1.EmailAddressResult:
+    properties:
+      created_at:
+        type: string
+      domain_id:
+        type: string
+      forward_addresses:
+        items:
+          type: string
+        type: array
+      full_address:
+        type: string
+      id:
+        type: string
+      is_catch_all:
+        type: boolean
+      local_part:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  app_api_v1.ErrorResponseBody:
+    properties:
+      error:
+        type: string
+    type: object
+  app_api_v1.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  app_api_v1.PaginatedResponse:
+    properties:
+      data: {}
+      pagination:
+        properties:
+          limit:
+            type: integer
+          offset:
+            type: integer
+          total:
+            type: integer
+        type: object
+    type: object
+  app_api_v1.ReceivedEmailResult:
+    properties:
+      encrypted_body:
+        type: string
+      from_address:
+        type: string
+      id:
+        type: string
+      received_at:
+        type: string
+      sequence_number:
+        type: integer
+      subject:
+        type: string
+    type: object
+  app_api_v1.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  app_api_v1.SendEmailRequest:
+    properties:
+      bcc:
+        items:
+          type: string
+        type: array
+      cc:
+        items:
+          type: string
+        type: array
+      from:
+        type: string
+      html_body:
+        type: string
+      subject:
+        type: string
+      text_body:
+        type: string
+      to:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - from
+    - subject
+    - to
+    type: object
+  app_api_v1.SendEmailResponse:
+    properties:
+      message_id:
+        type: string
+      status:
+        type: string
+    type: object
+  app_api_v1.UpdateDomainRequest:
+    properties:
+      public_key:
+        type: string
+      storage_enabled:
+        type: boolean
+      verified:
+        type: boolean
+      webhook_config:
+        $ref: '#/definitions/app_api_v1.WebhookConfigRequest'
+    type: object
+  app_api_v1.UpdateEmailRequest:
+    properties:
+      forward_addresses:
+        items:
+          type: string
+        type: array
+      is_catch_all:
+        type: boolean
+    type: object
+  app_api_v1.UserResult:
+    properties:
+      auth_provider:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+    type: object
+  app_api_v1.WebhookConfigRequest:
+    properties:
+      enabled:
+        type: boolean
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      secret:
+        type: string
+      url:
+        type: string
+    required:
+    - url
+    type: object
+  app_api_v1.WebhookConfigResult:
+    properties:
+      enabled:
+        type: boolean
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      secret:
+        type: string
+      url:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@mailvault.sh
+    name: MailVault Support
+    url: https://mailvault.sh/support
+  description: |-
+    A private email service API that provides secure email management with domain-based configuration, encrypted storage, and developer-friendly endpoints.
+
+    MailVault allows users to:
+    - Manage custom domains for email services
+    - Create and configure email addresses with forwarding and catch-all options
+    - Send emails via API using domain API keys
+    - Receive and store encrypted emails
+    - Access received emails through secure endpoints
+
+    ## Authentication
+    The API uses JWT tokens for user authentication. Some endpoints require API keys for domain-specific operations.
+
+    ## Rate Limiting
+    API endpoints are rate limited to prevent abuse. See individual endpoint documentation for specific limits.
+  license:
+    name: MIT
+    url: https://github.com/guilhermebr/mailvault/blob/main/LICENSE
+  termsOfService: https://mailvault.sh/terms
+  title: MailVault API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/app_api_v1.AuthResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      summary: Login user
+      tags:
+      - Authentication
+  /auth/me:
+    get:
+      description: Get information about the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current user information
+          schema:
+            $ref: '#/definitions/app_api_v1.UserResult'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email and password
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/app_api_v1.AuthResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      summary: Register a new user
+      tags:
+      - Authentication
+  /domains:
+    get:
+      description: Retrieve all domains belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user domains
+          schema:
+            items:
+              $ref: '#/definitions/app_api_v1.DomainResult'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get user domains
+      tags:
+      - Domains
+    post:
+      consumes:
+      - application/json
+      description: Register a new domain for the authenticated user with encryption
+        keys and optional webhook configuration
+      parameters:
+      - description: Domain creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.CreateDomainRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Domain created successfully
+          schema:
+            $ref: '#/definitions/app_api_v1.DomainResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Create a new domain
+      tags:
+      - Domains
+  /domains/{domainId}/emails:
+    get:
+      description: Retrieve all email addresses configured for a specific domain
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: domainId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of email addresses
+          schema:
+            items:
+              $ref: '#/definitions/app_api_v1.EmailAddressResult'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get domain email addresses
+      tags:
+      - Emails
+    post:
+      consumes:
+      - application/json
+      description: Create a new email address for a specific domain with optional
+        forwarding and catch-all settings
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Email address creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.CreateEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Email address created successfully
+          schema:
+            $ref: '#/definitions/app_api_v1.EmailAddressResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Create email address
+      tags:
+      - Emails
+  /domains/{domainId}/emails/{emailId}:
+    delete:
+      description: Delete an email address and all associated received emails
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Email Address ID
+        format: uuid
+        in: path
+        name: emailId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Email address deleted successfully
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Delete email address
+      tags:
+      - Emails
+    get:
+      description: Retrieve a specific email address by its ID
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Email Address ID
+        format: uuid
+        in: path
+        name: emailId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email address details
+          schema:
+            $ref: '#/definitions/app_api_v1.EmailAddressResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "404":
+          description: Email address not found
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get email address by ID
+      tags:
+      - Emails
+    put:
+      consumes:
+      - application/json
+      description: Update email address settings such as catch-all and forwarding
+        configuration
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Email Address ID
+        format: uuid
+        in: path
+        name: emailId
+        required: true
+        type: string
+      - description: Email address update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.UpdateEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email address updated successfully
+          schema:
+            $ref: '#/definitions/app_api_v1.EmailAddressResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Update email address
+      tags:
+      - Emails
+  /domains/{domainId}/emails/{emailId}/received:
+    get:
+      description: Retrieve received emails for a specific email address with pagination
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Email Address ID
+        format: uuid
+        in: path
+        name: emailId
+        required: true
+        type: string
+      - default: 10
+        description: Number of emails per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of emails to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of received emails
+          schema:
+            $ref: '#/definitions/app_api_v1.PaginatedResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get received emails
+      tags:
+      - Emails
+  /domains/{id}:
+    delete:
+      description: Delete a domain and all associated email addresses and received
+        emails
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Domain deleted successfully
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "404":
+          description: Domain not found or does not belong to user
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Delete domain
+      tags:
+      - Domains
+    get:
+      description: Retrieve a specific domain by its ID (must belong to authenticated
+        user)
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domain details
+          schema:
+            $ref: '#/definitions/app_api_v1.DomainResult'
+        "400":
+          description: Bad request - invalid domain ID
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "403":
+          description: Forbidden - domain does not belong to user
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "404":
+          description: Domain not found
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get domain by ID
+      tags:
+      - Domains
+    put:
+      consumes:
+      - application/json
+      description: Update domain settings including public key, verification status,
+        and webhook configuration
+      parameters:
+      - description: Domain ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Domain update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.UpdateDomainRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domain updated successfully
+          schema:
+            $ref: '#/definitions/app_api_v1.DomainResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "403":
+          description: Forbidden - domain does not belong to user
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "404":
+          description: Domain not found
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Update domain
+      tags:
+      - Domains
+  /domains/received/{receivedEmailId}:
+    get:
+      description: Retrieve a specific received email by its ID (must belong to authenticated
+        user)
+      parameters:
+      - description: Received Email ID
+        format: uuid
+        in: path
+        name: receivedEmailId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Received email details
+          schema:
+            $ref: '#/definitions/app_api_v1.ReceivedEmailResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "404":
+          description: Received email not found
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get received email by ID
+      tags:
+      - Emails
+  /health:
+    get:
+      description: Check if the API is running and healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API is healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - System
+  /send:
+    post:
+      consumes:
+      - application/json
+      description: Send an email using domain API key authentication. The from address
+        must belong to the authenticated domain.
+      parameters:
+      - description: Email sending details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_api_v1.SendEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Email queued for delivery
+          schema:
+            $ref: '#/definitions/app_api_v1.SendEmailResponse'
+        "400":
+          description: Bad request - invalid email data
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+        "401":
+          description: Unauthorized - invalid or missing API key
+          schema:
+            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Send email
+      tags:
+      - Email Sending
+schemes:
+- http
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    description: Domain API key for sending emails
+    in: header
+    name: X-API-Key
+    type: apiKey
+  BearerAuth:
+    description: 'JWT token authentication. Format: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
