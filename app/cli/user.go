@@ -10,7 +10,7 @@ import (
 var userCmd = &cobra.Command{
 	Use:   "user",
 	Short: "User account management",
-	Long:  "Manage your MailSafe user account and view account information.",
+	Long:  "Manage your MailVault user account and view account information.",
 }
 
 var userInfoCmd = &cobra.Command{
@@ -22,8 +22,8 @@ var userInfoCmd = &cobra.Command{
 
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Logout from MailSafe",
-	Long:  "Logout from your current MailSafe session.",
+	Short: "Logout from MailVault",
+	Long:  "Logout from your current MailVault session.",
 	RunE:  runLogout,
 }
 

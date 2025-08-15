@@ -85,7 +85,7 @@ func runEmailList(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("No domains found. Create one with 'mailsafe domain create'")
+		fmt.Println("No domains found. Create one with 'mailvault domain create'")
 		return nil
 	}
 
@@ -105,7 +105,7 @@ func runEmailList(cmd *cobra.Command, args []string) error {
 	}
 
 	if totalEmails == 0 {
-		fmt.Println("No email addresses found. Create one with 'mailsafe email create'")
+		fmt.Println("No email addresses found. Create one with 'mailvault email create'")
 	} else {
 		fmt.Printf("\nTotal: %d email addresses\n", totalEmails)
 	}
@@ -127,7 +127,7 @@ func listEmailsForDomain(client *Client, domainID string) error {
 
 	if len(emails) == 0 {
 		fmt.Printf("No email addresses found for domain %s\n", domain.Domain)
-		fmt.Println("Create one with 'mailsafe email create'")
+		fmt.Println("Create one with 'mailvault email create'")
 		return nil
 	}
 

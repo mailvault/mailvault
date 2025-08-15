@@ -23,6 +23,9 @@ import (
 //			DeleteEmailAddressFunc: func(ctx context.Context, id uuid.UUID) error {
 //				panic("mock out the DeleteEmailAddress method")
 //			},
+//			DeleteReceivedEmailFunc: func(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error {
+//				panic("mock out the DeleteReceivedEmail method")
+//			},
 //			GetEmailAddressByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 //				panic("mock out the GetEmailAddressByID method")
 //			},
@@ -50,6 +53,9 @@ type EmailUseCaseMock struct {
 
 	// DeleteEmailAddressFunc mocks the DeleteEmailAddress method.
 	DeleteEmailAddressFunc func(ctx context.Context, id uuid.UUID) error
+
+	// DeleteReceivedEmailFunc mocks the DeleteReceivedEmail method.
+	DeleteReceivedEmailFunc func(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error
 
 	// GetEmailAddressByIDFunc mocks the GetEmailAddressByID method.
 	GetEmailAddressByIDFunc func(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)
@@ -81,6 +87,15 @@ type EmailUseCaseMock struct {
 			Ctx context.Context
 			// ID is the id argument value.
 			ID uuid.UUID
+		}
+		// DeleteReceivedEmail holds details about calls to the DeleteReceivedEmail method.
+		DeleteReceivedEmail []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ReceivedEmailID is the receivedEmailID argument value.
+			ReceivedEmailID uuid.UUID
+			// UserID is the userID argument value.
+			UserID uuid.UUID
 		}
 		// GetEmailAddressByID holds details about calls to the GetEmailAddressByID method.
 		GetEmailAddressByID []struct {
@@ -128,6 +143,7 @@ type EmailUseCaseMock struct {
 	}
 	lockCreateEmailAddressFromInput sync.RWMutex
 	lockDeleteEmailAddress          sync.RWMutex
+	lockDeleteReceivedEmail         sync.RWMutex
 	lockGetEmailAddressByID         sync.RWMutex
 	lockGetEmailAddressesByDomainID sync.RWMutex
 	lockGetReceivedEmailByID        sync.RWMutex
@@ -211,6 +227,49 @@ func (mock *EmailUseCaseMock) DeleteEmailAddressCalls() []struct {
 	mock.lockDeleteEmailAddress.RLock()
 	calls = mock.calls.DeleteEmailAddress
 	mock.lockDeleteEmailAddress.RUnlock()
+	return calls
+}
+
+// DeleteReceivedEmail calls DeleteReceivedEmailFunc.
+func (mock *EmailUseCaseMock) DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error {
+	callInfo := struct {
+		Ctx             context.Context
+		ReceivedEmailID uuid.UUID
+		UserID          uuid.UUID
+	}{
+		Ctx:             ctx,
+		ReceivedEmailID: receivedEmailID,
+		UserID:          userID,
+	}
+	mock.lockDeleteReceivedEmail.Lock()
+	mock.calls.DeleteReceivedEmail = append(mock.calls.DeleteReceivedEmail, callInfo)
+	mock.lockDeleteReceivedEmail.Unlock()
+	if mock.DeleteReceivedEmailFunc == nil {
+		var (
+			errOut error
+		)
+		return errOut
+	}
+	return mock.DeleteReceivedEmailFunc(ctx, receivedEmailID, userID)
+}
+
+// DeleteReceivedEmailCalls gets all the calls that were made to DeleteReceivedEmail.
+// Check the length with:
+//
+//	len(mockedEmailUseCase.DeleteReceivedEmailCalls())
+func (mock *EmailUseCaseMock) DeleteReceivedEmailCalls() []struct {
+	Ctx             context.Context
+	ReceivedEmailID uuid.UUID
+	UserID          uuid.UUID
+} {
+	var calls []struct {
+		Ctx             context.Context
+		ReceivedEmailID uuid.UUID
+		UserID          uuid.UUID
+	}
+	mock.lockDeleteReceivedEmail.RLock()
+	calls = mock.calls.DeleteReceivedEmail
+	mock.lockDeleteReceivedEmail.RUnlock()
 	return calls
 }
 

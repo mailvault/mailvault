@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"mailvault/gateway/mailvault"
+	"mailvault/gateways/mailvault"
 
 	"github.com/gofrs/uuid/v5"
 )

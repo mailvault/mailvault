@@ -15,11 +15,9 @@ func NewAuthProvider(config Config) (Provider, error) {
 			return nil, fmt.Errorf("supabase configuration missing: url and api_key required")
 		}
 		return NewSupabaseProvider(config.SupabaseURL, config.SupabaseAPIKey), nil
-	case "basic":
-		return NewBasicProvider(), nil
 	case "mock":
 		return NewMockProvider(), nil
 	default:
-		return nil, fmt.Errorf("unsupported auth provider: %s", config.Provider)
+		return nil, fmt.Errorf("unsupported auth provider: %s (supported: supabase, mock)", config.Provider)
 	}
 }

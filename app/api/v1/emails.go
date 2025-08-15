@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"mailvault/domain/email"
@@ -23,6 +24,7 @@ type EmailUseCase interface {
 	DeleteEmailAddress(ctx context.Context, id uuid.UUID) error
 	GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
 	GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error)
+	DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error
 }
 
 // EmailsHandlers contains email-related endpoints
@@ -242,6 +244,7 @@ func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Reque
 
 	err = h.emailUseCase.DeleteEmailAddress(r.Context(), emailID)
 	if err != nil {
+		slog.Error("failed to delete email address", "error", err, "email_id", emailID)
 		errorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
@@ -276,6 +279,7 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 
 	receivedEmails, err := h.emailUseCase.GetReceivedEmails(r.Context(), emailID, pagination.Limit, pagination.Offset)
 	if err != nil {
+		slog.Error("failed to get received emails", "error", err, "email_id", emailID)
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -311,7 +315,7 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 // @Failure 400 {object} ErrorResponseBody "Bad request"
 // @Failure 401 {object} ErrorResponseBody "Unauthorized"
 // @Failure 404 {object} ErrorResponseBody "Received email not found"
-// @Router /domains/received/{receivedEmailId} [get]
+// @Router /received/{receivedEmailId} [get]
 func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request) {
 	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
 	receivedEmailID, err := parseUUID(receivedEmailIDStr)
@@ -329,12 +333,50 @@ func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request
 
 	receivedEmail, err := h.emailUseCase.GetReceivedEmailByID(r.Context(), receivedEmailID, userID)
 	if err != nil {
+		slog.Error("failed to get received email", "error", err, "received_email_id", receivedEmailID)
 		errorResponse(w, r, http.StatusNotFound, err)
 		return
 	}
 
 	result := h.mapReceivedEmailToResult(receivedEmail)
 	successResponse(w, r, result)
+}
+
+// DeleteReceivedEmail deletes a specific received email by ID
+// @Summary Delete received email by ID
+// @Description Delete a specific received email by its ID (must belong to authenticated user)
+// @Tags Emails
+// @Security BearerAuth
+// @Param receivedEmailId path string true "Received Email ID" format(uuid)
+// @Success 204 "Received email deleted successfully"
+// @Failure 400 {object} ErrorResponseBody "Bad request"
+// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 403 {object} ErrorResponseBody "Forbidden"
+// @Failure 404 {object} ErrorResponseBody "Received email not found"
+// @Router /received/{receivedEmailId} [delete]
+func (h *EmailsHandlers) DeleteReceivedEmail(w http.ResponseWriter, r *http.Request) {
+	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
+	receivedEmailID, err := parseUUID(receivedEmailIDStr)
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Get user ID from context
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		errorResponse(w, r, http.StatusUnauthorized, err)
+		return
+	}
+
+	if err := h.emailUseCase.DeleteReceivedEmail(r.Context(), receivedEmailID, userID); err != nil {
+		slog.Error("failed to delete received email", "error", err, "received_email_id", receivedEmailID)
+		// We don't differentiate error types here; report as BadRequest to avoid leaking details
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	noContentResponse(w, r)
 }
 
 // mapEmailAddressToResult converts email address entity to API result

@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		Env: []string{
 			"POSTGRES_USER=postgres",
 			"POSTGRES_PASSWORD=postgres",
-			"POSTGRES_DB=privatemail_test",
+			"POSTGRES_DB=mailvault_test",
 		},
 		ExposedPorts: []string{"5432/tcp"},
 		PortBindings: map[docker.Port][]docker.PortBinding{
@@ -90,7 +90,7 @@ func TestMain(m *testing.M) {
 func testDSN() string {
 	// Use the dynamically assigned host port
 	hostPort := dockRes.GetPort("5432/tcp")
-	return fmt.Sprintf("postgres://postgres:postgres@localhost:%s/privatemail_test?sslmode=disable", hostPort)
+	return fmt.Sprintf("postgres://postgres:postgres@localhost:%s/mailvault_test?sslmode=disable", hostPort)
 }
 
 func withConn(fn func(*pgxpool.Pool) error) error {

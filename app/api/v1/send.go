@@ -2,9 +2,12 @@ package v1
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"mailvault/domain/entities"
 
@@ -105,15 +108,15 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement actual email sending logic
-	// For now, we'll return a mock response
-
-	// Generate a mock message ID
-	messageID := "pm_" + generateMessageID()
+	// Note: Actual email sending would be implemented here
+	// This would typically queue the email for processing by an SMTP service
+	
+	// Generate a proper message ID
+	messageID := generateMessageID()
 
 	response := SendEmailResponse{
 		MessageID: messageID,
-		Status:    "queued",
+		Status:    "accepted",
 	}
 
 	render.Status(r, http.StatusAccepted)
@@ -133,7 +136,14 @@ func (h *SendHandlers) isFromAddressValid(fromAddress, domainName string) bool {
 
 // generateMessageID generates a unique message ID
 func generateMessageID() string {
-	// TODO: Implement proper message ID generation
-	// For now, return a placeholder
-	return "1234567890abcdef"
+	// Generate timestamp prefix
+	timestamp := time.Now().Unix()
+	
+	// Generate random bytes
+	bytes := make([]byte, 8)
+	rand.Read(bytes)
+	randomHex := hex.EncodeToString(bytes)
+	
+	// Format: mv_<timestamp>_<random>
+	return "mv_" + strings.ToLower(hex.EncodeToString([]byte{byte(timestamp)})) + "_" + randomHex
 }

@@ -3,9 +3,9 @@ package pg
 import (
 	"context"
 
-	"mailvault/domain/user"
 	domain "mailvault/domain/domain"
 	"mailvault/domain/email"
+	"mailvault/domain/user"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -21,32 +21,32 @@ type DBTX interface {
 
 // Repository aggregates all repositories and provides transaction support
 type Repository struct {
-	db                     *pgxpool.Pool
-	UserRepo               user.Repository
-	DomainRepo             domain.Repository
-	EmailAddressRepo       email.EmailAddressRepository
-	ReceivedEmailRepo      email.ReceivedEmailRepository
+	db                *pgxpool.Pool
+	UserRepo          user.Repository
+	DomainRepo        domain.Repository
+	EmailAddressRepo  email.EmailAddressRepository
+	ReceivedEmailRepo email.ReceivedEmailRepository
 }
 
 // NewRepository creates a new Repository instance with all sub-repositories
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{
-		db:                     db,
-		UserRepo:               NewUserRepository(db),
-		DomainRepo:             NewDomainRepository(db),
-		EmailAddressRepo:       NewEmailAddressRepository(db),
-		ReceivedEmailRepo:      NewReceivedEmailRepository(db),
+		db:                db,
+		UserRepo:          NewUserRepository(db),
+		DomainRepo:        NewDomainRepository(db),
+		EmailAddressRepo:  NewEmailAddressRepository(db),
+		ReceivedEmailRepo: NewReceivedEmailRepository(db),
 	}
 }
 
 // WithTx creates repository instances that use the provided transaction
 func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 	return &Repository{
-		db:                     r.db,
-		UserRepo:               NewUserRepository(tx),
-		DomainRepo:             NewDomainRepository(tx),
-		EmailAddressRepo:       NewEmailAddressRepository(tx),
-		ReceivedEmailRepo:      NewReceivedEmailRepository(tx),
+		db:                r.db,
+		UserRepo:          NewUserRepository(tx),
+		DomainRepo:        NewDomainRepository(tx),
+		EmailAddressRepo:  NewEmailAddressRepository(tx),
+		ReceivedEmailRepo: NewReceivedEmailRepository(tx),
 	}
 }
 
@@ -54,4 +54,3 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 func (r *Repository) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.db.Begin(ctx)
 }
-

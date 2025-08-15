@@ -10,8 +10,8 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Login to MailSafe",
-	Long:  "Login to your MailSafe account using email and password.",
+	Short: "Login to MailVault",
+	Long:  "Login to your MailVault account using email and password.",
 	RunE:  runLogin,
 }
 
@@ -34,7 +34,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	// Check if already logged in
 	if config.AccessToken != "" {
 		fmt.Printf("Already logged in as %s\n", config.UserEmail)
-		fmt.Println("Use 'mailsafe user info' to view your account details")
+		fmt.Println("Use 'mailvault user info' to view your account details")
 		return nil
 	}
 
@@ -71,7 +71,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("✓ Successfully logged in as %s\n", resp.User.Email)
-	fmt.Println("You can now use other MailSafe commands")
+	fmt.Println("You can now use other MailVault commands")
 
 	return nil
 }
@@ -122,7 +122,7 @@ func runRegister(config *Config) error {
 	}
 
 	fmt.Printf("✓ Successfully created account and logged in as %s\n", resp.User.Email)
-	fmt.Println("You can now use other MailSafe commands")
+	fmt.Println("You can now use other MailVault commands")
 
 	return nil
 }
