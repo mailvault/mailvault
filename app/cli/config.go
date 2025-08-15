@@ -68,7 +68,7 @@ func requireAuth() (*Config, error) {
 	}
 
 	if config.AccessToken == "" {
-		return nil, fmt.Errorf("not logged in. Please run 'mailsafe login' first")
+		return nil, fmt.Errorf("not logged in. Please run 'mailvault login' first")
 	}
 
 	return config, nil

@@ -243,7 +243,7 @@ func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, req ProcessIncoming
 	if req.Subject != "" {
 		subject = &req.Subject
 	}
-	
+
 	receivedEmail := &entities.ReceivedEmail{
 		ID:             uuid.Must(uuid.NewV4()),
 		EmailAddressID: &req.EmailAddressID,
@@ -291,7 +291,7 @@ func (uc *UseCase) GetReceivedEmailByID(ctx context.Context, receivedEmailID uui
 	if receivedEmailID == uuid.Nil {
 		return nil, fmt.Errorf("received email ID is required")
 	}
-	
+
 	if userID == uuid.Nil {
 		return nil, fmt.Errorf("user ID is required")
 	}
@@ -324,6 +324,46 @@ func (uc *UseCase) GetReceivedEmailByID(ctx context.Context, receivedEmailID uui
 	}
 
 	return receivedEmail, nil
+}
+
+func (uc *UseCase) DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error {
+	if receivedEmailID == uuid.Nil {
+		return fmt.Errorf("received email ID is required")
+	}
+
+	if userID == uuid.Nil {
+		return fmt.Errorf("user ID is required")
+	}
+
+	// Fetch the received email to verify ownership via its email address → domain → user
+	receivedEmail, err := uc.receivedEmailRepo.GetByID(ctx, receivedEmailID)
+	if err != nil {
+		return fmt.Errorf("failed to get received email: %w", err)
+	}
+
+	if receivedEmail.EmailAddressID == nil {
+		return fmt.Errorf("received email has no associated email address")
+	}
+
+	emailAddress, err := uc.emailRepo.GetByID(ctx, *receivedEmail.EmailAddressID)
+	if err != nil {
+		return fmt.Errorf("failed to get email address: %w", err)
+	}
+
+	domain, err := uc.domainRepo.GetByID(ctx, emailAddress.DomainID)
+	if err != nil {
+		return fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	if domain.UserID != userID {
+		return fmt.Errorf("access denied: email does not belong to user")
+	}
+
+	if err := uc.receivedEmailRepo.Delete(ctx, receivedEmailID); err != nil {
+		return fmt.Errorf("failed to delete received email: %w", err)
+	}
+
+	return nil
 }
 
 // Validation helpers

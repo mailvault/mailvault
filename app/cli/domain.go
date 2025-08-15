@@ -12,7 +12,7 @@ import (
 var domainCmd = &cobra.Command{
 	Use:   "domain",
 	Short: "Domain management",
-	Long:  "Manage your MailSafe domains and their configurations.",
+	Long:  "Manage your MailVault domains and their configurations.",
 }
 
 var domainListCmd = &cobra.Command{
@@ -89,7 +89,7 @@ func runDomainList(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("No domains found. Create one with 'mailsafe domain create'")
+		fmt.Println("No domains found. Create one with 'mailvault domain create'")
 		return nil
 	}
 
@@ -166,7 +166,7 @@ func runDomainCreate(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("\nNext steps:\n")
 	fmt.Printf("1. Add DNS records to verify domain ownership\n")
-	fmt.Printf("2. Create email addresses with 'mailsafe email create'\n")
+	fmt.Printf("2. Create email addresses with 'mailvault email create'\n")
 
 	return nil
 }

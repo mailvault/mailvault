@@ -16,19 +16,19 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "mailsafe",
-	Short: "MailSafe CLI - Manage your private email service",
-	Long: `MailSafe CLI allows you to interact with the MailSafe email service.
+	Use:   "mailvault",
+	Short: "MailVault CLI - Manage your private email service",
+	Long: `MailVault CLI allows you to interact with the MailVault email service.
 
 You can manage users, domains, email addresses, and view received emails
 through this command-line interface.
 
 Examples:
-  mailsafe login                    # Login to your account
-  mailsafe user info               # Show your user information  
-  mailsafe domain create           # Create a new domain
-  mailsafe email list              # List your email addresses
-  mailsafe inbox                   # View received emails`,
+  mailvault login                    # Login to your account
+  mailvault user info               # Show your user information  
+  mailvault domain create           # Create a new domain
+  mailvault email list              # List your email addresses
+  mailvault inbox                   # View received emails`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -41,10 +41,10 @@ func init() {
 
 	// Global flags
 	homeDir, _ := os.UserHomeDir()
-	defaultConfigDir := filepath.Join(homeDir, ".mailsafe")
+	defaultConfigDir := filepath.Join(homeDir, ".mailvault")
 	
 	rootCmd.PersistentFlags().StringVar(&configDir, "config", defaultConfigDir, "config directory")
-	rootCmd.PersistentFlags().StringVar(&serverURL, "server", "http://localhost:8080", "MailSafe server URL")
+	rootCmd.PersistentFlags().StringVar(&serverURL, "server", "http://localhost:8080", "MailVault server URL")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Add subcommands

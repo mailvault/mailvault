@@ -21,10 +21,10 @@ var inboxListCmd = &cobra.Command{
 	Long: `List received emails for a specific email address or all addresses.
 
 Examples:
-  mailsafe inbox list                    # List all emails from all domains
-  mailsafe inbox list example.com       # List all emails from domain
-  mailsafe inbox list example.com hello # List emails from hello@example.com
-  mailsafe inbox list hello@example.com # List emails from hello@example.com`,
+  mailvault inbox list                    # List all emails from all domains
+  mailvault inbox list example.com       # List all emails from domain
+  mailvault inbox list example.com hello # List emails from hello@example.com
+  mailvault inbox list hello@example.com # List emails from hello@example.com`,
 	Args: cobra.MaximumNArgs(2),
 	RunE: runInboxList,
 }
@@ -42,11 +42,11 @@ Email reference can be:
 If email reference not provided, shows interactive selection.
 
 Examples:
-  mailsafe inbox show example.com hello 1        # Show email #1 from hello@example.com
-  mailsafe inbox show hello@example.com 1        # Same as above
-  mailsafe inbox show example.com hello a1b2c3d4 # Show email by short ID  
-  mailsafe inbox show example.com hello          # Interactive selection
-  mailsafe inbox show example.com *              # Interactive selection for catch-all`,
+  mailvault inbox show example.com hello 1        # Show email #1 from hello@example.com
+  mailvault inbox show hello@example.com 1        # Same as above
+  mailvault inbox show example.com hello a1b2c3d4 # Show email by short ID  
+  mailvault inbox show example.com hello          # Interactive selection
+  mailvault inbox show example.com *              # Interactive selection for catch-all`,
 	Args: cobra.RangeArgs(1, 3),
 	RunE: runInboxShow,
 }
@@ -279,7 +279,7 @@ func listAllEmails(client *Client) error {
 	}
 
 	if len(domains) == 0 {
-		fmt.Println("No domains found. Create one with 'mailsafe domain create'")
+		fmt.Println("No domains found. Create one with 'mailvault domain create'")
 		return nil
 	}
 
@@ -380,7 +380,7 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 			}
 			// Interactive mode - no email reference provided
 		} else {
-			return fmt.Errorf("invalid format. Use: mailsafe inbox show <domain> <email> [reference] or <email@domain> [reference]")
+			return fmt.Errorf("invalid format. Use: mailvault inbox show <domain> <email> [reference] or <email@domain> [reference]")
 		}
 	case 2:
 		// Two args: domain + email OR email@domain + reference

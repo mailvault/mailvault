@@ -12,7 +12,7 @@ import (
 	"mailvault/app/smtp"
 	domainUseCase "mailvault/domain/domain"
 	"mailvault/domain/email"
-	"mailvault/gateway/repository/pg"
+	"mailvault/gateways/repository/pg"
 
 	"github.com/guilhermebr/gox/logger"
 	"github.com/guilhermebr/gox/postgres"

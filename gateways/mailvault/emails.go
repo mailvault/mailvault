@@ -147,7 +147,7 @@ func (s *EmailsService) GetReceivedEmail(ctx context.Context, receivedEmailID st
 		return nil, fmt.Errorf("authentication token required")
 	}
 
-	endpoint := fmt.Sprintf("/api/v1/domains/received/%s", receivedEmailID)
+	endpoint := fmt.Sprintf("/api/v1/received/%s", receivedEmailID)
 	resp, err := s.client.doRequest(ctx, http.MethodGet, endpoint, nil, false)
 	if err != nil {
 		return nil, fmt.Errorf("get received email request failed: %w", err)
@@ -159,4 +159,23 @@ func (s *EmailsService) GetReceivedEmail(ctx context.Context, receivedEmailID st
 	}
 
 	return &result, nil
+}
+
+// DeleteReceivedEmail deletes a specific received email by its ID
+func (s *EmailsService) DeleteReceivedEmail(ctx context.Context, receivedEmailID string) error {
+	if s.client.authToken == "" {
+		return fmt.Errorf("authentication token required")
+	}
+
+	endpoint := fmt.Sprintf("/api/v1/received/%s", receivedEmailID)
+	resp, err := s.client.doRequest(ctx, http.MethodDelete, endpoint, nil, false)
+	if err != nil {
+		return fmt.Errorf("delete received email request failed: %w", err)
+	}
+
+	if err := s.client.parseResponse(resp, nil); err != nil {
+		return fmt.Errorf("delete received email response parsing failed: %w", err)
+	}
+
+	return nil
 }
