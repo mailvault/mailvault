@@ -1,4 +1,4 @@
-package v1
+package auth
 
 import (
 	"bytes"
@@ -69,7 +69,7 @@ func TestAuthHandlers_Register_Success(t *testing.T) {
 		},
 	}
 
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(RegisterRequest{Email: "user@example.com", Password: "password123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -98,7 +98,7 @@ func TestAuthHandlers_Register_ValidationError(t *testing.T) {
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
 	userMock := &mocks.UserUseCaseMock{}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(RegisterRequest{Email: "bad-email", Password: "123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -119,7 +119,7 @@ func TestAuthHandlers_Register_AuthProviderError(t *testing.T) {
 		loginFunc:      func(email, password string) (string, error) { return "", nil },
 	}
 	userMock := &mocks.UserUseCaseMock{}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(RegisterRequest{Email: "user@example.com", Password: "password123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -139,7 +139,7 @@ func TestAuthHandlers_Register_UserUseCaseError(t *testing.T) {
 			return nil, errors.New("db err")
 		},
 	}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(RegisterRequest{Email: "user@example.com", Password: "password123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -171,7 +171,7 @@ func TestAuthHandlers_Login_Success(t *testing.T) {
 		},
 	}
 
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(LoginRequest{Email: "user@example.com", Password: "password123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
@@ -196,7 +196,7 @@ func TestAuthHandlers_Login_AuthError(t *testing.T) {
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", errors.New("bad creds") }}
 	userMock := &mocks.UserUseCaseMock{}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(LoginRequest{Email: "user@example.com", Password: "password123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
@@ -212,7 +212,7 @@ func TestAuthHandlers_Login_UserError(t *testing.T) {
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
 	userMock := &mocks.UserUseCaseMock{GetUserByEmailFunc: func(ctx context.Context, email string) (*entities.User, error) { return nil, errors.New("db err") }}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(LoginRequest{Email: "user@example.com", Password: "password123"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
@@ -228,71 +228,12 @@ func TestAuthHandlers_Login_InvalidJSON(t *testing.T) {
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
 	userMock := &mocks.UserUseCaseMock{}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
+	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader([]byte("{")))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
 	h.Login(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestAuthHandlers_Me(t *testing.T) {
-	t.Parallel()
-
-	userID := uuid.Must(uuid.NewV4())
-	now := time.Now().UTC()
-
-	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{
-		GetUserByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			assert.Equal(t, userID, id)
-			return &entities.User{ID: id, Email: "user@example.com", AuthProvider: "stub", CreatedAt: now}, nil
-		},
-	}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
-	ctx := context.WithValue(req.Context(), "user_id", userID.String())
-	req = req.WithContext(ctx)
-	w := httptest.NewRecorder()
-
-	h.Me(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp UserResult
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Equal(t, userID.String(), resp.ID)
-}
-
-func TestAuthHandlers_Me_Unauthorized(t *testing.T) {
-	t.Parallel()
-
-	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
-	w := httptest.NewRecorder()
-
-	h.Me(w, req)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestAuthHandlers_Me_InvalidUUID(t *testing.T) {
-	t.Parallel()
-
-	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{}
-	h := NewAuthHandlers(authProv, userMock, []byte("secret"), time.Hour)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
-	ctx := context.WithValue(req.Context(), "user_id", "not-a-uuid")
-	req = req.WithContext(ctx)
-	w := httptest.NewRecorder()
-
-	h.Me(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

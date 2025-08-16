@@ -4,17 +4,22 @@ import (
 	"net/http"
 
 	"mailvault/app/api/middleware"
-	"mailvault/domain/auth"
+	"mailvault/app/api/v1/auth"
+	"mailvault/app/api/v1/domains"
+	"mailvault/app/api/v1/emails"
+	"mailvault/app/api/v1/send"
+	"mailvault/app/api/v1/users"
+	authDomain "mailvault/domain/auth"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 )
 
 type ApiHandlers struct {
-	AuthProvider  auth.Provider
-	UserUseCase   UserUseCase
-	DomainUseCase DomainUseCase
-	EmailUseCase  EmailUseCase
+	AuthProvider  authDomain.Provider
+	UserUseCase   users.UseCase
+	AuthUseCase   auth.UseCase
+	DomainUseCase domains.DomainUseCase
+	EmailUseCase  emails.EmailUseCase
 	AuthSecretKey string
 	AuthTokenTTL  string
 }
@@ -24,26 +29,24 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 
 	// Initialize handlers
 	// Parse JWT TTL
-	jwtTTL := parseJWTTTL(h.AuthTokenTTL)
-	authHandlers := NewAuthHandlers(h.AuthProvider, h.UserUseCase, []byte(h.AuthSecretKey), jwtTTL)
-	domainsHandlers := NewDomainsHandlers(h.DomainUseCase)
-	emailsHandlers := NewEmailsHandlers(h.EmailUseCase)
-	sendHandlers := NewSendHandlers(h.DomainUseCase)
+	authHandlers := auth.NewAuthHandlers(h.AuthProvider, h.AuthUseCase, []byte(h.AuthSecretKey), h.AuthTokenTTL)
+	usersHandlers := users.NewUsersHandlers(h.UserUseCase)
+	domainsHandlers := domains.NewDomainsHandlers(h.DomainUseCase)
+	emailsHandlers := emails.NewEmailsHandlers(h.EmailUseCase)
+	sendHandlers := send.NewSendHandlers(h.DomainUseCase)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(h.AuthSecretKey)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public auth endpoints
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", authHandlers.Register)
-			r.Post("/login", authHandlers.Login)
+		r.Post("/register", authHandlers.Register)
+		r.Post("/login", authHandlers.Login)
 
-			// Protected auth endpoints
-			r.Group(func(r chi.Router) {
-				r.Use(authMiddleware.RequireAuth)
-				r.Get("/me", authHandlers.Me)
-			})
+		// Protected users endpoints
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.RequireAuth)
+			r.Get("/me", usersHandlers.Me)
 		})
 
 		// Protected domain endpoints
@@ -89,15 +92,4 @@ func (h *ApiHandlers) Health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
-}
-
-type ErrorResponseBody struct {
-	Error string `json:"error"`
-}
-
-func errorResponse(w http.ResponseWriter, r *http.Request, code int, err error) {
-	render.Status(r, code)
-	render.JSON(w, r, ErrorResponseBody{
-		Error: err.Error(),
-	})
 }

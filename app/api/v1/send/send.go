@@ -1,4 +1,4 @@
-package v1
+package send
 
 import (
 	"context"
@@ -9,24 +9,25 @@ import (
 	"strings"
 	"time"
 
+	"mailvault/app/api"
 	"mailvault/domain/entities"
 
 	"github.com/go-chi/render"
 )
 
-//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/send_usecase.go . SendUseCase
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/send_usecase.go . UseCase
 
-// SendUseCase defines the behavior required by this package from the send use case.
-type SendUseCase interface {
+// UseCase defines the behavior required by this package from the send use case.
+type UseCase interface {
 	GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error)
 }
 
 // SendHandlers contains email sending endpoints
 type SendHandlers struct {
-	sendUseCase SendUseCase
+	sendUseCase UseCase
 }
 
-func NewSendHandlers(sendUseCase SendUseCase) *SendHandlers {
+func NewSendHandlers(sendUseCase UseCase) *SendHandlers {
 	return &SendHandlers{
 		sendUseCase: sendUseCase,
 	}
@@ -73,27 +74,27 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if apiKey == "" {
-		errorResponse(w, r, http.StatusUnauthorized, ErrUnauthorized)
+		api.ErrorResponse(w, r, http.StatusUnauthorized, api.ErrUnauthorized)
 		return
 	}
 
 	// Validate API key and get domain
 	domain, err := h.sendUseCase.GetDomainByAPIKey(r.Context(), apiKey)
 	if err != nil {
-		errorResponse(w, r, http.StatusUnauthorized, err)
+		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
 	var req SendEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	// Validate that 'from' address belongs to the domain
 	if !h.isFromAddressValid(req.From, domain.Domain) {
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, ErrorResponseBody{
+		render.JSON(w, r, api.ErrorResponseBody{
 			Error: "from address must belong to the authenticated domain",
 		})
 		return
@@ -102,7 +103,7 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 	// Validate that we have at least text or HTML body
 	if req.TextBody == "" && req.HTMLBody == "" {
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, ErrorResponseBody{
+		render.JSON(w, r, api.ErrorResponseBody{
 			Error: "either text_body or html_body is required",
 		})
 		return
@@ -110,7 +111,7 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 
 	// Note: Actual email sending would be implemented here
 	// This would typically queue the email for processing by an SMTP service
-	
+
 	// Generate a proper message ID
 	messageID := generateMessageID()
 
@@ -138,12 +139,12 @@ func (h *SendHandlers) isFromAddressValid(fromAddress, domainName string) bool {
 func generateMessageID() string {
 	// Generate timestamp prefix
 	timestamp := time.Now().Unix()
-	
+
 	// Generate random bytes
 	bytes := make([]byte, 8)
 	rand.Read(bytes)
 	randomHex := hex.EncodeToString(bytes)
-	
+
 	// Format: mv_<timestamp>_<random>
 	return "mv_" + strings.ToLower(hex.EncodeToString([]byte{byte(timestamp)})) + "_" + randomHex
 }

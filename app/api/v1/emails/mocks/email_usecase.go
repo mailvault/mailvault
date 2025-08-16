@@ -11,11 +11,11 @@ import (
 	"sync"
 )
 
-// EmailUseCaseMock is a mock implementation of v1.EmailUseCase.
+// EmailUseCaseMock is a mock implementation of emails.EmailUseCase.
 //
 //	func TestSomethingThatUsesEmailUseCase(t *testing.T) {
 //
-//		// make and configure a mocked v1.EmailUseCase
+//		// make and configure a mocked emails.EmailUseCase
 //		mockedEmailUseCase := &EmailUseCaseMock{
 //			CreateEmailAddressFromInputFunc: func(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error) {
 //				panic("mock out the CreateEmailAddressFromInput method")
@@ -43,7 +43,7 @@ import (
 //			},
 //		}
 //
-//		// use mockedEmailUseCase in code that requires v1.EmailUseCase
+//		// use mockedEmailUseCase in code that requires emails.EmailUseCase
 //		// and then make assertions.
 //
 //	}

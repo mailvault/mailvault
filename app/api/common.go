@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"errors"
@@ -15,17 +15,17 @@ var (
 )
 
 // parseUUID parses a string into a UUID
-func parseUUID(s string) (uuid.UUID, error) {
+func ParseUUID(s string) (uuid.UUID, error) {
 	return uuid.FromString(s)
 }
 
 // getUserIDFromContext extracts user ID from request context
-func getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
+func GetUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	userIDStr, ok := r.Context().Value("user_id").(string)
 	if !ok {
 		return uuid.Nil, ErrUnauthorized
 	}
-	return parseUUID(userIDStr)
+	return ParseUUID(userIDStr)
 }
 
 // PaginationParams represents pagination parameters
@@ -35,18 +35,18 @@ type PaginationParams struct {
 }
 
 // getPaginationParams extracts pagination from query params
-func getPaginationParams(r *http.Request) PaginationParams {
+func GetPaginationParams(r *http.Request) PaginationParams {
 	limit := 50 // default
 	offset := 0 // default
 
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if l, err := parseInt(limitStr); err == nil && l > 0 && l <= 1000 {
+		if l, err := ParseInt(limitStr); err == nil && l > 0 && l <= 1000 {
 			limit = l
 		}
 	}
 
 	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
-		if o, err := parseInt(offsetStr); err == nil && o >= 0 {
+		if o, err := ParseInt(offsetStr); err == nil && o >= 0 {
 			offset = o
 		}
 	}
@@ -58,7 +58,7 @@ func getPaginationParams(r *http.Request) PaginationParams {
 }
 
 // parseInt converts string to int
-func parseInt(s string) (int, error) {
+func ParseInt(s string) (int, error) {
 	var result int
 	for _, r := range s {
 		if r < '0' || r > '9' {
@@ -80,17 +80,28 @@ type PaginatedResponse struct {
 }
 
 // successResponse sends a success response
-func successResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
+func SuccessResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
 	render.JSON(w, r, data)
 }
 
 // createdResponse sends a 201 created response
-func createdResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
+func CreatedResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
 	render.Status(r, http.StatusCreated)
 	render.JSON(w, r, data)
 }
 
 // noContentResponse sends a 204 no content response
-func noContentResponse(w http.ResponseWriter, r *http.Request) {
+func NoContentResponse(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type ErrorResponseBody struct {
+	Error string `json:"error"`
+}
+
+func ErrorResponse(w http.ResponseWriter, r *http.Request, code int, err error) {
+	render.Status(r, code)
+	render.JSON(w, r, ErrorResponseBody{
+		Error: err.Error(),
+	})
 }

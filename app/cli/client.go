@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"mailvault/gateways/mailvault"
-
+	mailvault "github.com/guilhermebr/mailvault-go-sdk"
 	"github.com/gofrs/uuid/v5"
 )
 
@@ -48,36 +47,36 @@ func (c *Client) GetMe() (*mailvault.User, error) {
 
 // Domain API methods
 func (c *Client) CreateDomain(req CreateDomainRequest) (*Domain, error) {
-	return c.sdk.Domains.CreateDomain(context.Background(), req)
+	return c.sdk.Domains.Create(context.Background(), req)
 }
 func (c *Client) ListDomains() ([]*Domain, error) {
-	return c.sdk.Domains.GetDomains(context.Background())
+	return c.sdk.Domains.List(context.Background())
 }
 func (c *Client) GetDomain(id string) (*Domain, error) {
-	return c.sdk.Domains.GetDomain(context.Background(), id)
+	return c.sdk.Domains.Get(context.Background(), id)
 }
 func (c *Client) DeleteDomain(id string) error {
-	return c.sdk.Domains.DeleteDomain(context.Background(), id)
+	return c.sdk.Domains.Delete(context.Background(), id)
 }
 
 // Email API methods
 func (c *Client) CreateEmailAddress(domainID string, req CreateEmailRequest) (*EmailAddress, error) {
-	return c.sdk.Emails.CreateEmailAddress(context.Background(), domainID, req)
+	return c.sdk.Emails.Create(context.Background(), domainID, req)
 }
 func (c *Client) ListEmailAddresses(domainID string) ([]*EmailAddress, error) {
-	return c.sdk.Emails.GetEmailAddresses(context.Background(), domainID)
+	return c.sdk.Emails.List(context.Background(), domainID)
 }
 func (c *Client) GetEmailAddress(domainID, emailID string) (*EmailAddress, error) {
-	return c.sdk.Emails.GetEmailAddress(context.Background(), domainID, emailID)
+	return c.sdk.Emails.Get(context.Background(), domainID, emailID)
 }
 func (c *Client) DeleteEmailAddress(domainID, emailID string) error {
-	return c.sdk.Emails.DeleteEmailAddress(context.Background(), domainID, emailID)
+	return c.sdk.Emails.Delete(context.Background(), domainID, emailID)
 }
 
 // Received Email API methods
 func (c *Client) ListReceivedEmails(domainID, emailID string, limit, offset int) ([]*ReceivedEmail, error) {
 	opts := &mailvault.GetReceivedEmailsOptions{Limit: &limit, Offset: &offset}
-	resp, err := c.sdk.Emails.GetReceivedEmails(context.Background(), domainID, emailID, opts)
+	resp, err := c.sdk.Emails.ListReceived(context.Background(), domainID, emailID, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +92,7 @@ func (c *Client) ListReceivedEmails(domainID, emailID string, limit, offset int)
 }
 
 func (c *Client) GetReceivedEmailByID(receivedEmailID string) (*ReceivedEmail, error) {
-	return c.sdk.Emails.GetReceivedEmail(context.Background(), receivedEmailID)
+	return c.sdk.Emails.GetReceived(context.Background(), receivedEmailID)
 }
 
 // FindReceivedEmailByReference finds a received email by sequence number, short ID, or UUID

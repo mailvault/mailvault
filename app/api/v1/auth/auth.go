@@ -1,4 +1,4 @@
-package v1
+package auth
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"mailvault/app/api"
 	"mailvault/domain/auth"
 	"mailvault/domain/entities"
 
@@ -16,8 +17,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/user_usecase.go . UserUseCase
-type UserUseCase interface {
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/auth_usecase.go . UseCase
+type UseCase interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
 	GetOrCreateUserByAuthProvider(ctx context.Context, provider, providerID, email string) (*entities.User, error)
@@ -26,13 +27,15 @@ type UserUseCase interface {
 // AuthHandlers contains authentication-related endpoints
 type AuthHandlers struct {
 	authProvider auth.Provider
-	userUseCase  UserUseCase
+	userUseCase  UseCase
 	validator    *validator.Validate
 	jwtSecret    []byte
 	jwtTTL       time.Duration
 }
 
-func NewAuthHandlers(authProvider auth.Provider, userUseCase UserUseCase, jwtSecret []byte, jwtTTL time.Duration) *AuthHandlers {
+func NewAuthHandlers(authProvider auth.Provider, userUseCase UseCase, jwtSecret []byte, authTokenTTL string) *AuthHandlers {
+	jwtTTL := parseJWTTTL(authTokenTTL)
+
 	return &AuthHandlers{
 		authProvider: authProvider,
 		userUseCase:  userUseCase,
@@ -82,14 +85,14 @@ type UserResult struct {
 func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	// Validate request
 	if err := h.validator.Struct(req); err != nil {
 		slog.Error("validation error", "error", err)
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -97,7 +100,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	authProviderID, err := h.authProvider.CreateUser(r.Context(), req.Email, req.Password)
 	if err != nil {
 		slog.Error("failed to create user at auth provider", "error", err)
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -110,7 +113,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("failed to get or create user in our database", "error", err)
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -118,7 +121,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	token, err := h.generateJWT(user.ID.String(), user.Email)
 	if err != nil {
 		slog.Error("failed to mint jwt", "error", err)
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -152,7 +155,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Error("failed to decode request", "error", err)
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -160,7 +163,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	_, err := h.authProvider.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		slog.Error("failed to login", "error", err)
-		errorResponse(w, r, http.StatusUnauthorized, err)
+		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -168,7 +171,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userUseCase.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
 		slog.Error("failed to get user from database", "error", err)
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -176,7 +179,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	jwtToken, err := h.generateJWT(user.ID.String(), user.Email)
 	if err != nil {
 		slog.Error("failed to mint jwt", "error", err)
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -191,51 +194,6 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, response)
-}
-
-// Me returns current user information
-// @Summary Get current user
-// @Description Get information about the currently authenticated user
-// @Tags Authentication
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} UserResult "Current user information"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 404 {object} ErrorResponseBody "User not found"
-// @Router /auth/me [get]
-func (h *AuthHandlers) Me(w http.ResponseWriter, r *http.Request) {
-	// Get user from context (set by auth middleware)
-	userID, ok := r.Context().Value("user_id").(string)
-	if !ok {
-		slog.Error("failed to get user from context", "error", ErrUnauthorized)
-		errorResponse(w, r, http.StatusUnauthorized, ErrUnauthorized)
-		return
-	}
-
-	// Parse UUID
-	id, err := parseUUID(userID)
-	if err != nil {
-		slog.Error("failed to parse user id", "error", err, "userID", userID)
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	// Get user
-	user, err := h.userUseCase.GetUserByID(r.Context(), id)
-	if err != nil {
-		slog.Error("failed to get user from database", "error", err, "userID", id)
-		errorResponse(w, r, http.StatusNotFound, err)
-		return
-	}
-
-	userResult := &UserResult{
-		ID:           user.ID.String(),
-		Email:        user.Email,
-		AuthProvider: user.AuthProvider,
-		CreatedAt:    user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
-
-	render.JSON(w, r, userResult)
 }
 
 // generateJWT creates an HS256 token with local user id
