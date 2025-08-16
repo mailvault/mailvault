@@ -54,3 +54,8 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 func (r *Repository) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.db.Begin(ctx)
 }
+
+// DB exposes the underlying connection pool as a DBTX for read-only queries
+func (r *Repository) DB() DBTX {
+	return r.db
+}

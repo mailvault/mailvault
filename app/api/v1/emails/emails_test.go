@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/mocks"
+	"mailvault/app/api/v1/emails/mocks"
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
 
@@ -24,7 +24,7 @@ func TestEmailsHandlers_CreateEmailAddress(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 	now := time.Now().UTC()
 
-	mock := &mocks.EmailUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		CreateEmailAddressFromInputFunc: func(ctx context.Context, in email.CreateEmailAddressInput) (*entities.EmailAddress, error) {
 			assert.Equal(t, domainID, in.DomainID)
 			assert.Equal(t, "info", in.LocalPart)
@@ -60,7 +60,7 @@ func TestEmailsHandlers_GetEmailAddresses(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 	now := time.Now().UTC()
 
-	mock := &mocks.EmailUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		GetEmailAddressesByDomainIDFunc: func(ctx context.Context, dID uuid.UUID) ([]*entities.EmailAddress, error) {
 			assert.Equal(t, domainID, dID)
 			return []*entities.EmailAddress{
@@ -92,7 +92,7 @@ func TestEmailsHandlers_GetEmailAddress(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 	now := time.Now().UTC()
 
-	mock := &mocks.EmailUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		GetEmailAddressByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 			assert.Equal(t, emailID, id)
 			return &entities.EmailAddress{ID: emailID, DomainID: domainID, LocalPart: "info", CreatedAt: now, UpdatedAt: now}, nil
@@ -117,7 +117,7 @@ func TestEmailsHandlers_UpdateEmailAddress(t *testing.T) {
 	now := time.Now().UTC()
 	newCatchAll := true
 
-	mock := &mocks.EmailUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		UpdateEmailAddressFunc: func(ctx context.Context, id uuid.UUID, in email.UpdateEmailAddressInput) (*entities.EmailAddress, error) {
 			assert.Equal(t, emailID, id)
 			assert.NotNil(t, in.IsCatchAll)
@@ -142,7 +142,7 @@ func TestEmailsHandlers_DeleteEmailAddress(t *testing.T) {
 	t.Parallel()
 
 	emailID := uuid.Must(uuid.NewV4())
-	mock := &mocks.EmailUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		DeleteEmailAddressFunc: func(ctx context.Context, id uuid.UUID) error {
 			assert.Equal(t, emailID, id)
 			return nil
@@ -166,7 +166,7 @@ func TestEmailsHandlers_GetReceivedEmails(t *testing.T) {
 	emailID := uuid.Must(uuid.NewV4())
 	now := time.Now().UTC()
 
-	mock := &mocks.EmailUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		GetReceivedEmailsFunc: func(ctx context.Context, id uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error) {
 			assert.Equal(t, emailID, id)
 			assert.Equal(t, 50, limit) // default

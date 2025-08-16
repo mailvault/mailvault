@@ -35,7 +35,7 @@ func NewServer(cfg Config, backend *Backend, logger *slog.Logger) (*Server, erro
 	smtpServer.ErrorLog = &smtpSlogAdapter{logger: logger.With("component", "smtp_server")}
 	// If debug enabled, capture protocol dialog
 	if cfg.Debug {
-		smtpServer.Debug = &slogWriter{logger: logger.With("component", "smtp_protocol")} // verbose
+		smtpServer.Debug = &slogWriter{logger: logger.With("component", "smtp_protocol")}
 	}
 
 	// Configure TLS based on mode

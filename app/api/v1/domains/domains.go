@@ -9,10 +9,10 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/domain_usecase.go . DomainUseCase
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
 
 // DomainUseCase defines the behavior required by this package from the domain use case.
-type DomainUseCase interface {
+type UseCase interface {
 	CreateDomain(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error)
 	GetDomainsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error)
 	GetDomainByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error)
@@ -24,10 +24,10 @@ type DomainUseCase interface {
 
 // DomainsHandlers contains domain-related endpoints
 type DomainsHandlers struct {
-	domainUseCase DomainUseCase
+	domainUseCase UseCase
 }
 
-func NewDomainsHandlers(domainUseCase DomainUseCase) *DomainsHandlers {
+func NewDomainsHandlers(domainUseCase UseCase) *DomainsHandlers {
 	return &DomainsHandlers{
 		domainUseCase: domainUseCase,
 	}

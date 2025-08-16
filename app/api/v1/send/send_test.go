@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"mailvault/app/api/v1/mocks"
+	"mailvault/app/api/v1/send/mocks"
 	"mailvault/domain/entities"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ import (
 func TestSendHandlers_SendEmail_Success(t *testing.T) {
 	t.Parallel()
 
-	mock := &mocks.SendUseCaseMock{
+	mock := &mocks.UseCaseMock{
 		GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 			assert.Equal(t, "pm_api_key", apiKey)
 			return &entities.Domain{Domain: "example.com"}, nil
@@ -50,7 +50,7 @@ func TestSendHandlers_SendEmail_Success(t *testing.T) {
 func TestSendHandlers_SendEmail_MissingAPIKey(t *testing.T) {
 	t.Parallel()
 
-	h := NewSendHandlers(&mocks.SendUseCaseMock{})
+	h := NewSendHandlers(&mocks.UseCaseMock{})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/send", bytes.NewReader([]byte(`{}`)))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestSendHandlers_SendEmail_MissingAPIKey(t *testing.T) {
 func TestSendHandlers_SendEmail_InvalidFromDomain(t *testing.T) {
 	t.Parallel()
 
-	mock := &mocks.SendUseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
+	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return &entities.Domain{Domain: "example.com"}, nil
 	}}
 	h := NewSendHandlers(mock)
@@ -80,7 +80,7 @@ func TestSendHandlers_SendEmail_InvalidFromDomain(t *testing.T) {
 func TestSendHandlers_SendEmail_BodyMissing(t *testing.T) {
 	t.Parallel()
 
-	mock := &mocks.SendUseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
+	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return &entities.Domain{Domain: "example.com"}, nil
 	}}
 	h := NewSendHandlers(mock)
@@ -98,7 +98,7 @@ func TestSendHandlers_SendEmail_BodyMissing(t *testing.T) {
 func TestSendHandlers_SendEmail_InvalidJSON(t *testing.T) {
 	t.Parallel()
 
-	mock := &mocks.SendUseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
+	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return &entities.Domain{Domain: "example.com"}, nil
 	}}
 	h := NewSendHandlers(mock)
@@ -115,7 +115,7 @@ func TestSendHandlers_SendEmail_InvalidJSON(t *testing.T) {
 func TestSendHandlers_SendEmail_InvalidAPIKey(t *testing.T) {
 	t.Parallel()
 
-	mock := &mocks.SendUseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
+	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return nil, errors.New("invalid key")
 	}}
 	h := NewSendHandlers(mock)

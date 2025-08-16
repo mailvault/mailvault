@@ -11,12 +11,12 @@ import (
 	"sync"
 )
 
-// EmailUseCaseMock is a mock implementation of emails.EmailUseCase.
+// UseCaseMock is a mock implementation of emails.UseCase.
 //
-//	func TestSomethingThatUsesEmailUseCase(t *testing.T) {
+//	func TestSomethingThatUsesUseCase(t *testing.T) {
 //
-//		// make and configure a mocked emails.EmailUseCase
-//		mockedEmailUseCase := &EmailUseCaseMock{
+//		// make and configure a mocked emails.UseCase
+//		mockedUseCase := &UseCaseMock{
 //			CreateEmailAddressFromInputFunc: func(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error) {
 //				panic("mock out the CreateEmailAddressFromInput method")
 //			},
@@ -43,11 +43,11 @@ import (
 //			},
 //		}
 //
-//		// use mockedEmailUseCase in code that requires emails.EmailUseCase
+//		// use mockedUseCase in code that requires emails.UseCase
 //		// and then make assertions.
 //
 //	}
-type EmailUseCaseMock struct {
+type UseCaseMock struct {
 	// CreateEmailAddressFromInputFunc mocks the CreateEmailAddressFromInput method.
 	CreateEmailAddressFromInputFunc func(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error)
 
@@ -152,7 +152,7 @@ type EmailUseCaseMock struct {
 }
 
 // CreateEmailAddressFromInput calls CreateEmailAddressFromInputFunc.
-func (mock *EmailUseCaseMock) CreateEmailAddressFromInput(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error) {
+func (mock *UseCaseMock) CreateEmailAddressFromInput(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error) {
 	callInfo := struct {
 		Ctx context.Context
 		Req email.CreateEmailAddressInput
@@ -176,8 +176,8 @@ func (mock *EmailUseCaseMock) CreateEmailAddressFromInput(ctx context.Context, r
 // CreateEmailAddressFromInputCalls gets all the calls that were made to CreateEmailAddressFromInput.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.CreateEmailAddressFromInputCalls())
-func (mock *EmailUseCaseMock) CreateEmailAddressFromInputCalls() []struct {
+//	len(mockedUseCase.CreateEmailAddressFromInputCalls())
+func (mock *UseCaseMock) CreateEmailAddressFromInputCalls() []struct {
 	Ctx context.Context
 	Req email.CreateEmailAddressInput
 } {
@@ -192,7 +192,7 @@ func (mock *EmailUseCaseMock) CreateEmailAddressFromInputCalls() []struct {
 }
 
 // DeleteEmailAddress calls DeleteEmailAddressFunc.
-func (mock *EmailUseCaseMock) DeleteEmailAddress(ctx context.Context, id uuid.UUID) error {
+func (mock *UseCaseMock) DeleteEmailAddress(ctx context.Context, id uuid.UUID) error {
 	callInfo := struct {
 		Ctx context.Context
 		ID  uuid.UUID
@@ -215,8 +215,8 @@ func (mock *EmailUseCaseMock) DeleteEmailAddress(ctx context.Context, id uuid.UU
 // DeleteEmailAddressCalls gets all the calls that were made to DeleteEmailAddress.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.DeleteEmailAddressCalls())
-func (mock *EmailUseCaseMock) DeleteEmailAddressCalls() []struct {
+//	len(mockedUseCase.DeleteEmailAddressCalls())
+func (mock *UseCaseMock) DeleteEmailAddressCalls() []struct {
 	Ctx context.Context
 	ID  uuid.UUID
 } {
@@ -231,7 +231,7 @@ func (mock *EmailUseCaseMock) DeleteEmailAddressCalls() []struct {
 }
 
 // DeleteReceivedEmail calls DeleteReceivedEmailFunc.
-func (mock *EmailUseCaseMock) DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error {
+func (mock *UseCaseMock) DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error {
 	callInfo := struct {
 		Ctx             context.Context
 		ReceivedEmailID uuid.UUID
@@ -256,8 +256,8 @@ func (mock *EmailUseCaseMock) DeleteReceivedEmail(ctx context.Context, receivedE
 // DeleteReceivedEmailCalls gets all the calls that were made to DeleteReceivedEmail.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.DeleteReceivedEmailCalls())
-func (mock *EmailUseCaseMock) DeleteReceivedEmailCalls() []struct {
+//	len(mockedUseCase.DeleteReceivedEmailCalls())
+func (mock *UseCaseMock) DeleteReceivedEmailCalls() []struct {
 	Ctx             context.Context
 	ReceivedEmailID uuid.UUID
 	UserID          uuid.UUID
@@ -274,7 +274,7 @@ func (mock *EmailUseCaseMock) DeleteReceivedEmailCalls() []struct {
 }
 
 // GetEmailAddressByID calls GetEmailAddressByIDFunc.
-func (mock *EmailUseCaseMock) GetEmailAddressByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
+func (mock *UseCaseMock) GetEmailAddressByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 	callInfo := struct {
 		Ctx context.Context
 		ID  uuid.UUID
@@ -298,8 +298,8 @@ func (mock *EmailUseCaseMock) GetEmailAddressByID(ctx context.Context, id uuid.U
 // GetEmailAddressByIDCalls gets all the calls that were made to GetEmailAddressByID.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.GetEmailAddressByIDCalls())
-func (mock *EmailUseCaseMock) GetEmailAddressByIDCalls() []struct {
+//	len(mockedUseCase.GetEmailAddressByIDCalls())
+func (mock *UseCaseMock) GetEmailAddressByIDCalls() []struct {
 	Ctx context.Context
 	ID  uuid.UUID
 } {
@@ -314,7 +314,7 @@ func (mock *EmailUseCaseMock) GetEmailAddressByIDCalls() []struct {
 }
 
 // GetEmailAddressesByDomainID calls GetEmailAddressesByDomainIDFunc.
-func (mock *EmailUseCaseMock) GetEmailAddressesByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error) {
+func (mock *UseCaseMock) GetEmailAddressesByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error) {
 	callInfo := struct {
 		Ctx      context.Context
 		DomainID uuid.UUID
@@ -338,8 +338,8 @@ func (mock *EmailUseCaseMock) GetEmailAddressesByDomainID(ctx context.Context, d
 // GetEmailAddressesByDomainIDCalls gets all the calls that were made to GetEmailAddressesByDomainID.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.GetEmailAddressesByDomainIDCalls())
-func (mock *EmailUseCaseMock) GetEmailAddressesByDomainIDCalls() []struct {
+//	len(mockedUseCase.GetEmailAddressesByDomainIDCalls())
+func (mock *UseCaseMock) GetEmailAddressesByDomainIDCalls() []struct {
 	Ctx      context.Context
 	DomainID uuid.UUID
 } {
@@ -354,7 +354,7 @@ func (mock *EmailUseCaseMock) GetEmailAddressesByDomainIDCalls() []struct {
 }
 
 // GetReceivedEmailByID calls GetReceivedEmailByIDFunc.
-func (mock *EmailUseCaseMock) GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error) {
+func (mock *UseCaseMock) GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error) {
 	callInfo := struct {
 		Ctx             context.Context
 		ReceivedEmailID uuid.UUID
@@ -380,8 +380,8 @@ func (mock *EmailUseCaseMock) GetReceivedEmailByID(ctx context.Context, received
 // GetReceivedEmailByIDCalls gets all the calls that were made to GetReceivedEmailByID.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.GetReceivedEmailByIDCalls())
-func (mock *EmailUseCaseMock) GetReceivedEmailByIDCalls() []struct {
+//	len(mockedUseCase.GetReceivedEmailByIDCalls())
+func (mock *UseCaseMock) GetReceivedEmailByIDCalls() []struct {
 	Ctx             context.Context
 	ReceivedEmailID uuid.UUID
 	UserID          uuid.UUID
@@ -398,7 +398,7 @@ func (mock *EmailUseCaseMock) GetReceivedEmailByIDCalls() []struct {
 }
 
 // GetReceivedEmails calls GetReceivedEmailsFunc.
-func (mock *EmailUseCaseMock) GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit int, offset int) ([]*entities.ReceivedEmail, error) {
+func (mock *UseCaseMock) GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit int, offset int) ([]*entities.ReceivedEmail, error) {
 	callInfo := struct {
 		Ctx     context.Context
 		EmailID uuid.UUID
@@ -426,8 +426,8 @@ func (mock *EmailUseCaseMock) GetReceivedEmails(ctx context.Context, emailID uui
 // GetReceivedEmailsCalls gets all the calls that were made to GetReceivedEmails.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.GetReceivedEmailsCalls())
-func (mock *EmailUseCaseMock) GetReceivedEmailsCalls() []struct {
+//	len(mockedUseCase.GetReceivedEmailsCalls())
+func (mock *UseCaseMock) GetReceivedEmailsCalls() []struct {
 	Ctx     context.Context
 	EmailID uuid.UUID
 	Limit   int
@@ -446,7 +446,7 @@ func (mock *EmailUseCaseMock) GetReceivedEmailsCalls() []struct {
 }
 
 // UpdateEmailAddress calls UpdateEmailAddressFunc.
-func (mock *EmailUseCaseMock) UpdateEmailAddress(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error) {
+func (mock *UseCaseMock) UpdateEmailAddress(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error) {
 	callInfo := struct {
 		Ctx context.Context
 		ID  uuid.UUID
@@ -472,8 +472,8 @@ func (mock *EmailUseCaseMock) UpdateEmailAddress(ctx context.Context, id uuid.UU
 // UpdateEmailAddressCalls gets all the calls that were made to UpdateEmailAddress.
 // Check the length with:
 //
-//	len(mockedEmailUseCase.UpdateEmailAddressCalls())
-func (mock *EmailUseCaseMock) UpdateEmailAddressCalls() []struct {
+//	len(mockedUseCase.UpdateEmailAddressCalls())
+func (mock *UseCaseMock) UpdateEmailAddressCalls() []struct {
 	Ctx context.Context
 	ID  uuid.UUID
 	Req email.UpdateEmailAddressInput

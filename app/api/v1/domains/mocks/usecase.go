@@ -11,12 +11,12 @@ import (
 	"sync"
 )
 
-// DomainUseCaseMock is a mock implementation of domains.DomainUseCase.
+// UseCaseMock is a mock implementation of domains.UseCase.
 //
-//	func TestSomethingThatUsesDomainUseCase(t *testing.T) {
+//	func TestSomethingThatUsesUseCase(t *testing.T) {
 //
-//		// make and configure a mocked domains.DomainUseCase
-//		mockedDomainUseCase := &DomainUseCaseMock{
+//		// make and configure a mocked domains.UseCase
+//		mockedUseCase := &UseCaseMock{
 //			CreateDomainFunc: func(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
 //				panic("mock out the CreateDomain method")
 //			},
@@ -40,11 +40,11 @@ import (
 //			},
 //		}
 //
-//		// use mockedDomainUseCase in code that requires domains.DomainUseCase
+//		// use mockedUseCase in code that requires domains.UseCase
 //		// and then make assertions.
 //
 //	}
-type DomainUseCaseMock struct {
+type UseCaseMock struct {
 	// CreateDomainFunc mocks the CreateDomain method.
 	CreateDomainFunc func(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error)
 
@@ -132,7 +132,7 @@ type DomainUseCaseMock struct {
 }
 
 // CreateDomain calls CreateDomainFunc.
-func (mock *DomainUseCaseMock) CreateDomain(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
+func (mock *UseCaseMock) CreateDomain(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
 	callInfo := struct {
 		Ctx context.Context
 		Req domainpkg.CreateDomainInput
@@ -156,8 +156,8 @@ func (mock *DomainUseCaseMock) CreateDomain(ctx context.Context, req domainpkg.C
 // CreateDomainCalls gets all the calls that were made to CreateDomain.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.CreateDomainCalls())
-func (mock *DomainUseCaseMock) CreateDomainCalls() []struct {
+//	len(mockedUseCase.CreateDomainCalls())
+func (mock *UseCaseMock) CreateDomainCalls() []struct {
 	Ctx context.Context
 	Req domainpkg.CreateDomainInput
 } {
@@ -172,7 +172,7 @@ func (mock *DomainUseCaseMock) CreateDomainCalls() []struct {
 }
 
 // DeleteDomain calls DeleteDomainFunc.
-func (mock *DomainUseCaseMock) DeleteDomain(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (mock *UseCaseMock) DeleteDomain(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
 	callInfo := struct {
 		Ctx    context.Context
 		ID     uuid.UUID
@@ -197,8 +197,8 @@ func (mock *DomainUseCaseMock) DeleteDomain(ctx context.Context, id uuid.UUID, u
 // DeleteDomainCalls gets all the calls that were made to DeleteDomain.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.DeleteDomainCalls())
-func (mock *DomainUseCaseMock) DeleteDomainCalls() []struct {
+//	len(mockedUseCase.DeleteDomainCalls())
+func (mock *UseCaseMock) DeleteDomainCalls() []struct {
 	Ctx    context.Context
 	ID     uuid.UUID
 	UserID uuid.UUID
@@ -215,7 +215,7 @@ func (mock *DomainUseCaseMock) DeleteDomainCalls() []struct {
 }
 
 // GetDomainByAPIKey calls GetDomainByAPIKeyFunc.
-func (mock *DomainUseCaseMock) GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
+func (mock *UseCaseMock) GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
 	callInfo := struct {
 		Ctx    context.Context
 		ApiKey string
@@ -239,8 +239,8 @@ func (mock *DomainUseCaseMock) GetDomainByAPIKey(ctx context.Context, apiKey str
 // GetDomainByAPIKeyCalls gets all the calls that were made to GetDomainByAPIKey.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.GetDomainByAPIKeyCalls())
-func (mock *DomainUseCaseMock) GetDomainByAPIKeyCalls() []struct {
+//	len(mockedUseCase.GetDomainByAPIKeyCalls())
+func (mock *UseCaseMock) GetDomainByAPIKeyCalls() []struct {
 	Ctx    context.Context
 	ApiKey string
 } {
@@ -255,7 +255,7 @@ func (mock *DomainUseCaseMock) GetDomainByAPIKeyCalls() []struct {
 }
 
 // GetDomainByID calls GetDomainByIDFunc.
-func (mock *DomainUseCaseMock) GetDomainByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+func (mock *UseCaseMock) GetDomainByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
 	callInfo := struct {
 		Ctx context.Context
 		ID  uuid.UUID
@@ -279,8 +279,8 @@ func (mock *DomainUseCaseMock) GetDomainByID(ctx context.Context, id uuid.UUID) 
 // GetDomainByIDCalls gets all the calls that were made to GetDomainByID.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.GetDomainByIDCalls())
-func (mock *DomainUseCaseMock) GetDomainByIDCalls() []struct {
+//	len(mockedUseCase.GetDomainByIDCalls())
+func (mock *UseCaseMock) GetDomainByIDCalls() []struct {
 	Ctx context.Context
 	ID  uuid.UUID
 } {
@@ -295,7 +295,7 @@ func (mock *DomainUseCaseMock) GetDomainByIDCalls() []struct {
 }
 
 // GetDomainByName calls GetDomainByNameFunc.
-func (mock *DomainUseCaseMock) GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error) {
+func (mock *UseCaseMock) GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error) {
 	callInfo := struct {
 		Ctx        context.Context
 		DomainName string
@@ -319,8 +319,8 @@ func (mock *DomainUseCaseMock) GetDomainByName(ctx context.Context, domainName s
 // GetDomainByNameCalls gets all the calls that were made to GetDomainByName.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.GetDomainByNameCalls())
-func (mock *DomainUseCaseMock) GetDomainByNameCalls() []struct {
+//	len(mockedUseCase.GetDomainByNameCalls())
+func (mock *UseCaseMock) GetDomainByNameCalls() []struct {
 	Ctx        context.Context
 	DomainName string
 } {
@@ -335,7 +335,7 @@ func (mock *DomainUseCaseMock) GetDomainByNameCalls() []struct {
 }
 
 // GetDomainsByUserID calls GetDomainsByUserIDFunc.
-func (mock *DomainUseCaseMock) GetDomainsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
+func (mock *UseCaseMock) GetDomainsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
 	callInfo := struct {
 		Ctx    context.Context
 		UserID uuid.UUID
@@ -359,8 +359,8 @@ func (mock *DomainUseCaseMock) GetDomainsByUserID(ctx context.Context, userID uu
 // GetDomainsByUserIDCalls gets all the calls that were made to GetDomainsByUserID.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.GetDomainsByUserIDCalls())
-func (mock *DomainUseCaseMock) GetDomainsByUserIDCalls() []struct {
+//	len(mockedUseCase.GetDomainsByUserIDCalls())
+func (mock *UseCaseMock) GetDomainsByUserIDCalls() []struct {
 	Ctx    context.Context
 	UserID uuid.UUID
 } {
@@ -375,7 +375,7 @@ func (mock *DomainUseCaseMock) GetDomainsByUserIDCalls() []struct {
 }
 
 // UpdateDomain calls UpdateDomainFunc.
-func (mock *DomainUseCaseMock) UpdateDomain(ctx context.Context, id uuid.UUID, req domainpkg.UpdateDomainInput) (*entities.Domain, error) {
+func (mock *UseCaseMock) UpdateDomain(ctx context.Context, id uuid.UUID, req domainpkg.UpdateDomainInput) (*entities.Domain, error) {
 	callInfo := struct {
 		Ctx context.Context
 		ID  uuid.UUID
@@ -401,8 +401,8 @@ func (mock *DomainUseCaseMock) UpdateDomain(ctx context.Context, id uuid.UUID, r
 // UpdateDomainCalls gets all the calls that were made to UpdateDomain.
 // Check the length with:
 //
-//	len(mockedDomainUseCase.UpdateDomainCalls())
-func (mock *DomainUseCaseMock) UpdateDomainCalls() []struct {
+//	len(mockedUseCase.UpdateDomainCalls())
+func (mock *UseCaseMock) UpdateDomainCalls() []struct {
 	Ctx context.Context
 	ID  uuid.UUID
 	Req domainpkg.UpdateDomainInput
