@@ -11,11 +11,11 @@ import (
 	"sync"
 )
 
-// DomainUseCaseMock is a mock implementation of v1.DomainUseCase.
+// DomainUseCaseMock is a mock implementation of domains.DomainUseCase.
 //
 //	func TestSomethingThatUsesDomainUseCase(t *testing.T) {
 //
-//		// make and configure a mocked v1.DomainUseCase
+//		// make and configure a mocked domains.DomainUseCase
 //		mockedDomainUseCase := &DomainUseCaseMock{
 //			CreateDomainFunc: func(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
 //				panic("mock out the CreateDomain method")
@@ -40,7 +40,7 @@ import (
 //			},
 //		}
 //
-//		// use mockedDomainUseCase in code that requires v1.DomainUseCase
+//		// use mockedDomainUseCase in code that requires domains.DomainUseCase
 //		// and then make assertions.
 //
 //	}

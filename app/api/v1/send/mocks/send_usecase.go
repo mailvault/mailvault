@@ -9,22 +9,22 @@ import (
 	"sync"
 )
 
-// SendUseCaseMock is a mock implementation of v1.SendUseCase.
+// UseCaseMock is a mock implementation of send.UseCase.
 //
-//	func TestSomethingThatUsesSendUseCase(t *testing.T) {
+//	func TestSomethingThatUsesUseCase(t *testing.T) {
 //
-//		// make and configure a mocked v1.SendUseCase
-//		mockedSendUseCase := &SendUseCaseMock{
+//		// make and configure a mocked send.UseCase
+//		mockedUseCase := &UseCaseMock{
 //			GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 //				panic("mock out the GetDomainByAPIKey method")
 //			},
 //		}
 //
-//		// use mockedSendUseCase in code that requires v1.SendUseCase
+//		// use mockedUseCase in code that requires send.UseCase
 //		// and then make assertions.
 //
 //	}
-type SendUseCaseMock struct {
+type UseCaseMock struct {
 	// GetDomainByAPIKeyFunc mocks the GetDomainByAPIKey method.
 	GetDomainByAPIKeyFunc func(ctx context.Context, apiKey string) (*entities.Domain, error)
 
@@ -42,7 +42,7 @@ type SendUseCaseMock struct {
 }
 
 // GetDomainByAPIKey calls GetDomainByAPIKeyFunc.
-func (mock *SendUseCaseMock) GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
+func (mock *UseCaseMock) GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
 	callInfo := struct {
 		Ctx    context.Context
 		ApiKey string
@@ -66,8 +66,8 @@ func (mock *SendUseCaseMock) GetDomainByAPIKey(ctx context.Context, apiKey strin
 // GetDomainByAPIKeyCalls gets all the calls that were made to GetDomainByAPIKey.
 // Check the length with:
 //
-//	len(mockedSendUseCase.GetDomainByAPIKeyCalls())
-func (mock *SendUseCaseMock) GetDomainByAPIKeyCalls() []struct {
+//	len(mockedUseCase.GetDomainByAPIKeyCalls())
+func (mock *UseCaseMock) GetDomainByAPIKeyCalls() []struct {
 	Ctx    context.Context
 	ApiKey string
 } {

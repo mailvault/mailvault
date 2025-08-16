@@ -15,11 +15,13 @@ define goBuild
 	${PKG}/$2
 endef
 
+# Build all binaries (runs code generation first)
 .PHONY: build
-build:
+build: generate
 	$(call goBuild,service,"service")
 	$(call goBuild,smtpd,"smtpd")
 	$(call goBuild,cli,"cli")
+	$(call goBuild,admin,"admin")
 
 # ###########
 # Setup
@@ -59,8 +61,9 @@ setup: install-migration install-moq install-linters install-test-fmt install-go
 # Generate
 # ###########
 
+# Generate all code (templ templates + go generate)
 .PHONY: generate
-generate:
+generate: templ
 	@echo "==> Running go generate"
 	@go generate ./...
 
@@ -105,13 +108,13 @@ coverage:
 .PHONY: migration/create
 migration/create:
 	@read -p "Enter migration name: " migration; \
-	${GO_BIN_PATH}/migrate create -ext sql -dir ./internal/repository/pg/migrations/ "$$migration"
+	${GO_BIN_PATH}/migrate create -ext sql -dir ./gateways/repository/pg/migrations/ "$$migration"
 
 # Drop migration.
 .PHONY: migration/drop
 migration/drop:
 	dsn="postgres://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):5432/$(DATABASE_NAME)?sslmode=disable&search_path=public"; \
-	${GO_BIN_PATH}/migrate -source file://internal/repository/pg/migrations -database $$dsn droprepository/migrations -seq $$migration
+	${GO_BIN_PATH}/migrate -source file://gateways/repository/pg/migrations -database $$dsn drop
 
 # Execute the migrations up to the most recent one. Needs the following environment variables:
 # DATABASE_HOST: database url
@@ -121,7 +124,7 @@ migration/drop:
 .PHONY: migration/up
 migration/up:
 	dsn="postgres://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):5432/$(DATABASE_NAME)?sslmode=disable&search_path=public"; \
-	${GO_BIN_PATH}/migrate -source file://internal/repository/pg/migrations -database $$dsn up
+	${GO_BIN_PATH}/migrate -source file://gateways/repository/pg/migrations -database $$dsn up
 
 # Rollback the migrations up to the oldest one. Needs the following environment variables:
 # DATABASE_HOST: database url
@@ -131,4 +134,4 @@ migration/up:
 .PHONY: migration/down
 migration/down:
 	dsn="postgres://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):5432/$(DATABASE_NAME)?sslmode=disable&search_path=public"; \
-	${GO_BIN_PATH}/migrate -source file://internal/repository/pg/migrations -database $$dsn drop
+	${GO_BIN_PATH}/migrate -source file://gateways/repository/pg/migrations -database $$dsn down

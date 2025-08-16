@@ -1,4 +1,4 @@
-package v1
+package emails
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"mailvault/app/api"
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
 
@@ -88,15 +89,15 @@ type ReceivedEmailResult struct {
 // @Router /domains/{domainId}/emails [post]
 func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "domainId")
-	domainID, err := parseUUID(domainIDStr)
+	domainID, err := api.ParseUUID(domainIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	var req CreateEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -108,12 +109,12 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 		ForwardAddresses: req.ForwardAddresses,
 	})
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	result := h.mapEmailAddressToResult(emailAddress, "")
-	createdResponse(w, r, result)
+	api.CreatedResponse(w, r, result)
 }
 
 // GetEmailAddresses gets all email addresses for a domain
@@ -130,15 +131,15 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 // @Router /domains/{domainId}/emails [get]
 func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "domainId")
-	domainID, err := parseUUID(domainIDStr)
+	domainID, err := api.ParseUUID(domainIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	emailAddresses, err := h.emailUseCase.GetEmailAddressesByDomainID(r.Context(), domainID)
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -147,7 +148,7 @@ func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Reques
 		results[i] = h.mapEmailAddressToResult(emailAddress, "")
 	}
 
-	successResponse(w, r, results)
+	api.SuccessResponse(w, r, results)
 }
 
 // GetEmailAddress gets a specific email address by ID
@@ -165,20 +166,20 @@ func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Reques
 // @Router /domains/{domainId}/emails/{emailId} [get]
 func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
-	emailID, err := parseUUID(emailIDStr)
+	emailID, err := api.ParseUUID(emailIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	emailAddress, err := h.emailUseCase.GetEmailAddressByID(r.Context(), emailID)
 	if err != nil {
-		errorResponse(w, r, http.StatusNotFound, err)
+		api.ErrorResponse(w, r, http.StatusNotFound, err)
 		return
 	}
 
 	result := h.mapEmailAddressToResult(emailAddress, "")
-	successResponse(w, r, result)
+	api.SuccessResponse(w, r, result)
 }
 
 // UpdateEmailAddress updates an existing email address
@@ -197,15 +198,15 @@ func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request)
 // @Router /domains/{domainId}/emails/{emailId} [put]
 func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
-	emailID, err := parseUUID(emailIDStr)
+	emailID, err := api.ParseUUID(emailIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	var req UpdateEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -215,12 +216,12 @@ func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Reque
 		ForwardAddresses: req.ForwardAddresses,
 	})
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	result := h.mapEmailAddressToResult(emailAddress, "")
-	successResponse(w, r, result)
+	api.SuccessResponse(w, r, result)
 }
 
 // DeleteEmailAddress deletes an email address
@@ -236,20 +237,20 @@ func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Reque
 // @Router /domains/{domainId}/emails/{emailId} [delete]
 func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
-	emailID, err := parseUUID(emailIDStr)
+	emailID, err := api.ParseUUID(emailIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	err = h.emailUseCase.DeleteEmailAddress(r.Context(), emailID)
 	if err != nil {
 		slog.Error("failed to delete email address", "error", err, "email_id", emailID)
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	noContentResponse(w, r)
+	api.NoContentResponse(w, r)
 }
 
 // GetReceivedEmails gets received emails for an email address
@@ -269,18 +270,18 @@ func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Reque
 // @Router /domains/{domainId}/emails/{emailId}/received [get]
 func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
-	emailID, err := parseUUID(emailIDStr)
+	emailID, err := api.ParseUUID(emailIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	pagination := getPaginationParams(r)
+	pagination := api.GetPaginationParams(r)
 
 	receivedEmails, err := h.emailUseCase.GetReceivedEmails(r.Context(), emailID, pagination.Limit, pagination.Offset)
 	if err != nil {
 		slog.Error("failed to get received emails", "error", err, "email_id", emailID)
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -289,7 +290,7 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 		results[i] = h.mapReceivedEmailToResult(receivedEmail)
 	}
 
-	response := PaginatedResponse{
+	response := api.PaginatedResponse{
 		Data: results,
 		Pagination: struct {
 			Limit  int `json:"limit"`
@@ -301,7 +302,7 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 		},
 	}
 
-	successResponse(w, r, response)
+	api.SuccessResponse(w, r, response)
 }
 
 // GetReceivedEmail gets a specific received email by ID
@@ -318,28 +319,28 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 // @Router /received/{receivedEmailId} [get]
 func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request) {
 	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
-	receivedEmailID, err := parseUUID(receivedEmailIDStr)
+	receivedEmailID, err := api.ParseUUID(receivedEmailIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	// Get user ID from context
-	userID, err := getUserIDFromContext(r)
+	userID, err := api.GetUserIDFromContext(r)
 	if err != nil {
-		errorResponse(w, r, http.StatusUnauthorized, err)
+		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
 	receivedEmail, err := h.emailUseCase.GetReceivedEmailByID(r.Context(), receivedEmailID, userID)
 	if err != nil {
 		slog.Error("failed to get received email", "error", err, "received_email_id", receivedEmailID)
-		errorResponse(w, r, http.StatusNotFound, err)
+		api.ErrorResponse(w, r, http.StatusNotFound, err)
 		return
 	}
 
 	result := h.mapReceivedEmailToResult(receivedEmail)
-	successResponse(w, r, result)
+	api.SuccessResponse(w, r, result)
 }
 
 // DeleteReceivedEmail deletes a specific received email by ID
@@ -356,27 +357,27 @@ func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request
 // @Router /received/{receivedEmailId} [delete]
 func (h *EmailsHandlers) DeleteReceivedEmail(w http.ResponseWriter, r *http.Request) {
 	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
-	receivedEmailID, err := parseUUID(receivedEmailIDStr)
+	receivedEmailID, err := api.ParseUUID(receivedEmailIDStr)
 	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	// Get user ID from context
-	userID, err := getUserIDFromContext(r)
+	userID, err := api.GetUserIDFromContext(r)
 	if err != nil {
-		errorResponse(w, r, http.StatusUnauthorized, err)
+		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
 	if err := h.emailUseCase.DeleteReceivedEmail(r.Context(), receivedEmailID, userID); err != nil {
 		slog.Error("failed to delete received email", "error", err, "received_email_id", receivedEmailID)
 		// We don't differentiate error types here; report as BadRequest to avoid leaking details
-		errorResponse(w, r, http.StatusBadRequest, err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	noContentResponse(w, r)
+	api.NoContentResponse(w, r)
 }
 
 // mapEmailAddressToResult converts email address entity to API result

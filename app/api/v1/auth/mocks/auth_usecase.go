@@ -10,12 +10,12 @@ import (
 	"sync"
 )
 
-// UserUseCaseMock is a mock implementation of v1.UserUseCase.
+// UseCaseMock is a mock implementation of auth.UseCase.
 //
-//	func TestSomethingThatUsesUserUseCase(t *testing.T) {
+//	func TestSomethingThatUsesUseCase(t *testing.T) {
 //
-//		// make and configure a mocked v1.UserUseCase
-//		mockedUserUseCase := &UserUseCaseMock{
+//		// make and configure a mocked auth.UseCase
+//		mockedUseCase := &UseCaseMock{
 //			GetOrCreateUserByAuthProviderFunc: func(ctx context.Context, provider string, providerID string, email string) (*entities.User, error) {
 //				panic("mock out the GetOrCreateUserByAuthProvider method")
 //			},
@@ -27,11 +27,11 @@ import (
 //			},
 //		}
 //
-//		// use mockedUserUseCase in code that requires v1.UserUseCase
+//		// use mockedUseCase in code that requires auth.UseCase
 //		// and then make assertions.
 //
 //	}
-type UserUseCaseMock struct {
+type UseCaseMock struct {
 	// GetOrCreateUserByAuthProviderFunc mocks the GetOrCreateUserByAuthProvider method.
 	GetOrCreateUserByAuthProviderFunc func(ctx context.Context, provider string, providerID string, email string) (*entities.User, error)
 
@@ -75,7 +75,7 @@ type UserUseCaseMock struct {
 }
 
 // GetOrCreateUserByAuthProvider calls GetOrCreateUserByAuthProviderFunc.
-func (mock *UserUseCaseMock) GetOrCreateUserByAuthProvider(ctx context.Context, provider string, providerID string, email string) (*entities.User, error) {
+func (mock *UseCaseMock) GetOrCreateUserByAuthProvider(ctx context.Context, provider string, providerID string, email string) (*entities.User, error) {
 	callInfo := struct {
 		Ctx        context.Context
 		Provider   string
@@ -103,8 +103,8 @@ func (mock *UserUseCaseMock) GetOrCreateUserByAuthProvider(ctx context.Context, 
 // GetOrCreateUserByAuthProviderCalls gets all the calls that were made to GetOrCreateUserByAuthProvider.
 // Check the length with:
 //
-//	len(mockedUserUseCase.GetOrCreateUserByAuthProviderCalls())
-func (mock *UserUseCaseMock) GetOrCreateUserByAuthProviderCalls() []struct {
+//	len(mockedUseCase.GetOrCreateUserByAuthProviderCalls())
+func (mock *UseCaseMock) GetOrCreateUserByAuthProviderCalls() []struct {
 	Ctx        context.Context
 	Provider   string
 	ProviderID string
@@ -123,7 +123,7 @@ func (mock *UserUseCaseMock) GetOrCreateUserByAuthProviderCalls() []struct {
 }
 
 // GetUserByEmail calls GetUserByEmailFunc.
-func (mock *UserUseCaseMock) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
+func (mock *UseCaseMock) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
 	callInfo := struct {
 		Ctx   context.Context
 		Email string
@@ -147,8 +147,8 @@ func (mock *UserUseCaseMock) GetUserByEmail(ctx context.Context, email string) (
 // GetUserByEmailCalls gets all the calls that were made to GetUserByEmail.
 // Check the length with:
 //
-//	len(mockedUserUseCase.GetUserByEmailCalls())
-func (mock *UserUseCaseMock) GetUserByEmailCalls() []struct {
+//	len(mockedUseCase.GetUserByEmailCalls())
+func (mock *UseCaseMock) GetUserByEmailCalls() []struct {
 	Ctx   context.Context
 	Email string
 } {
@@ -163,7 +163,7 @@ func (mock *UserUseCaseMock) GetUserByEmailCalls() []struct {
 }
 
 // GetUserByID calls GetUserByIDFunc.
-func (mock *UserUseCaseMock) GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error) {
+func (mock *UseCaseMock) GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error) {
 	callInfo := struct {
 		Ctx context.Context
 		ID  uuid.UUID
@@ -187,8 +187,8 @@ func (mock *UserUseCaseMock) GetUserByID(ctx context.Context, id uuid.UUID) (*en
 // GetUserByIDCalls gets all the calls that were made to GetUserByID.
 // Check the length with:
 //
-//	len(mockedUserUseCase.GetUserByIDCalls())
-func (mock *UserUseCaseMock) GetUserByIDCalls() []struct {
+//	len(mockedUseCase.GetUserByIDCalls())
+func (mock *UseCaseMock) GetUserByIDCalls() []struct {
 	Ctx context.Context
 	ID  uuid.UUID
 } {
