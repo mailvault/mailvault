@@ -21,7 +21,6 @@ build: generate
 	$(call goBuild,service,"service")
 	$(call goBuild,smtpd,"smtpd")
 	$(call goBuild,cli,"cli")
-	$(call goBuild,admin,"admin")
 
 # ###########
 # Setup
@@ -52,8 +51,13 @@ install-gosec:
 	@echo "==> Installing gosec"
 	@go install github.com/securego/gosec/v2/cmd/gosec@latest
 
+.PHONY: install-swag
+install-swag:
+	@echo "==> Installing swag"
+	@go install github.com/swaggo/swag/cmd/swag@latest
+
 .PHONY: setup
-setup: install-migration install-moq install-linters install-test-fmt install-gosec install-sqlc
+setup: install-migration install-moq install-linters install-test-fmt install-gosec install-swag
 	@go mod tidy
 
 
@@ -61,9 +65,15 @@ setup: install-migration install-moq install-linters install-test-fmt install-go
 # Generate
 # ###########
 
-# Generate all code (templ templates + go generate)
+# Generate swagger documentation
+.PHONY: swagger
+swagger:
+	@echo "==> Generating swagger documentation"
+	@${GO_BIN_PATH}/swag init -g cmd/service/main.go -o docs/
+
+# Generate all code (swagger docs + go generate)
 .PHONY: generate
-generate: templ
+generate: swagger
 	@echo "==> Running go generate"
 	@go generate ./...
 

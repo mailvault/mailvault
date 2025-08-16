@@ -26,8 +26,8 @@ type CreateDomainRequest struct {
 // @Security BearerAuth
 // @Param request body CreateDomainRequest true "Domain creation details"
 // @Success 201 {object} DomainResult "Domain created successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
 // @Router /domains [post]
 func (h *DomainsHandlers) CreateDomain(w http.ResponseWriter, r *http.Request) {
 	userID, err := api.GetUserIDFromContext(r)

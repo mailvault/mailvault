@@ -84,8 +84,8 @@ type ReceivedEmailResult struct {
 // @Param domainId path string true "Domain ID" format(uuid)
 // @Param request body CreateEmailRequest true "Email address creation details"
 // @Success 201 {object} EmailAddressResult "Email address created successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
 // @Router /domains/{domainId}/emails [post]
 func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "domainId")
@@ -125,9 +125,9 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 // @Security BearerAuth
 // @Param domainId path string true "Domain ID" format(uuid)
 // @Success 200 {array} EmailAddressResult "List of email addresses"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
 // @Router /domains/{domainId}/emails [get]
 func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "domainId")
@@ -160,9 +160,9 @@ func (h *EmailsHandlers) GetEmailAddresses(w http.ResponseWriter, r *http.Reques
 // @Param domainId path string true "Domain ID" format(uuid)
 // @Param emailId path string true "Email Address ID" format(uuid)
 // @Success 200 {object} EmailAddressResult "Email address details"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 404 {object} ErrorResponseBody "Email address not found"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} models.ErrorResponseBody "Email address not found"
 // @Router /domains/{domainId}/emails/{emailId} [get]
 func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
@@ -193,8 +193,8 @@ func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request)
 // @Param emailId path string true "Email Address ID" format(uuid)
 // @Param request body UpdateEmailRequest true "Email address update details"
 // @Success 200 {object} EmailAddressResult "Email address updated successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
 // @Router /domains/{domainId}/emails/{emailId} [put]
 func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
@@ -232,8 +232,8 @@ func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Reque
 // @Param domainId path string true "Domain ID" format(uuid)
 // @Param emailId path string true "Email Address ID" format(uuid)
 // @Success 204 "Email address deleted successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
 // @Router /domains/{domainId}/emails/{emailId} [delete]
 func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
@@ -263,10 +263,10 @@ func (h *EmailsHandlers) DeleteEmailAddress(w http.ResponseWriter, r *http.Reque
 // @Param emailId path string true "Email Address ID" format(uuid)
 // @Param limit query int false "Number of emails per page" default(10)
 // @Param offset query int false "Number of emails to skip" default(0)
-// @Success 200 {object} PaginatedResponse "Paginated list of received emails"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Success 200 {object} models.PaginatedResponse "Paginated list of received emails"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
 // @Router /domains/{domainId}/emails/{emailId}/received [get]
 func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Request) {
 	emailIDStr := chi.URLParam(r, "emailId")
@@ -313,9 +313,9 @@ func (h *EmailsHandlers) GetReceivedEmails(w http.ResponseWriter, r *http.Reques
 // @Security BearerAuth
 // @Param receivedEmailId path string true "Received Email ID" format(uuid)
 // @Success 200 {object} ReceivedEmailResult "Received email details"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 404 {object} ErrorResponseBody "Received email not found"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} models.ErrorResponseBody "Received email not found"
 // @Router /received/{receivedEmailId} [get]
 func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request) {
 	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
@@ -350,10 +350,10 @@ func (h *EmailsHandlers) GetReceivedEmail(w http.ResponseWriter, r *http.Request
 // @Security BearerAuth
 // @Param receivedEmailId path string true "Received Email ID" format(uuid)
 // @Success 204 "Received email deleted successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 403 {object} ErrorResponseBody "Forbidden"
-// @Failure 404 {object} ErrorResponseBody "Received email not found"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 403 {object} models.ErrorResponseBody "Forbidden"
+// @Failure 404 {object} models.ErrorResponseBody "Received email not found"
 // @Router /received/{receivedEmailId} [delete]
 func (h *EmailsHandlers) DeleteReceivedEmail(w http.ResponseWriter, r *http.Request) {
 	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")

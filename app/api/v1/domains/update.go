@@ -29,10 +29,10 @@ type UpdateDomainRequest struct {
 // @Param id path string true "Domain ID" format(uuid)
 // @Param request body UpdateDomainRequest true "Domain update details"
 // @Success 200 {object} DomainResult "Domain updated successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 403 {object} ErrorResponseBody "Forbidden - domain does not belong to user"
-// @Failure 404 {object} ErrorResponseBody "Domain not found"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 403 {object} models.ErrorResponseBody "Forbidden - domain does not belong to user"
+// @Failure 404 {object} models.ErrorResponseBody "Domain not found"
 // @Router /domains/{id} [put]
 func (h *DomainsHandlers) UpdateDomain(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "id")

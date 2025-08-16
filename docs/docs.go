@@ -44,7 +44,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.LoginRequest"
+                            "$ref": "#/definitions/app_api_v1_auth.LoginRequest"
                         }
                     }
                 ],
@@ -52,25 +52,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Login successful",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.AuthResponse"
+                            "$ref": "#/definitions/auth.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -95,19 +95,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Current user information",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.UserResult"
+                            "$ref": "#/definitions/users.UserResult"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -133,7 +133,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -141,19 +141,19 @@ const docTemplate = `{
                     "201": {
                         "description": "User created successfully",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.AuthResponse"
+                            "$ref": "#/definitions/auth.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -180,20 +180,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/app_api_v1.DomainResult"
+                                "$ref": "#/definitions/domains.DomainResult"
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -222,7 +222,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.CreateDomainRequest"
+                            "$ref": "#/definitions/domains.CreateDomainRequest"
                         }
                     }
                 ],
@@ -230,72 +230,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Domain created successfully",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.DomainResult"
+                            "$ref": "#/definitions/domains.DomainResult"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
-                        }
-                    }
-                }
-            }
-        },
-        "/domains/received/{receivedEmailId}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific received email by its ID (must belong to authenticated user)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Emails"
-                ],
-                "summary": "Get received email by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Received Email ID",
-                        "name": "receivedEmailId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Received email details",
-                        "schema": {
-                            "$ref": "#/definitions/app_api_v1.ReceivedEmailResult"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
-                        }
-                    },
-                    "404": {
-                        "description": "Received email not found",
-                        "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -332,26 +279,26 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/app_api_v1.EmailAddressResult"
+                                "$ref": "#/definitions/emails.EmailAddressResult"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -388,7 +335,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.CreateEmailRequest"
+                            "$ref": "#/definitions/emails.CreateEmailRequest"
                         }
                     }
                 ],
@@ -396,19 +343,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Email address created successfully",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.EmailAddressResult"
+                            "$ref": "#/definitions/emails.EmailAddressResult"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -451,25 +398,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Email address details",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.EmailAddressResult"
+                            "$ref": "#/definitions/emails.EmailAddressResult"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "404": {
                         "description": "Email address not found",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -514,7 +461,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.UpdateEmailRequest"
+                            "$ref": "#/definitions/emails.UpdateEmailRequest"
                         }
                     }
                 ],
@@ -522,19 +469,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Email address updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.EmailAddressResult"
+                            "$ref": "#/definitions/emails.EmailAddressResult"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -575,13 +522,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -638,25 +585,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Paginated list of received emails",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.PaginatedResponse"
+                            "$ref": "#/definitions/models.PaginatedResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -691,31 +638,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Domain details",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.DomainResult"
+                            "$ref": "#/definitions/domains.DomainResult"
                         }
                     },
                     "400": {
                         "description": "Bad request - invalid domain ID",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "403": {
                         "description": "Forbidden - domain does not belong to user",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "404": {
                         "description": "Domain not found",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -752,7 +699,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.UpdateDomainRequest"
+                            "$ref": "#/definitions/domains.UpdateDomainRequest"
                         }
                     }
                 ],
@@ -760,31 +707,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Domain updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.DomainResult"
+                            "$ref": "#/definitions/domains.DomainResult"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "403": {
                         "description": "Forbidden - domain does not belong to user",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "404": {
                         "description": "Domain not found",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -817,19 +764,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "404": {
                         "description": "Domain not found or does not belong to user",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -853,6 +800,110 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/received/{receivedEmailId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific received email by its ID (must belong to authenticated user)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Emails"
+                ],
+                "summary": "Get received email by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Received Email ID",
+                        "name": "receivedEmailId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Received email details",
+                        "schema": {
+                            "$ref": "#/definitions/emails.ReceivedEmailResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Received email not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a specific received email by its ID (must belong to authenticated user)",
+                "tags": [
+                    "Emails"
+                ],
+                "summary": "Delete received email by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Received Email ID",
+                        "name": "receivedEmailId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Received email deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Received email not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -883,7 +934,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.SendEmailRequest"
+                            "$ref": "#/definitions/send.SendEmailRequest"
                         }
                     }
                 ],
@@ -891,19 +942,19 @@ const docTemplate = `{
                     "202": {
                         "description": "Email queued for delivery",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.SendEmailResponse"
+                            "$ref": "#/definitions/send.SendEmailResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request - invalid email data",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     },
                     "401": {
                         "description": "Unauthorized - invalid or missing API key",
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1.ErrorResponseBody"
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -911,24 +962,75 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "app_api_v1.AuthResponse": {
+        "app_api_v1_auth.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.AuthResponse": {
             "type": "object",
             "properties": {
                 "token": {
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/app_api_v1.UserResult"
+                    "$ref": "#/definitions/auth.UserResult"
                 }
             }
         },
-        "app_api_v1.CreateDomainRequest": {
+        "auth.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
+        "auth.UserResult": {
+            "type": "object",
+            "properties": {
+                "auth_provider": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domains.CreateDomainRequest": {
             "type": "object",
             "required": [
                 "domain",
                 "public_key"
             ],
             "properties": {
+                "auto_create_address": {
+                    "type": "boolean"
+                },
                 "domain": {
                     "type": "string"
                 },
@@ -939,35 +1041,18 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "webhook_config": {
-                    "$ref": "#/definitions/app_api_v1.WebhookConfigRequest"
+                    "$ref": "#/definitions/domains.WebhookConfigRequest"
                 }
             }
         },
-        "app_api_v1.CreateEmailRequest": {
-            "type": "object",
-            "required": [
-                "local_part"
-            ],
-            "properties": {
-                "forward_addresses": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "is_catch_all": {
-                    "type": "boolean"
-                },
-                "local_part": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_api_v1.DomainResult": {
+        "domains.DomainResult": {
             "type": "object",
             "properties": {
                 "api_key": {
                     "type": "string"
+                },
+                "auto_create_address": {
+                    "type": "boolean"
                 },
                 "created_at": {
                     "type": "string"
@@ -991,11 +1076,94 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "webhook_config": {
-                    "$ref": "#/definitions/app_api_v1.WebhookConfigResult"
+                    "$ref": "#/definitions/domains.WebhookConfigResult"
                 }
             }
         },
-        "app_api_v1.EmailAddressResult": {
+        "domains.UpdateDomainRequest": {
+            "type": "object",
+            "properties": {
+                "auto_create_address": {
+                    "type": "boolean"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "storage_enabled": {
+                    "type": "boolean"
+                },
+                "verified": {
+                    "type": "boolean"
+                },
+                "webhook_config": {
+                    "$ref": "#/definitions/domains.WebhookConfigRequest"
+                }
+            }
+        },
+        "domains.WebhookConfigRequest": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "secret": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domains.WebhookConfigResult": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "secret": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "emails.CreateEmailRequest": {
+            "type": "object",
+            "required": [
+                "local_part"
+            ],
+            "properties": {
+                "forward_addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "is_catch_all": {
+                    "type": "boolean"
+                },
+                "local_part": {
+                    "type": "string"
+                }
+            }
+        },
+        "emails.EmailAddressResult": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1027,50 +1195,7 @@ const docTemplate = `{
                 }
             }
         },
-        "app_api_v1.ErrorResponseBody": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_api_v1.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_api_v1.PaginatedResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "pagination": {
-                    "type": "object",
-                    "properties": {
-                        "limit": {
-                            "type": "integer"
-                        },
-                        "offset": {
-                            "type": "integer"
-                        },
-                        "total": {
-                            "type": "integer"
-                        }
-                    }
-                }
-            }
-        },
-        "app_api_v1.ReceivedEmailResult": {
+        "emails.ReceivedEmailResult": {
             "type": "object",
             "properties": {
                 "encrypted_body": {
@@ -1093,23 +1218,53 @@ const docTemplate = `{
                 }
             }
         },
-        "app_api_v1.RegisterRequest": {
+        "emails.UpdateEmailRequest": {
             "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
             "properties": {
-                "email": {
-                    "type": "string"
+                "forward_addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
-                "password": {
-                    "type": "string",
-                    "minLength": 8
+                "is_catch_all": {
+                    "type": "boolean"
                 }
             }
         },
-        "app_api_v1.SendEmailRequest": {
+        "models.ErrorResponseBody": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid request"
+                }
+            }
+        },
+        "models.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "pagination": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer",
+                            "example": 10
+                        },
+                        "offset": {
+                            "type": "integer",
+                            "example": 0
+                        },
+                        "total": {
+                            "type": "integer",
+                            "example": 100
+                        }
+                    }
+                }
+            }
+        },
+        "send.SendEmailRequest": {
             "type": "object",
             "required": [
                 "from",
@@ -1150,7 +1305,7 @@ const docTemplate = `{
                 }
             }
         },
-        "app_api_v1.SendEmailResponse": {
+        "send.SendEmailResponse": {
             "type": "object",
             "properties": {
                 "message_id": {
@@ -1161,43 +1316,9 @@ const docTemplate = `{
                 }
             }
         },
-        "app_api_v1.UpdateDomainRequest": {
+        "users.UserResult": {
             "type": "object",
             "properties": {
-                "public_key": {
-                    "type": "string"
-                },
-                "storage_enabled": {
-                    "type": "boolean"
-                },
-                "verified": {
-                    "type": "boolean"
-                },
-                "webhook_config": {
-                    "$ref": "#/definitions/app_api_v1.WebhookConfigRequest"
-                }
-            }
-        },
-        "app_api_v1.UpdateEmailRequest": {
-            "type": "object",
-            "properties": {
-                "forward_addresses": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "is_catch_all": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "app_api_v1.UserResult": {
-            "type": "object",
-            "properties": {
-                "auth_provider": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1205,49 +1326,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_api_v1.WebhookConfigRequest": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "headers": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "secret": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_api_v1.WebhookConfigResult": {
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "headers": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "secret": {
-                    "type": "string"
-                },
-                "url": {
                     "type": "string"
                 }
             }
@@ -1272,7 +1350,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:3000",
+	Host:             ":3000",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "MailVault API",

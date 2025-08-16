@@ -14,8 +14,8 @@ import (
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {array} DomainResult "List of user domains"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
 // @Router /domains [get]
 func (h *DomainsHandlers) GetDomains(w http.ResponseWriter, r *http.Request) {
 	userID, err := api.GetUserIDFromContext(r)
@@ -46,10 +46,10 @@ func (h *DomainsHandlers) GetDomains(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param id path string true "Domain ID" format(uuid)
 // @Success 200 {object} DomainResult "Domain details"
-// @Failure 400 {object} ErrorResponseBody "Bad request - invalid domain ID"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 403 {object} ErrorResponseBody "Forbidden - domain does not belong to user"
-// @Failure 404 {object} ErrorResponseBody "Domain not found"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request - invalid domain ID"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 403 {object} models.ErrorResponseBody "Forbidden - domain does not belong to user"
+// @Failure 404 {object} models.ErrorResponseBody "Domain not found"
 // @Router /domains/{id} [get]
 func (h *DomainsHandlers) GetDomain(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "id")
