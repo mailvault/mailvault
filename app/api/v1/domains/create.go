@@ -10,10 +10,11 @@ import (
 
 // CreateDomainRequest represents domain creation request
 type CreateDomainRequest struct {
-	Domain         string                `json:"domain" validate:"required"`
-	PublicKey      string                `json:"public_key" validate:"required"`
-	WebhookConfig  *WebhookConfigRequest `json:"webhook_config,omitempty"`
-	StorageEnabled *bool                 `json:"storage_enabled,omitempty"`
+	Domain           string                `json:"domain" validate:"required"`
+	PublicKey        string                `json:"public_key" validate:"required"`
+	WebhookConfig    *WebhookConfigRequest `json:"webhook_config,omitempty"`
+	StorageEnabled   *bool                 `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                `json:"auto_create_address,omitempty"`
 }
 
 // CreateDomain creates a new domain
@@ -54,11 +55,12 @@ func (h *DomainsHandlers) CreateDomain(w http.ResponseWriter, r *http.Request) {
 
 	// Create domain
 	domainEntity, err := h.domainUseCase.CreateDomain(r.Context(), domainpkg.CreateDomainInput{
-		UserID:         userID,
-		Domain:         req.Domain,
-		PublicKey:      req.PublicKey,
-		WebhookConfig:  webhookConfig,
-		StorageEnabled: req.StorageEnabled,
+		UserID:           userID,
+		Domain:           req.Domain,
+		PublicKey:        req.PublicKey,
+		WebhookConfig:    webhookConfig,
+		StorageEnabled:   req.StorageEnabled,
+		AutoCreateAddress: req.AutoCreateAddress,
 	})
 	if err != nil {
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)

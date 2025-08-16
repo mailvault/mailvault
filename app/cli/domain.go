@@ -46,12 +46,13 @@ var domainShowCmd = &cobra.Command{
 }
 
 var (
-	domainName      string
-	publicKey       string
-	webhookURL      string
-	webhookSecret   string
-	storageEnabled  bool
-	force           bool
+	domainName       string
+	publicKey        string
+	webhookURL       string
+	webhookSecret    string
+	storageEnabled   bool
+	autoCreateAddress bool
+	force            bool
 )
 
 func init() {
@@ -66,6 +67,7 @@ func init() {
 	domainCreateCmd.Flags().StringVar(&webhookURL, "webhook-url", "", "webhook URL for email notifications")
 	domainCreateCmd.Flags().StringVar(&webhookSecret, "webhook-secret", "", "webhook secret for authentication")
 	domainCreateCmd.Flags().BoolVar(&storageEnabled, "storage", true, "enable email storage")
+	domainCreateCmd.Flags().BoolVar(&autoCreateAddress, "auto-create", false, "automatically create email addresses when receiving emails to non-existent addresses")
 	
 	domainCreateCmd.MarkFlagRequired("domain")
 	domainCreateCmd.MarkFlagRequired("public-key")
@@ -95,8 +97,8 @@ func runDomainList(cmd *cobra.Command, args []string) error {
 
 	// Print domains in a table format
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tDOMAIN\tVERIFIED\tSTORAGE\tCREATED")
-	fmt.Fprintln(w, "--\t------\t--------\t-------\t-------")
+	fmt.Fprintln(w, "ID\tDOMAIN\tVERIFIED\tSTORAGE\tAUTO-CREATE\tCREATED")
+	fmt.Fprintln(w, "--\t------\t--------\t-------\t-----------\t-------")
 
 	for _, domain := range domains {
 		verified := "No"
@@ -108,12 +110,19 @@ func runDomainList(cmd *cobra.Command, args []string) error {
 		if domain.StorageEnabled {
 			storage = "Yes"
 		}
+		
+		// TODO: Add when SDK is updated
+		autoCreate := "No"
+		// if domain.AutoCreateAddress {
+		// 	autoCreate = "Yes"
+		// }
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
 			domain.ID[:8]+"...", // Truncate ID for display
 			domain.Domain,
 			verified,
 			storage,
+			autoCreate,
 			formatDate(domain.CreatedAt))
 	}
 
@@ -134,6 +143,7 @@ func runDomainCreate(cmd *cobra.Command, args []string) error {
 		Domain:         domainName,
 		PublicKey:      publicKey,
 		StorageEnabled: &storageEnabled,
+		// AutoCreateAddress: &autoCreateAddress, // TODO: Add when SDK is updated
 	}
 
 	// Add webhook configuration if provided
@@ -154,11 +164,13 @@ func runDomainCreate(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("✓ Domain created successfully!\n\n")
 	fmt.Printf("Domain Details:\n")
-	fmt.Printf("  ID:            %s\n", domain.ID)
-	fmt.Printf("  Domain:        %s\n", domain.Domain)
-	fmt.Printf("  API Key:       %s\n", domain.APIKey)
-	fmt.Printf("  Verified:      %t\n", domain.Verified)
-	fmt.Printf("  Storage:       %t\n", domain.StorageEnabled)
+	fmt.Printf("  ID:              %s\n", domain.ID)
+	fmt.Printf("  Domain:          %s\n", domain.Domain)
+	fmt.Printf("  API Key:         %s\n", domain.APIKey)
+	fmt.Printf("  Verified:        %t\n", domain.Verified)
+	fmt.Printf("  Storage:         %t\n", domain.StorageEnabled)
+	// TODO: Add when SDK is updated
+	// fmt.Printf("  Auto-create:     %t\n", domain.AutoCreateAddress)
 	
 	if domain.WebhookConfig != nil && domain.WebhookConfig.Enabled {
 		fmt.Printf("  Webhook URL:   %s\n", domain.WebhookConfig.URL)
@@ -231,13 +243,15 @@ func runDomainShow(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Domain Details:\n")
-	fmt.Printf("  ID:            %s\n", domain.ID)
-	fmt.Printf("  Domain:        %s\n", domain.Domain)
-	fmt.Printf("  API Key:       %s\n", domain.APIKey)
-	fmt.Printf("  Verified:      %t\n", domain.Verified)
-	fmt.Printf("  Storage:       %t\n", domain.StorageEnabled)
-	fmt.Printf("  Created:       %s\n", formatDate(domain.CreatedAt))
-	fmt.Printf("  Updated:       %s\n", formatDate(domain.UpdatedAt))
+	fmt.Printf("  ID:              %s\n", domain.ID)
+	fmt.Printf("  Domain:          %s\n", domain.Domain)
+	fmt.Printf("  API Key:         %s\n", domain.APIKey)
+	fmt.Printf("  Verified:        %t\n", domain.Verified)
+	fmt.Printf("  Storage:         %t\n", domain.StorageEnabled)
+	// TODO: Add when SDK is updated
+	// fmt.Printf("  Auto-create:     %t\n", domain.AutoCreateAddress)
+	fmt.Printf("  Created:         %s\n", formatDate(domain.CreatedAt))
+	fmt.Printf("  Updated:         %s\n", formatDate(domain.UpdatedAt))
 	
 	if domain.WebhookConfig != nil {
 		fmt.Printf("\nWebhook Configuration:\n")

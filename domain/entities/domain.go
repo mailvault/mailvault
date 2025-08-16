@@ -7,16 +7,17 @@ import (
 )
 
 type Domain struct {
-	ID            uuid.UUID      `json:"id" db:"id"`
-	UserID        uuid.UUID      `json:"user_id" db:"user_id"`
-	Domain        string         `json:"domain" db:"domain"`
-	PublicKey     string         `json:"public_key" db:"public_key"`
-	APIKey        string         `json:"api_key" db:"api_key"`
-	Verified      bool           `json:"verified" db:"verified"`
-	WebhookConfig *WebhookConfig `json:"webhook_config,omitempty" db:"webhook_config"`
-	StorageEnabled bool          `json:"storage_enabled" db:"storage_enabled"`
-	CreatedAt     time.Time      `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at" db:"updated_at"`
+	ID               uuid.UUID      `json:"id" db:"id"`
+	UserID           uuid.UUID      `json:"user_id" db:"user_id"`
+	Domain           string         `json:"domain" db:"domain"`
+	PublicKey        string         `json:"public_key" db:"public_key"`
+	APIKey           string         `json:"api_key" db:"api_key"`
+	Verified         bool           `json:"verified" db:"verified"`
+	WebhookConfig    *WebhookConfig `json:"webhook_config,omitempty" db:"webhook_config"`
+	StorageEnabled   bool           `json:"storage_enabled" db:"storage_enabled"`
+	AutoCreateAddress bool          `json:"auto_create_address" db:"auto_create_address"`
+	CreatedAt        time.Time      `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at" db:"updated_at"`
 }
 
 func (d *Domain) IsValid() bool {

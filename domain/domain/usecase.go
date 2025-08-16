@@ -25,18 +25,20 @@ func NewUseCase(repo Repository) *UseCase {
 }
 
 type CreateDomainInput struct {
-	UserID         uuid.UUID               `json:"user_id"`
-	Domain         string                  `json:"domain"`
-	PublicKey      string                  `json:"public_key"`
-	WebhookConfig  *entities.WebhookConfig `json:"webhook_config,omitempty"`
-	StorageEnabled *bool                   `json:"storage_enabled,omitempty"`
+	UserID           uuid.UUID               `json:"user_id"`
+	Domain           string                  `json:"domain"`
+	PublicKey        string                  `json:"public_key"`
+	WebhookConfig    *entities.WebhookConfig `json:"webhook_config,omitempty"`
+	StorageEnabled   *bool                   `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                  `json:"auto_create_address,omitempty"`
 }
 
 type UpdateDomainInput struct {
-	PublicKey      *string                 `json:"public_key,omitempty"`
-	Verified       *bool                   `json:"verified,omitempty"`
-	WebhookConfig  *entities.WebhookConfig `json:"webhook_config,omitempty"`
-	StorageEnabled *bool                   `json:"storage_enabled,omitempty"`
+	PublicKey        *string                 `json:"public_key,omitempty"`
+	Verified         *bool                   `json:"verified,omitempty"`
+	WebhookConfig    *entities.WebhookConfig `json:"webhook_config,omitempty"`
+	StorageEnabled   *bool                   `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                  `json:"auto_create_address,omitempty"`
 }
 
 func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*entities.Domain, error) {
@@ -83,17 +85,24 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 		storageEnabled = *req.StorageEnabled
 	}
 
+	// Default auto create address to false if not specified
+	autoCreateAddress := false
+	if req.AutoCreateAddress != nil {
+		autoCreateAddress = *req.AutoCreateAddress
+	}
+
 	domain := &entities.Domain{
-		ID:             uuid.Must(uuid.NewV4()),
-		UserID:         req.UserID,
-		Domain:         normalizedDomain,
-		PublicKey:      req.PublicKey,
-		APIKey:         apiKey,
-		Verified:       false,
-		WebhookConfig:  req.WebhookConfig,
-		StorageEnabled: storageEnabled,
-		CreatedAt:      time.Now().UTC(),
-		UpdatedAt:      time.Now().UTC(),
+		ID:               uuid.Must(uuid.NewV4()),
+		UserID:           req.UserID,
+		Domain:           normalizedDomain,
+		PublicKey:        req.PublicKey,
+		APIKey:           apiKey,
+		Verified:         false,
+		WebhookConfig:    req.WebhookConfig,
+		StorageEnabled:   storageEnabled,
+		AutoCreateAddress: autoCreateAddress,
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	}
 
 	if !domain.IsValid() {
@@ -185,6 +194,9 @@ func (uc *UseCase) UpdateDomain(ctx context.Context, id uuid.UUID, req UpdateDom
 	}
 	if req.StorageEnabled != nil {
 		domain.StorageEnabled = *req.StorageEnabled
+	}
+	if req.AutoCreateAddress != nil {
+		domain.AutoCreateAddress = *req.AutoCreateAddress
 	}
 
 	domain.UpdatedAt = time.Now().UTC()
