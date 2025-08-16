@@ -402,3 +402,134 @@ func TestGenerateAPIKey(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, apiKey, apiKey2)
 }
+
+func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.Must(uuid.NewV4())
+	domain := "test.example.com"
+	publicKey := "test-public-key"
+
+	t.Run("create domain with auto-create enabled", func(t *testing.T) {
+		mockRepo := &mocks.RepositoryMock{}
+		uc := NewUseCase(mockRepo)
+		
+		autoCreateAddress := true
+
+		// Setup mocks
+		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
+			return nil, sql.ErrNoRows
+		}
+		mockRepo.CreateFunc = func(ctx context.Context, domain *entities.Domain) error {
+			return nil
+		}
+
+		// Execute
+		result, err := uc.CreateDomain(ctx, CreateDomainInput{
+			UserID:           userID,
+			Domain:           domain,
+			PublicKey:        publicKey,
+			AutoCreateAddress: &autoCreateAddress,
+		})
+
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.AutoCreateAddress)
+	})
+
+	t.Run("create domain with auto-create disabled", func(t *testing.T) {
+		mockRepo := &mocks.RepositoryMock{}
+		uc := NewUseCase(mockRepo)
+		
+		autoCreateAddress := false
+
+		// Setup mocks
+		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
+			return nil, sql.ErrNoRows
+		}
+		mockRepo.CreateFunc = func(ctx context.Context, domain *entities.Domain) error {
+			return nil
+		}
+
+		// Execute
+		result, err := uc.CreateDomain(ctx, CreateDomainInput{
+			UserID:           userID,
+			Domain:           domain,
+			PublicKey:        publicKey,
+			AutoCreateAddress: &autoCreateAddress,
+		})
+
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.False(t, result.AutoCreateAddress)
+	})
+
+	t.Run("create domain with default auto-create (false)", func(t *testing.T) {
+		mockRepo := &mocks.RepositoryMock{}
+		uc := NewUseCase(mockRepo)
+
+		// Setup mocks
+		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
+			return nil, sql.ErrNoRows
+		}
+		mockRepo.CreateFunc = func(ctx context.Context, domain *entities.Domain) error {
+			return nil
+		}
+
+		// Execute without AutoCreateAddress field
+		result, err := uc.CreateDomain(ctx, CreateDomainInput{
+			UserID:    userID,
+			Domain:    domain,
+			PublicKey: publicKey,
+		})
+
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.False(t, result.AutoCreateAddress) // Default should be false
+	})
+}
+
+func TestUpdateDomainAutoCreateAddress(t *testing.T) {
+	ctx := context.Background()
+	domainID := uuid.Must(uuid.NewV4())
+
+	t.Run("update auto-create emails setting", func(t *testing.T) {
+		mockRepo := &mocks.RepositoryMock{}
+		uc := NewUseCase(mockRepo)
+
+		existingDomain := &entities.Domain{
+			ID:               domainID,
+			UserID:           uuid.Must(uuid.NewV4()),
+			Domain:           "example.com",
+			PublicKey:        "test-key",
+			APIKey:           "pm_test_api_key",
+			Verified:         true,
+			StorageEnabled:   true,
+			AutoCreateAddress: false, // Initially disabled
+			CreatedAt:        time.Now().UTC(),
+			UpdatedAt:        time.Now().UTC(),
+		}
+
+		autoCreateAddress := true // Enable auto-create
+
+		mockRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+			return existingDomain, nil
+		}
+		mockRepo.UpdateFunc = func(ctx context.Context, domain *entities.Domain) error {
+			return nil
+		}
+
+		result, err := uc.UpdateDomain(ctx, domainID, UpdateDomainInput{
+			AutoCreateAddress: &autoCreateAddress,
+		})
+
+		assert.NoError(t, err)
+		assert.True(t, result.AutoCreateAddress)
+
+		// Verify calls
+		assert.Len(t, mockRepo.GetByIDCalls(), 1)
+		assert.Len(t, mockRepo.UpdateCalls(), 1)
+	})
+}

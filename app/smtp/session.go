@@ -94,11 +94,15 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 	// Try to find specific email address first
 	emailAddress, err := s.backend.emailUseCase.GetEmailAddressByAddress(context.Background(), recipient)
 	if err != nil {
-		// If specific email not found, check if domain has catch-all enabled
-		// For now, we'll create the email address if it doesn't exist and domain allows it
-		s.logger.Info("Email address not found, checking domain policy", "email", recipient)
+		s.logger.Info("Email address not found, checking domain auto-creation policy", "email", recipient, "auto_create_enabled", domain.AutoCreateAddress)
 		
-		// Create new email address (this could be configurable per domain)
+		// Check if domain allows auto-creation of email addresses
+		if !domain.AutoCreateAddress {
+			s.logger.Warn("Email rejected: address not found and auto-creation disabled", "email", recipient, "domain", domainName)
+			return &smtp.SMTPError{Code: 550, Message: "Email address not found"}
+		}
+		
+		// Auto-create new email address since domain allows it
 		emailAddress = &entities.EmailAddress{
 			ID:               uuid.Must(uuid.NewV4()),
 			DomainID:         domain.ID,
@@ -111,9 +115,11 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 
 		err = s.backend.emailUseCase.CreateEmailAddress(context.Background(), emailAddress)
 		if err != nil {
-			s.logger.Error("Failed to create email address", "email", recipient, "error", err)
-			return err
+			s.logger.Error("Failed to auto-create email address", "email", recipient, "error", err)
+			return &smtp.SMTPError{Code: 451, Message: "Temporary failure creating email address"}
 		}
+		
+		s.logger.Info("Auto-created email address", "email", recipient, "domain", domainName)
 	}
 
 	// Parse email headers to extract subject and from address

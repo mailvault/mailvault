@@ -42,15 +42,16 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	userID := createDomainTestUser(t, pool)
 
 	d := &entities.Domain{
-		ID:             uuid.Must(uuid.NewV4()),
-		UserID:         userID,
-		Domain:         "myexample.com",
-		PublicKey:      "pubkey",
-		APIKey:         "pm_domain_api_key",
-		Verified:       false,
-		StorageEnabled: true,
-		CreatedAt:      time.Now().UTC(),
-		UpdatedAt:      time.Now().UTC(),
+		ID:               uuid.Must(uuid.NewV4()),
+		UserID:           userID,
+		Domain:           "myexample.com",
+		PublicKey:        "pubkey",
+		APIKey:           "pm_domain_api_key",
+		Verified:         false,
+		StorageEnabled:   true,
+		AutoCreateAddress: false,
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	}
 
 	// Create
@@ -61,6 +62,7 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, d.Domain, got.Domain)
 	assert.False(t, got.Verified)
+	assert.False(t, got.AutoCreateAddress)
 
 	// GetByDomain
 	got2, err := repo.GetByDomain(ctx, d.Domain)
@@ -80,6 +82,7 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	// Update
 	d.Verified = true
 	d.StorageEnabled = false
+	d.AutoCreateAddress = true
 	d.UpdatedAt = time.Now().UTC()
 	d.WebhookConfig = &entities.WebhookConfig{URL: "https://hook.tld", Enabled: true}
 	require.NoError(t, repo.Update(ctx, d))
@@ -87,6 +90,8 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	got4, err := repo.GetByID(ctx, d.ID)
 	require.NoError(t, err)
 	assert.True(t, got4.Verified)
+	assert.False(t, got4.StorageEnabled)
+	assert.True(t, got4.AutoCreateAddress)
 	require.NotNil(t, got4.WebhookConfig)
 	assert.Equal(t, "https://hook.tld", got4.WebhookConfig.URL)
 

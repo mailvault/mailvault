@@ -35,8 +35,8 @@ func (r *DomainRepository) Create(ctx context.Context, d *entities.Domain) error
 	}
 	
 	query := `
-		INSERT INTO domains (id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO domains (id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, auto_create_address, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 	
 	_, err = r.db.Exec(ctx, query,
@@ -48,6 +48,7 @@ func (r *DomainRepository) Create(ctx context.Context, d *entities.Domain) error
 		d.Verified,
 		webhookConfigJSON,
 		d.StorageEnabled,
+		d.AutoCreateAddress,
 		d.CreatedAt,
 		d.UpdatedAt,
 	)
@@ -57,7 +58,7 @@ func (r *DomainRepository) Create(ctx context.Context, d *entities.Domain) error
 
 func (r *DomainRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, created_at, updated_at
+		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, auto_create_address, created_at, updated_at
 		FROM domains
 		WHERE id = $1
 	`
@@ -67,7 +68,7 @@ func (r *DomainRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities
 
 func (r *DomainRepository) GetByDomain(ctx context.Context, domain string) (*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, created_at, updated_at
+		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, auto_create_address, created_at, updated_at
 		FROM domains
 		WHERE domain = $1
 	`
@@ -77,7 +78,7 @@ func (r *DomainRepository) GetByDomain(ctx context.Context, domain string) (*ent
 
 func (r *DomainRepository) GetByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, created_at, updated_at
+		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, auto_create_address, created_at, updated_at
 		FROM domains
 		WHERE api_key = $1
 	`
@@ -87,7 +88,7 @@ func (r *DomainRepository) GetByAPIKey(ctx context.Context, apiKey string) (*ent
 
 func (r *DomainRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, created_at, updated_at
+		SELECT id, user_id, domain, public_key, api_key, verified, webhook_config, storage_enabled, auto_create_address, created_at, updated_at
 		FROM domains
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -128,7 +129,7 @@ func (r *DomainRepository) Update(ctx context.Context, d *entities.Domain) error
 	
 	query := `
 		UPDATE domains
-		SET user_id = $2, domain = $3, public_key = $4, api_key = $5, verified = $6, webhook_config = $7, storage_enabled = $8, updated_at = $9
+		SET user_id = $2, domain = $3, public_key = $4, api_key = $5, verified = $6, webhook_config = $7, storage_enabled = $8, auto_create_address = $9, updated_at = $10
 		WHERE id = $1
 	`
 	
@@ -141,6 +142,7 @@ func (r *DomainRepository) Update(ctx context.Context, d *entities.Domain) error
 		d.Verified,
 		webhookConfigJSON,
 		d.StorageEnabled,
+		d.AutoCreateAddress,
 		d.UpdatedAt,
 	)
 	
@@ -183,6 +185,7 @@ func (r *DomainRepository) scanDomain(row pgx.Row) (*entities.Domain, error) {
 		&d.Verified,
 		&webhookConfigJSON,
 		&d.StorageEnabled,
+		&d.AutoCreateAddress,
 		&d.CreatedAt,
 		&d.UpdatedAt,
 	)
@@ -219,6 +222,7 @@ func (r *DomainRepository) scanDomainFromRows(rows pgx.Rows) (*entities.Domain, 
 		&d.Verified,
 		&webhookConfigJSON,
 		&d.StorageEnabled,
+		&d.AutoCreateAddress,
 		&d.CreatedAt,
 		&d.UpdatedAt,
 	)
