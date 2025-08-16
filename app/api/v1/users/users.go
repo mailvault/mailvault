@@ -45,8 +45,8 @@ type UserResult struct {
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} UserResult "Current user information"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 404 {object} ErrorResponseBody "User not found"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} models.ErrorResponseBody "User not found"
 // @Router /auth/me [get]
 func (h *UsersHandlers) Me(w http.ResponseWriter, r *http.Request) {
 	// Get user from context (set by auth middleware)

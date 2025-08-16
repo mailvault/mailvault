@@ -1,14 +1,48 @@
 basePath: /api/v1
 definitions:
-  app_api_v1.AuthResponse:
+  app_api_v1_auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.AuthResponse:
     properties:
       token:
         type: string
       user:
-        $ref: '#/definitions/app_api_v1.UserResult'
+        $ref: '#/definitions/auth.UserResult'
     type: object
-  app_api_v1.CreateDomainRequest:
+  auth.RegisterRequest:
     properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.UserResult:
+    properties:
+      auth_provider:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+    type: object
+  domains.CreateDomainRequest:
+    properties:
+      auto_create_address:
+        type: boolean
       domain:
         type: string
       public_key:
@@ -16,28 +50,17 @@ definitions:
       storage_enabled:
         type: boolean
       webhook_config:
-        $ref: '#/definitions/app_api_v1.WebhookConfigRequest'
+        $ref: '#/definitions/domains.WebhookConfigRequest'
     required:
     - domain
     - public_key
     type: object
-  app_api_v1.CreateEmailRequest:
-    properties:
-      forward_addresses:
-        items:
-          type: string
-        type: array
-      is_catch_all:
-        type: boolean
-      local_part:
-        type: string
-    required:
-    - local_part
-    type: object
-  app_api_v1.DomainResult:
+  domains.DomainResult:
     properties:
       api_key:
         type: string
+      auto_create_address:
+        type: boolean
       created_at:
         type: string
       domain:
@@ -53,9 +76,63 @@ definitions:
       verified:
         type: boolean
       webhook_config:
-        $ref: '#/definitions/app_api_v1.WebhookConfigResult'
+        $ref: '#/definitions/domains.WebhookConfigResult'
     type: object
-  app_api_v1.EmailAddressResult:
+  domains.UpdateDomainRequest:
+    properties:
+      auto_create_address:
+        type: boolean
+      public_key:
+        type: string
+      storage_enabled:
+        type: boolean
+      verified:
+        type: boolean
+      webhook_config:
+        $ref: '#/definitions/domains.WebhookConfigRequest'
+    type: object
+  domains.WebhookConfigRequest:
+    properties:
+      enabled:
+        type: boolean
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      secret:
+        type: string
+      url:
+        type: string
+    required:
+    - url
+    type: object
+  domains.WebhookConfigResult:
+    properties:
+      enabled:
+        type: boolean
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      secret:
+        type: string
+      url:
+        type: string
+    type: object
+  emails.CreateEmailRequest:
+    properties:
+      forward_addresses:
+        items:
+          type: string
+        type: array
+      is_catch_all:
+        type: boolean
+      local_part:
+        type: string
+    required:
+    - local_part
+    type: object
+  emails.EmailAddressResult:
     properties:
       created_at:
         type: string
@@ -76,35 +153,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  app_api_v1.ErrorResponseBody:
-    properties:
-      error:
-        type: string
-    type: object
-  app_api_v1.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  app_api_v1.PaginatedResponse:
-    properties:
-      data: {}
-      pagination:
-        properties:
-          limit:
-            type: integer
-          offset:
-            type: integer
-          total:
-            type: integer
-        type: object
-    type: object
-  app_api_v1.ReceivedEmailResult:
+  emails.ReceivedEmailResult:
     properties:
       encrypted_body:
         type: string
@@ -119,18 +168,38 @@ definitions:
       subject:
         type: string
     type: object
-  app_api_v1.RegisterRequest:
+  emails.UpdateEmailRequest:
     properties:
-      email:
-        type: string
-      password:
-        minLength: 8
-        type: string
-    required:
-    - email
-    - password
+      forward_addresses:
+        items:
+          type: string
+        type: array
+      is_catch_all:
+        type: boolean
     type: object
-  app_api_v1.SendEmailRequest:
+  models.ErrorResponseBody:
+    properties:
+      error:
+        example: Invalid request
+        type: string
+    type: object
+  models.PaginatedResponse:
+    properties:
+      data: {}
+      pagination:
+        properties:
+          limit:
+            example: 10
+            type: integer
+          offset:
+            example: 0
+            type: integer
+          total:
+            example: 100
+            type: integer
+        type: object
+    type: object
+  send.SendEmailRequest:
     properties:
       bcc:
         items:
@@ -158,37 +227,15 @@ definitions:
     - subject
     - to
     type: object
-  app_api_v1.SendEmailResponse:
+  send.SendEmailResponse:
     properties:
       message_id:
         type: string
       status:
         type: string
     type: object
-  app_api_v1.UpdateDomainRequest:
+  users.UserResult:
     properties:
-      public_key:
-        type: string
-      storage_enabled:
-        type: boolean
-      verified:
-        type: boolean
-      webhook_config:
-        $ref: '#/definitions/app_api_v1.WebhookConfigRequest'
-    type: object
-  app_api_v1.UpdateEmailRequest:
-    properties:
-      forward_addresses:
-        items:
-          type: string
-        type: array
-      is_catch_all:
-        type: boolean
-    type: object
-  app_api_v1.UserResult:
-    properties:
-      auth_provider:
-        type: string
       created_at:
         type: string
       email:
@@ -196,35 +243,7 @@ definitions:
       id:
         type: string
     type: object
-  app_api_v1.WebhookConfigRequest:
-    properties:
-      enabled:
-        type: boolean
-      headers:
-        additionalProperties:
-          type: string
-        type: object
-      secret:
-        type: string
-      url:
-        type: string
-    required:
-    - url
-    type: object
-  app_api_v1.WebhookConfigResult:
-    properties:
-      enabled:
-        type: boolean
-      headers:
-        additionalProperties:
-          type: string
-        type: object
-      secret:
-        type: string
-      url:
-        type: string
-    type: object
-host: localhost:3000
+host: :3000
 info:
   contact:
     email: support@mailvault.sh
@@ -263,26 +282,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.LoginRequest'
+          $ref: '#/definitions/app_api_v1_auth.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Login successful
           schema:
-            $ref: '#/definitions/app_api_v1.AuthResponse'
+            $ref: '#/definitions/auth.AuthResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       summary: Login user
       tags:
       - Authentication
@@ -295,15 +314,15 @@ paths:
         "200":
           description: Current user information
           schema:
-            $ref: '#/definitions/app_api_v1.UserResult'
+            $ref: '#/definitions/users.UserResult'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get current user
@@ -320,22 +339,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.RegisterRequest'
+          $ref: '#/definitions/auth.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: User created successfully
           schema:
-            $ref: '#/definitions/app_api_v1.AuthResponse'
+            $ref: '#/definitions/auth.AuthResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       summary: Register a new user
       tags:
       - Authentication
@@ -349,16 +368,16 @@ paths:
           description: List of user domains
           schema:
             items:
-              $ref: '#/definitions/app_api_v1.DomainResult'
+              $ref: '#/definitions/domains.DomainResult'
             type: array
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get user domains
@@ -375,22 +394,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.CreateDomainRequest'
+          $ref: '#/definitions/domains.CreateDomainRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Domain created successfully
           schema:
-            $ref: '#/definitions/app_api_v1.DomainResult'
+            $ref: '#/definitions/domains.DomainResult'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Create a new domain
@@ -413,20 +432,20 @@ paths:
           description: List of email addresses
           schema:
             items:
-              $ref: '#/definitions/app_api_v1.EmailAddressResult'
+              $ref: '#/definitions/emails.EmailAddressResult'
             type: array
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get domain email addresses
@@ -449,22 +468,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.CreateEmailRequest'
+          $ref: '#/definitions/emails.CreateEmailRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Email address created successfully
           schema:
-            $ref: '#/definitions/app_api_v1.EmailAddressResult'
+            $ref: '#/definitions/emails.EmailAddressResult'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Create email address
@@ -492,11 +511,11 @@ paths:
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Delete email address
@@ -523,19 +542,19 @@ paths:
         "200":
           description: Email address details
           schema:
-            $ref: '#/definitions/app_api_v1.EmailAddressResult'
+            $ref: '#/definitions/emails.EmailAddressResult'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "404":
           description: Email address not found
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get email address by ID
@@ -564,22 +583,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.UpdateEmailRequest'
+          $ref: '#/definitions/emails.UpdateEmailRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Email address updated successfully
           schema:
-            $ref: '#/definitions/app_api_v1.EmailAddressResult'
+            $ref: '#/definitions/emails.EmailAddressResult'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Update email address
@@ -617,19 +636,19 @@ paths:
         "200":
           description: Paginated list of received emails
           schema:
-            $ref: '#/definitions/app_api_v1.PaginatedResponse'
+            $ref: '#/definitions/models.PaginatedResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get received emails
@@ -652,15 +671,15 @@ paths:
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "404":
           description: Domain not found or does not belong to user
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Delete domain
@@ -682,23 +701,23 @@ paths:
         "200":
           description: Domain details
           schema:
-            $ref: '#/definitions/app_api_v1.DomainResult'
+            $ref: '#/definitions/domains.DomainResult'
         "400":
           description: Bad request - invalid domain ID
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "403":
           description: Forbidden - domain does not belong to user
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "404":
           description: Domain not found
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get domain by ID
@@ -721,36 +740,85 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.UpdateDomainRequest'
+          $ref: '#/definitions/domains.UpdateDomainRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Domain updated successfully
           schema:
-            $ref: '#/definitions/app_api_v1.DomainResult'
+            $ref: '#/definitions/domains.DomainResult'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "403":
           description: Forbidden - domain does not belong to user
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "404":
           description: Domain not found
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Update domain
       tags:
       - Domains
-  /domains/received/{receivedEmailId}:
+  /health:
+    get:
+      description: Check if the API is running and healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API is healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - System
+  /received/{receivedEmailId}:
+    delete:
+      description: Delete a specific received email by its ID (must belong to authenticated
+        user)
+      parameters:
+      - description: Received Email ID
+        format: uuid
+        in: path
+        name: receivedEmailId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Received email deleted successfully
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Received email not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Delete received email by ID
+      tags:
+      - Emails
     get:
       description: Retrieve a specific received email by its ID (must belong to authenticated
         user)
@@ -767,39 +835,24 @@ paths:
         "200":
           description: Received email details
           schema:
-            $ref: '#/definitions/app_api_v1.ReceivedEmailResult'
+            $ref: '#/definitions/emails.ReceivedEmailResult'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "404":
           description: Received email not found
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - BearerAuth: []
       summary: Get received email by ID
       tags:
       - Emails
-  /health:
-    get:
-      description: Check if the API is running and healthy
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: API is healthy
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Health check
-      tags:
-      - System
   /send:
     post:
       consumes:
@@ -812,22 +865,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1.SendEmailRequest'
+          $ref: '#/definitions/send.SendEmailRequest'
       produces:
       - application/json
       responses:
         "202":
           description: Email queued for delivery
           schema:
-            $ref: '#/definitions/app_api_v1.SendEmailResponse'
+            $ref: '#/definitions/send.SendEmailResponse'
         "400":
           description: Bad request - invalid email data
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
         "401":
           description: Unauthorized - invalid or missing API key
           schema:
-            $ref: '#/definitions/app_api_v1.ErrorResponseBody'
+            $ref: '#/definitions/models.ErrorResponseBody'
       security:
       - ApiKeyAuth: []
       summary: Send email

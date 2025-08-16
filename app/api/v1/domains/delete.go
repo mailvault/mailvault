@@ -14,9 +14,9 @@ import (
 // @Security BearerAuth
 // @Param id path string true "Domain ID" format(uuid)
 // @Success 204 "Domain deleted successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 404 {object} ErrorResponseBody "Domain not found or does not belong to user"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} models.ErrorResponseBody "Domain not found or does not belong to user"
 // @Router /domains/{id} [delete]
 func (h *DomainsHandlers) DeleteDomain(w http.ResponseWriter, r *http.Request) {
 	domainIDStr := chi.URLParam(r, "id")

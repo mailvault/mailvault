@@ -21,7 +21,6 @@ build: generate
 	$(call goBuild,service,"service")
 	$(call goBuild,smtpd,"smtpd")
 	$(call goBuild,cli,"cli")
-	$(call goBuild,admin,"admin")
 
 # ###########
 # Setup
@@ -57,8 +56,13 @@ install-templ:
 	@echo "==> Installing templ"
 	@go install github.com/a-h/templ/cmd/templ@latest
 
+.PHONY: install-swag
+install-swag:
+	@echo "==> Installing swag"
+	@go install github.com/swaggo/swag/cmd/swag@latest
+
 .PHONY: setup
-setup: install-migration install-moq install-linters install-test-fmt install-gosec install-templ install-sqlc
+setup: install-migration install-moq install-linters install-test-fmt install-gosec install-templ install-swag
 	@go mod tidy
 
 
@@ -72,9 +76,15 @@ templ:
 	@echo "==> Generating templ templates"
 	@templ generate
 
-# Generate all code (templ templates + go generate)
+# Generate swagger documentation
+.PHONY: swagger
+swagger:
+	@echo "==> Generating swagger documentation"
+	@${GO_BIN_PATH}/swag init -g cmd/service/main.go -o docs/
+
+# Generate all code (templ templates + swagger docs + go generate)
 .PHONY: generate
-generate: templ
+generate: templ swagger
 	@echo "==> Running go generate"
 	@go generate ./...
 

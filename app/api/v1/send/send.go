@@ -59,8 +59,8 @@ type SendEmailResponse struct {
 // @Security ApiKeyAuth
 // @Param request body SendEmailRequest true "Email sending details"
 // @Success 202 {object} SendEmailResponse "Email queued for delivery"
-// @Failure 400 {object} ErrorResponseBody "Bad request - invalid email data"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized - invalid or missing API key"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request - invalid email data"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized - invalid or missing API key"
 // @Router /send [post]
 func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 	// Extract API key from header

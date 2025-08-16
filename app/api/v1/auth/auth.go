@@ -79,8 +79,8 @@ type UserResult struct {
 // @Produce json
 // @Param request body RegisterRequest true "Registration details"
 // @Success 201 {object} AuthResponse "User created successfully"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
 // @Router /auth/register [post]
 func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
@@ -147,9 +147,9 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body LoginRequest true "Login credentials"
 // @Success 200 {object} AuthResponse "Login successful"
-// @Failure 400 {object} ErrorResponseBody "Bad request"
-// @Failure 401 {object} ErrorResponseBody "Unauthorized"
-// @Failure 500 {object} ErrorResponseBody "Internal server error"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
 // @Router /auth/login [post]
 func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
