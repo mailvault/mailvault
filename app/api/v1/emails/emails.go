@@ -14,10 +14,10 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/email_usecase.go . EmailUseCase
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
 
-// EmailUseCase defines the behavior required by this package from the email use case.
-type EmailUseCase interface {
+// UseCase defines the behavior required by this package from the email use case.
+type UseCase interface {
 	CreateEmailAddressFromInput(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error)
 	GetEmailAddressesByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error)
 	GetEmailAddressByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)
@@ -30,10 +30,10 @@ type EmailUseCase interface {
 
 // EmailsHandlers contains email-related endpoints
 type EmailsHandlers struct {
-	emailUseCase EmailUseCase
+	emailUseCase UseCase
 }
 
-func NewEmailsHandlers(emailUseCase EmailUseCase) *EmailsHandlers {
+func NewEmailsHandlers(emailUseCase UseCase) *EmailsHandlers {
 	return &EmailsHandlers{
 		emailUseCase: emailUseCase,
 	}

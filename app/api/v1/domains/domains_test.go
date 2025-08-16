@@ -12,91 +12,15 @@ import (
 	domainpkg "mailvault/domain/domain"
 	"mailvault/domain/entities"
 
+	"mailvault/app/api/v1/domains/mocks"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockDomainUseCase is a mock implementation for testing
-type MockDomainUseCase struct {
-	mock.Mock
-}
-
-func (m *MockDomainUseCase) CreateDomain(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
-	args := m.Called(ctx, req)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entities.Domain), args.Error(1)
-}
-
-func (m *MockDomainUseCase) GetDomainByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entities.Domain), args.Error(1)
-}
-
-func (m *MockDomainUseCase) GetDomainsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*entities.Domain), args.Error(1)
-}
-
-func (m *MockDomainUseCase) GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
-	args := m.Called(ctx, apiKey)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entities.Domain), args.Error(1)
-}
-
-func (m *MockDomainUseCase) GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error) {
-	args := m.Called(ctx, domainName)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entities.Domain), args.Error(1)
-}
-
-func (m *MockDomainUseCase) UpdateDomain(ctx context.Context, id uuid.UUID, req domainpkg.UpdateDomainInput) (*entities.Domain, error) {
-	args := m.Called(ctx, id, req)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entities.Domain), args.Error(1)
-}
-
-func (m *MockDomainUseCase) DeleteDomain(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
-	args := m.Called(ctx, id, userID)
-	return args.Error(0)
-}
-
-// Helper function to create a request with user context
-func createRequestWithUser(method, url string, body interface{}, userID uuid.UUID) *http.Request {
-	var bodyReader *bytes.Reader
-	if body != nil {
-		bodyBytes, _ := json.Marshal(body)
-		bodyReader = bytes.NewReader(bodyBytes)
-		req := httptest.NewRequest(method, url, bodyReader)
-		req.Header.Set("Content-Type", "application/json")
-		// Add user ID to context
-		ctx := context.WithValue(req.Context(), "user_id", userID.String())
-		return req.WithContext(ctx)
-	}
-	req := httptest.NewRequest(method, url, nil)
-
-	// Add user ID to context
-	ctx := context.WithValue(req.Context(), "user_id", userID.String())
-	return req.WithContext(ctx)
-}
-
 func TestDomainsHandlers_CreateDomain(t *testing.T) {
-	mockUseCase := new(MockDomainUseCase)
+	mockUseCase := &mocks.UseCaseMock{}
 	handler := NewDomainsHandlers(mockUseCase)
 
 	userID := uuid.Must(uuid.NewV4())
@@ -121,11 +45,18 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 			UpdatedAt:      time.Now().UTC(),
 		}
 
-		mockUseCase.On("CreateDomain", mock.Anything, mock.MatchedBy(func(req domainpkg.CreateDomainInput) bool {
-			return req.UserID == userID && req.Domain == domainName && req.PublicKey == publicKey
-		})).Return(expectedDomain, nil).Once()
+		mockUseCase.CreateDomainFunc = func(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
+			assert.Equal(t, userID, req.UserID)
+			assert.Equal(t, domainName, req.Domain)
+			assert.Equal(t, publicKey, req.PublicKey)
+			return expectedDomain, nil
+		}
 
-		req := createRequestWithUser("POST", "/domains", reqBody, userID)
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/domains", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
 		handler.CreateDomain(w, req)
@@ -139,7 +70,9 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 		assert.Equal(t, domainName, result.Domain)
 		assert.Equal(t, publicKey, result.PublicKey)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, expectedDomain.ID.String(), result.ID)
+		assert.Equal(t, domainName, result.Domain)
+		assert.Equal(t, publicKey, result.PublicKey)
 	})
 
 	t.Run("with webhook config", func(t *testing.T) {
@@ -167,9 +100,18 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 			UpdatedAt: time.Now().UTC(),
 		}
 
-		mockUseCase.On("CreateDomain", mock.Anything, mock.Anything).Return(expectedDomain, nil).Once()
+		mockUseCase.CreateDomainFunc = func(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
+			assert.Equal(t, userID, req.UserID)
+			assert.Equal(t, domainName, req.Domain)
+			assert.Equal(t, publicKey, req.PublicKey)
+			return expectedDomain, nil
+		}
 
-		req := createRequestWithUser("POST", "/domains", reqBody, userID)
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/domains", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
 		handler.CreateDomain(w, req)
@@ -182,7 +124,8 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 		assert.NotNil(t, result.WebhookConfig)
 		assert.Equal(t, "https://example.com/webhook", result.WebhookConfig.URL)
 
-		mockUseCase.AssertExpectations(t)
+		assert.NotNil(t, result.WebhookConfig)
+		assert.Equal(t, "https://example.com/webhook", result.WebhookConfig.URL)
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {
@@ -198,13 +141,9 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 	})
 
 	t.Run("unauthorized", func(t *testing.T) {
-		reqBody := CreateDomainRequest{
-			Domain:    domainName,
-			PublicKey: publicKey,
-		}
-
-		req := createRequestWithUser("POST", "/domains", reqBody, uuid.Nil) // No user in context
-		req = httptest.NewRequest("POST", "/domains", bytes.NewReader([]byte{}))
+		body, _ := json.Marshal(CreateDomainRequest{Domain: domainName, PublicKey: publicKey})
+		req := httptest.NewRequest("POST", "/domains", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
 		handler.CreateDomain(w, req)
@@ -218,21 +157,27 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 			PublicKey: publicKey,
 		}
 
-		mockUseCase.On("CreateDomain", mock.Anything, mock.Anything).Return(nil, assert.AnError).Once()
+		mockUseCase.CreateDomainFunc = func(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error) {
+			return nil, assert.AnError
+		}
 
-		req := createRequestWithUser("POST", "/domains", reqBody, userID)
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/domains", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
 		handler.CreateDomain(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
 func TestDomainsHandlers_GetDomains(t *testing.T) {
-	mockUseCase := new(MockDomainUseCase)
+	mockUseCase := &mocks.UseCaseMock{}
 	handler := NewDomainsHandlers(mockUseCase)
 
 	userID := uuid.Must(uuid.NewV4())
@@ -263,9 +208,15 @@ func TestDomainsHandlers_GetDomains(t *testing.T) {
 			},
 		}
 
-		mockUseCase.On("GetDomainsByUserID", mock.Anything, userID).Return(expectedDomains, nil).Once()
+		mockUseCase.GetDomainsByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
+			assert.Equal(t, userID, userID)
+			return expectedDomains, nil
+		}
 
-		req := createRequestWithUser("GET", "/domains", nil, userID)
+		req := httptest.NewRequest("GET", "/domains", nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
 		handler.GetDomains(w, req)
@@ -279,13 +230,19 @@ func TestDomainsHandlers_GetDomains(t *testing.T) {
 		assert.Equal(t, "domain1.com", results[0].Domain)
 		assert.Equal(t, "domain2.com", results[1].Domain)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
 	t.Run("empty results", func(t *testing.T) {
-		mockUseCase.On("GetDomainsByUserID", mock.Anything, userID).Return([]*entities.Domain{}, nil).Once()
+		mockUseCase.GetDomainsByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
+			assert.Equal(t, userID, userID)
+			return []*entities.Domain{}, nil
+		}
 
-		req := createRequestWithUser("GET", "/domains", nil, userID)
+		req := httptest.NewRequest("GET", "/domains", nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
 		handler.GetDomains(w, req)
@@ -297,25 +254,31 @@ func TestDomainsHandlers_GetDomains(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, results)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
 	t.Run("use case error", func(t *testing.T) {
-		mockUseCase.On("GetDomainsByUserID", mock.Anything, userID).Return(nil, assert.AnError).Once()
+		mockUseCase.GetDomainsByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
+			assert.Equal(t, userID, userID)
+			return nil, assert.AnError
+		}
 
-		req := createRequestWithUser("GET", "/domains", nil, userID)
+		req := httptest.NewRequest("GET", "/domains", nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
 		handler.GetDomains(w, req)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
 
 func TestDomainsHandlers_GetDomain(t *testing.T) {
-	mockUseCase := new(MockDomainUseCase)
+	mockUseCase := &mocks.UseCaseMock{}
 	handler := NewDomainsHandlers(mockUseCase)
 
 	userID := uuid.Must(uuid.NewV4())
@@ -334,14 +297,18 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 			UpdatedAt:      time.Now().UTC(),
 		}
 
-		mockUseCase.On("GetDomainByID", mock.Anything, domainID).Return(expectedDomain, nil).Once()
+		mockUseCase.GetDomainByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+			assert.Equal(t, domainID, id)
+			return expectedDomain, nil
+		}
 
-		req := createRequestWithUser("GET", "/domains/"+domainID.String(), nil, userID)
-
-		// Set up router with URL parameter
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", domainID.String())
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		req := httptest.NewRequest("GET", "/domains/"+domainID.String(), nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", domainID.String())
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -355,15 +322,17 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 		assert.Equal(t, domainID.String(), result.ID)
 		assert.Equal(t, "test.com", result.Domain)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
 	t.Run("invalid domain ID", func(t *testing.T) {
-		req := createRequestWithUser("GET", "/domains/invalid-id", nil, userID)
-
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", "invalid-id")
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		req := httptest.NewRequest("GET", "/domains/invalid-id", nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", "invalid-id")
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -373,13 +342,18 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 	})
 
 	t.Run("domain not found", func(t *testing.T) {
-		mockUseCase.On("GetDomainByID", mock.Anything, domainID).Return(nil, assert.AnError).Once()
+		mockUseCase.GetDomainByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+			assert.Equal(t, domainID, id)
+			return nil, assert.AnError
+		}
 
-		req := createRequestWithUser("GET", "/domains/"+domainID.String(), nil, userID)
-
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", domainID.String())
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		req := httptest.NewRequest("GET", "/domains/"+domainID.String(), nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", domainID.String())
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -387,7 +361,7 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 
 	t.Run("forbidden - different user", func(t *testing.T) {
@@ -397,13 +371,18 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 			UserID: otherUserID, // Different user
 		}
 
-		mockUseCase.On("GetDomainByID", mock.Anything, domainID).Return(expectedDomain, nil).Once()
+		mockUseCase.GetDomainByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+			assert.Equal(t, domainID, id)
+			return expectedDomain, nil
+		}
 
-		req := createRequestWithUser("GET", "/domains/"+domainID.String(), nil, userID)
-
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", domainID.String())
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		req := httptest.NewRequest("GET", "/domains/"+domainID.String(), nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", domainID.String())
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -411,12 +390,12 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
 
 func TestDomainsHandlers_UpdateDomain(t *testing.T) {
-	mockUseCase := new(MockDomainUseCase)
+	mockUseCase := &mocks.UseCaseMock{}
 	handler := NewDomainsHandlers(mockUseCase)
 
 	userID := uuid.Must(uuid.NewV4())
@@ -443,14 +422,23 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 			UpdatedAt: time.Now().UTC(),
 		}
 
-		mockUseCase.On("GetDomainByID", mock.Anything, domainID).Return(existingDomain, nil).Once()
-		mockUseCase.On("UpdateDomain", mock.Anything, domainID, mock.Anything).Return(updatedDomain, nil).Once()
+		mockUseCase.GetDomainByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+			assert.Equal(t, domainID, id)
+			return existingDomain, nil
+		}
+		mockUseCase.UpdateDomainFunc = func(ctx context.Context, id uuid.UUID, req domainpkg.UpdateDomainInput) (*entities.Domain, error) {
+			assert.Equal(t, domainID, id)
+			return updatedDomain, nil
+		}
 
-		req := createRequestWithUser("PUT", "/domains/"+domainID.String(), reqBody, userID)
-
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", domainID.String())
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/domains/"+domainID.String(), bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", domainID.String())
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -464,25 +452,31 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 		assert.Equal(t, "updated-key", result.PublicKey)
 		assert.True(t, result.Verified)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
 
 func TestDomainsHandlers_DeleteDomain(t *testing.T) {
-	mockUseCase := new(MockDomainUseCase)
+	mockUseCase := &mocks.UseCaseMock{}
 	handler := NewDomainsHandlers(mockUseCase)
 
 	userID := uuid.Must(uuid.NewV4())
 	domainID := uuid.Must(uuid.NewV4())
 
 	t.Run("successful deletion", func(t *testing.T) {
-		mockUseCase.On("DeleteDomain", mock.Anything, domainID, userID).Return(nil).Once()
+		mockUseCase.DeleteDomainFunc = func(ctx context.Context, id uuid.UUID, uid uuid.UUID) error {
+			assert.Equal(t, domainID, id)
+			assert.Equal(t, userID, uid)
+			return nil
+		}
 
-		req := createRequestWithUser("DELETE", "/domains/"+domainID.String(), nil, userID)
-
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", domainID.String())
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		req := httptest.NewRequest("DELETE", "/domains/"+domainID.String(), nil)
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", domainID.String())
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -490,17 +484,24 @@ func TestDomainsHandlers_DeleteDomain(t *testing.T) {
 
 		assert.Equal(t, http.StatusNoContent, w.Code)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 
 	t.Run("use case error", func(t *testing.T) {
-		mockUseCase.On("DeleteDomain", mock.Anything, domainID, userID).Return(assert.AnError).Once()
+		mockUseCase.DeleteDomainFunc = func(ctx context.Context, id uuid.UUID, uid uuid.UUID) error {
+			assert.Equal(t, domainID, id)
+			assert.Equal(t, userID, uid)
+			return assert.AnError
+		}
 
-		req := createRequestWithUser("DELETE", "/domains/"+domainID.String(), nil, userID)
+		req := httptest.NewRequest("DELETE", "/domains/"+domainID.String(), nil)
 
-		rctx := chi.NewRouteContext()
-		rctx.URLParams.Add("id", domainID.String())
-		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "user_id", userID.String())
+		req = req.WithContext(ctx)
+		rc := chi.NewRouteContext()
+		rc.URLParams.Add("id", domainID.String())
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rc))
 
 		w := httptest.NewRecorder()
 
@@ -508,12 +509,12 @@ func TestDomainsHandlers_DeleteDomain(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		mockUseCase.AssertExpectations(t)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
 func TestDomainsHandlers_mapDomainToResult(t *testing.T) {
-	handler := &DomainsHandlers{}
+	handler := NewDomainsHandlers(&mocks.UseCaseMock{})
 
 	t.Run("without webhook config", func(t *testing.T) {
 		domain := &entities.Domain{

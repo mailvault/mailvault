@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/mocks"
+	"mailvault/app/api/v1/auth/mocks"
 	"mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
@@ -55,7 +55,7 @@ func TestAuthHandlers_Register_Success(t *testing.T) {
 		loginFunc: func(email, password string) (string, error) { return "", nil },
 	}
 
-	userMock := &mocks.UserUseCaseMock{
+	userMock := &mocks.UseCaseMock{
 		GetOrCreateUserByAuthProviderFunc: func(ctx context.Context, provider, providerID, email string) (*entities.User, error) {
 			assert.Equal(t, "stub", provider)
 			assert.Equal(t, "auth-prov-id", providerID)
@@ -97,7 +97,7 @@ func TestAuthHandlers_Register_ValidationError(t *testing.T) {
 	t.Parallel()
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{}
+	userMock := &mocks.UseCaseMock{}
 	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(RegisterRequest{Email: "bad-email", Password: "123"})
@@ -118,7 +118,7 @@ func TestAuthHandlers_Register_AuthProviderError(t *testing.T) {
 		createUserFunc: func(email, password string) (string, error) { return "", errors.New("provider err") },
 		loginFunc:      func(email, password string) (string, error) { return "", nil },
 	}
-	userMock := &mocks.UserUseCaseMock{}
+	userMock := &mocks.UseCaseMock{}
 	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(RegisterRequest{Email: "user@example.com", Password: "password123"})
@@ -134,7 +134,7 @@ func TestAuthHandlers_Register_UserUseCaseError(t *testing.T) {
 	t.Parallel()
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "prov-id", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{
+	userMock := &mocks.UseCaseMock{
 		GetOrCreateUserByAuthProviderFunc: func(ctx context.Context, provider, providerID, email string) (*entities.User, error) {
 			return nil, errors.New("db err")
 		},
@@ -165,7 +165,7 @@ func TestAuthHandlers_Login_Success(t *testing.T) {
 			return "prov-token", nil
 		},
 	}
-	userMock := &mocks.UserUseCaseMock{
+	userMock := &mocks.UseCaseMock{
 		GetUserByEmailFunc: func(ctx context.Context, email string) (*entities.User, error) {
 			return &entities.User{ID: userID, Email: email, AuthProvider: "stub", CreatedAt: now}, nil
 		},
@@ -195,7 +195,7 @@ func TestAuthHandlers_Login_AuthError(t *testing.T) {
 	t.Parallel()
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", errors.New("bad creds") }}
-	userMock := &mocks.UserUseCaseMock{}
+	userMock := &mocks.UseCaseMock{}
 	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(LoginRequest{Email: "user@example.com", Password: "password123"})
@@ -211,7 +211,7 @@ func TestAuthHandlers_Login_UserError(t *testing.T) {
 	t.Parallel()
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{GetUserByEmailFunc: func(ctx context.Context, email string) (*entities.User, error) { return nil, errors.New("db err") }}
+	userMock := &mocks.UseCaseMock{GetUserByEmailFunc: func(ctx context.Context, email string) (*entities.User, error) { return nil, errors.New("db err") }}
 	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	body, _ := json.Marshal(LoginRequest{Email: "user@example.com", Password: "password123"})
@@ -227,7 +227,7 @@ func TestAuthHandlers_Login_InvalidJSON(t *testing.T) {
 	t.Parallel()
 
 	authProv := &fakeAuthProvider{provider: "stub", createUserFunc: func(email, password string) (string, error) { return "", nil }, loginFunc: func(email, password string) (string, error) { return "", nil }}
-	userMock := &mocks.UserUseCaseMock{}
+	userMock := &mocks.UseCaseMock{}
 	h := NewAuthHandlers(authProv, userMock, []byte("secret"), "1h")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader([]byte("{")))

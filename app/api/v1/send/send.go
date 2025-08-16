@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/render"
 )
 
-//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/send_usecase.go . UseCase
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
 
 // UseCase defines the behavior required by this package from the send use case.
 type UseCase interface {

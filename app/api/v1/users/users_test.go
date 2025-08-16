@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/mocks"
+	"mailvault/app/api/v1/users/mocks"
 	"mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
@@ -21,7 +21,7 @@ func TestUsersHandlers_Me(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	now := time.Now().UTC()
 
-	userMock := &mocks.UserUseCaseMock{
+	userMock := &mocks.UseCaseMock{
 		GetUserByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
 			assert.Equal(t, userID, id)
 			return &entities.User{ID: id, Email: "user@example.com", AuthProvider: "stub", CreatedAt: now}, nil
@@ -46,7 +46,7 @@ func TestUsersHandlers_Me(t *testing.T) {
 func TestUsersHandlers_Me_Unauthorized(t *testing.T) {
 	t.Parallel()
 
-	userMock := &mocks.UserUseCaseMock{}
+	userMock := &mocks.UseCaseMock{}
 	h := NewUsersHandlers(userMock)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
@@ -59,7 +59,7 @@ func TestUsersHandlers_Me_Unauthorized(t *testing.T) {
 func TestUsersHandlers_Me_InvalidUUID(t *testing.T) {
 	t.Parallel()
 
-	userMock := &mocks.UserUseCaseMock{}
+	userMock := &mocks.UseCaseMock{}
 	h := NewUsersHandlers(userMock)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)

@@ -18,8 +18,8 @@ type ApiHandlers struct {
 	AuthProvider  authDomain.Provider
 	UserUseCase   users.UseCase
 	AuthUseCase   auth.UseCase
-	DomainUseCase domains.DomainUseCase
-	EmailUseCase  emails.EmailUseCase
+	DomainUseCase domains.UseCase
+	EmailUseCase  emails.UseCase
 	AuthSecretKey string
 	AuthTokenTTL  string
 }

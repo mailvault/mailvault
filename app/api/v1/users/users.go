@@ -13,7 +13,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/user_usecase.go . UseCase
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
 type UseCase interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*entities.User, error)
 }
