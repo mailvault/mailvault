@@ -31,6 +31,9 @@ import (
 //			GetByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.ReceivedEmail, error) {
 //				panic("mock out the GetByID method")
 //			},
+//			GetByUserIDFunc: func(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+//				panic("mock out the GetByUserID method")
+//			},
 //		}
 //
 //		// use mockedReceivedEmailRepository in code that requires email.ReceivedEmailRepository
@@ -52,6 +55,9 @@ type ReceivedEmailRepositoryMock struct {
 
 	// GetByIDFunc mocks the GetByID method.
 	GetByIDFunc func(ctx context.Context, id uuid.UUID) (*entities.ReceivedEmail, error)
+
+	// GetByUserIDFunc mocks the GetByUserID method.
+	GetByUserIDFunc func(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -94,12 +100,26 @@ type ReceivedEmailRepositoryMock struct {
 			// ID is the id argument value.
 			ID uuid.UUID
 		}
+		// GetByUserID holds details about calls to the GetByUserID method.
+		GetByUserID []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID uuid.UUID
+			// Limit is the limit argument value.
+			Limit int
+			// Offset is the offset argument value.
+			Offset int
+			// Domain is the domain argument value.
+			Domain string
+		}
 	}
 	lockCount               sync.RWMutex
 	lockCreate              sync.RWMutex
 	lockDelete              sync.RWMutex
 	lockGetByEmailAddressID sync.RWMutex
 	lockGetByID             sync.RWMutex
+	lockGetByUserID         sync.RWMutex
 }
 
 // Count calls CountFunc.
@@ -305,5 +325,58 @@ func (mock *ReceivedEmailRepositoryMock) GetByIDCalls() []struct {
 	mock.lockGetByID.RLock()
 	calls = mock.calls.GetByID
 	mock.lockGetByID.RUnlock()
+	return calls
+}
+
+// GetByUserID calls GetByUserIDFunc.
+func (mock *ReceivedEmailRepositoryMock) GetByUserID(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+	callInfo := struct {
+		Ctx    context.Context
+		UserID uuid.UUID
+		Limit  int
+		Offset int
+		Domain string
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+		Domain: domain,
+	}
+	mock.lockGetByUserID.Lock()
+	mock.calls.GetByUserID = append(mock.calls.GetByUserID, callInfo)
+	mock.lockGetByUserID.Unlock()
+	if mock.GetByUserIDFunc == nil {
+		var (
+			receivedEmailsOut []*entities.ReceivedEmail
+			nOut              int
+			errOut            error
+		)
+		return receivedEmailsOut, nOut, errOut
+	}
+	return mock.GetByUserIDFunc(ctx, userID, limit, offset, domain)
+}
+
+// GetByUserIDCalls gets all the calls that were made to GetByUserID.
+// Check the length with:
+//
+//	len(mockedReceivedEmailRepository.GetByUserIDCalls())
+func (mock *ReceivedEmailRepositoryMock) GetByUserIDCalls() []struct {
+	Ctx    context.Context
+	UserID uuid.UUID
+	Limit  int
+	Offset int
+	Domain string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID uuid.UUID
+		Limit  int
+		Offset int
+		Domain string
+	}
+	mock.lockGetByUserID.RLock()
+	calls = mock.calls.GetByUserID
+	mock.lockGetByUserID.RUnlock()
 	return calls
 }

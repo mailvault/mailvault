@@ -25,7 +25,7 @@ through this command-line interface.
 
 Examples:
   mailvault login                    # Login to your account
-  mailvault user info               # Show your user information  
+  mailvault keys generate example.com # Generate encryption keys
   mailvault domain create           # Create a new domain
   mailvault email list              # List your email addresses
   mailvault inbox                   # View received emails`,
@@ -53,6 +53,7 @@ func init() {
 	rootCmd.AddCommand(domainCmd)
 	rootCmd.AddCommand(emailCmd)
 	rootCmd.AddCommand(inboxCmd)
+	rootCmd.AddCommand(keysCmd)
 }
 
 func initConfig() {

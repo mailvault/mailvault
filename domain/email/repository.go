@@ -26,6 +26,7 @@ type ReceivedEmailRepository interface {
 	Create(ctx context.Context, email *entities.ReceivedEmail) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.ReceivedEmail, error)
 	GetByEmailAddressID(ctx context.Context, emailAddressID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
 	Count(ctx context.Context, emailAddressID uuid.UUID) (int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }

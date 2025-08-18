@@ -26,6 +26,7 @@ type UseCase interface {
 	GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
 	GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error)
 	DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error
+	GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
 }
 
 // EmailsHandlers contains email-related endpoints
@@ -71,6 +72,8 @@ type ReceivedEmailResult struct {
 	FromAddress    string `json:"from_address"`
 	Subject        string `json:"subject"`
 	EncryptedBody  string `json:"encrypted_body"`
+	DomainName     string `json:"domain_name"`
+	EmailAddress   string `json:"email_address"`
 	ReceivedAt     string `json:"received_at"`
 }
 
@@ -97,6 +100,7 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 
 	var req CreateEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("failed to decode create email request", "error", err)
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
@@ -109,6 +113,7 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 		ForwardAddresses: req.ForwardAddresses,
 	})
 	if err != nil {
+		slog.Error("failed to create email address", "error", err, "domain_id", domainID, "local_part", req.LocalPart)
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
@@ -380,6 +385,61 @@ func (h *EmailsHandlers) DeleteReceivedEmail(w http.ResponseWriter, r *http.Requ
 	api.NoContentResponse(w, r)
 }
 
+// ListReceivedEmailsForUser lists all received emails for a user across all domains
+// @Summary List user's received emails
+// @Description Get a list of all received emails for the authenticated user across all domains
+// @Tags Emails
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Maximum number of emails to return" default(50)
+// @Param offset query int false "Number of emails to skip" default(0)
+// @Param domain query string false "Filter by domain"
+// @Success 200 {object} models.PaginatedResponse "List of received emails"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Router /emails/received [get]
+func (h *EmailsHandlers) ListReceivedEmailsForUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := api.GetUserIDFromContext(r)
+	if err != nil {
+		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
+		return
+	}
+
+	// Parse query parameters
+	pagination := api.GetPaginationParams(r)
+	domain := r.URL.Query().Get("domain")
+
+	// Get received emails
+	emails, total, err := h.emailUseCase.GetReceivedEmailsByUser(r.Context(), userID, pagination.Limit, pagination.Offset, domain)
+	if err != nil {
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Convert to API results
+	results := make([]*ReceivedEmailResult, len(emails))
+	for i, email := range emails {
+		results[i] = h.mapReceivedEmailToResult(email)
+	}
+
+	// Create paginated response
+	response := api.PaginatedResponse{
+		Data: results,
+		Pagination: struct {
+			Limit  int `json:"limit"`
+			Offset int `json:"offset"`
+			Total  int `json:"total,omitempty"`
+		}{
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
+			Total:  total,
+		},
+	}
+
+	api.SuccessResponse(w, r, response)
+}
+
 // mapEmailAddressToResult converts email address entity to API result
 func (h *EmailsHandlers) mapEmailAddressToResult(emailAddress *entities.EmailAddress, domain string) *EmailAddressResult {
 	fullAddress := emailAddress.LocalPart + "@" + domain
@@ -412,6 +472,8 @@ func (h *EmailsHandlers) mapReceivedEmailToResult(receivedEmail *entities.Receiv
 		FromAddress:    receivedEmail.FromAddress,
 		Subject:        subject,
 		EncryptedBody:  receivedEmail.EncryptedBody,
+		DomainName:     receivedEmail.DomainName,
+		EmailAddress:   receivedEmail.EmailAddress,
 		ReceivedAt:     receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

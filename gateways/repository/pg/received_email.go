@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"mailvault/domain/entities"
 	"mailvault/domain/email"
@@ -80,6 +81,69 @@ func (r *ReceivedEmailRepository) GetByEmailAddressID(ctx context.Context, email
 	}
 	
 	return receivedEmails, nil
+}
+
+func (r *ReceivedEmailRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+	// Build the query with optional domain filtering
+	baseQuery := `
+		SELECT re.id, re.email_address_id, re.sequence_number, re.from_address, re.subject, re.encrypted_body, re.received_at
+		FROM received_emails re
+		JOIN email_addresses ea ON re.email_address_id = ea.id
+		JOIN domains d ON ea.domain_id = d.id
+		WHERE d.user_id = $1
+	`
+	
+	countQuery := `
+		SELECT COUNT(*)
+		FROM received_emails re
+		JOIN email_addresses ea ON re.email_address_id = ea.id
+		JOIN domains d ON ea.domain_id = d.id
+		WHERE d.user_id = $1
+	`
+	
+	args := []interface{}{userID}
+	argCount := 1
+	
+	// Add domain filter if provided
+	if domain != "" {
+		baseQuery += ` AND d.domain = $` + fmt.Sprintf("%d", argCount+1)
+		countQuery += ` AND d.domain = $` + fmt.Sprintf("%d", argCount+1)
+		args = append(args, domain)
+		argCount++
+	}
+	
+	// Add ordering and pagination
+	baseQuery += ` ORDER BY re.sequence_number DESC LIMIT $` + fmt.Sprintf("%d", argCount+1) + ` OFFSET $` + fmt.Sprintf("%d", argCount+2)
+	args = append(args, limit, offset)
+	
+	// Get total count first
+	var total int
+	row := r.db.QueryRow(ctx, countQuery, args[:len(args)-2]...)
+	if err := row.Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	
+	// Get the emails
+	rows, err := r.db.Query(ctx, baseQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	
+	var receivedEmails []*entities.ReceivedEmail
+	for rows.Next() {
+		receivedEmail, err := r.scanReceivedEmailFromRows(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		receivedEmails = append(receivedEmails, receivedEmail)
+	}
+	
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	
+	return receivedEmails, total, nil
 }
 
 func (r *ReceivedEmailRepository) Count(ctx context.Context, emailAddressID uuid.UUID) (int64, error) {

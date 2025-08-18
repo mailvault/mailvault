@@ -69,6 +69,12 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 			})
 		})
 
+		// Email endpoints for CLI access
+		r.Route("/emails", func(r chi.Router) {
+			r.Use(authMiddleware.RequireAuth)
+			r.Get("/received", emailsHandlers.ListReceivedEmailsForUser)
+		})
+
 		// Direct access to received emails by ID
 		r.Route("/received", func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)

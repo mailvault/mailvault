@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"mailvault/domain/entities"
+	"mailvault/internal/encryption"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -25,20 +26,20 @@ func NewUseCase(repo Repository) *UseCase {
 }
 
 type CreateDomainInput struct {
-	UserID           uuid.UUID               `json:"user_id"`
-	Domain           string                  `json:"domain"`
-	PublicKey        string                  `json:"public_key"`
-	WebhookConfig    *entities.WebhookConfig `json:"webhook_config,omitempty"`
-	StorageEnabled   *bool                   `json:"storage_enabled,omitempty"`
-	AutoCreateAddress *bool                  `json:"auto_create_address,omitempty"`
+	UserID            uuid.UUID               `json:"user_id"`
+	Domain            string                  `json:"domain"`
+	PublicKey         string                  `json:"public_key"`
+	WebhookConfig     *entities.WebhookConfig `json:"webhook_config,omitempty"`
+	StorageEnabled    *bool                   `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                   `json:"auto_create_address,omitempty"`
 }
 
 type UpdateDomainInput struct {
-	PublicKey        *string                 `json:"public_key,omitempty"`
-	Verified         *bool                   `json:"verified,omitempty"`
-	WebhookConfig    *entities.WebhookConfig `json:"webhook_config,omitempty"`
-	StorageEnabled   *bool                   `json:"storage_enabled,omitempty"`
-	AutoCreateAddress *bool                  `json:"auto_create_address,omitempty"`
+	PublicKey         *string                 `json:"public_key,omitempty"`
+	Verified          *bool                   `json:"verified,omitempty"`
+	WebhookConfig     *entities.WebhookConfig `json:"webhook_config,omitempty"`
+	StorageEnabled    *bool                   `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                   `json:"auto_create_address,omitempty"`
 }
 
 func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*entities.Domain, error) {
@@ -54,6 +55,12 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 		return nil, fmt.Errorf("public key is required")
 	}
 
+	// Validate public key format
+	_, err := encryption.ParsePublicKey(req.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("invalid public key format: %w", err)
+	}
+
 	// Validate domain format
 	if !isValidDomain(req.Domain) {
 		return nil, fmt.Errorf("invalid domain format: %s", req.Domain)
@@ -66,12 +73,6 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 	existing, err := uc.repo.GetByDomain(ctx, normalizedDomain)
 	if err == nil && existing != nil {
 		return nil, fmt.Errorf("domain %s already exists", normalizedDomain)
-	}
-
-	// Generate API key
-	apiKey, err := generateAPIKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate API key: %w", err)
 	}
 
 	// Validate webhook config if provided
@@ -91,18 +92,25 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 		autoCreateAddress = *req.AutoCreateAddress
 	}
 
+	// Generate API key
+	apiKey, err := generateAPIKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate API key: %w", err)
+	}
+
 	domain := &entities.Domain{
-		ID:               uuid.Must(uuid.NewV4()),
-		UserID:           req.UserID,
-		Domain:           normalizedDomain,
-		PublicKey:        req.PublicKey,
-		APIKey:           apiKey,
-		Verified:         false,
-		WebhookConfig:    req.WebhookConfig,
-		StorageEnabled:   storageEnabled,
-		AutoCreateAddress: autoCreateAddress,
-		CreatedAt:        time.Now().UTC(),
-		UpdatedAt:        time.Now().UTC(),
+		ID:                  uuid.Must(uuid.NewV4()),
+		UserID:              req.UserID,
+		Domain:              normalizedDomain,
+		PublicKey:           req.PublicKey, // Use user-provided public key
+		EncryptedPrivateKey: nil,           // No server-side private key storage
+		APIKey:              apiKey,
+		Verified:            false,
+		WebhookConfig:       req.WebhookConfig,
+		StorageEnabled:      storageEnabled,
+		AutoCreateAddress:   autoCreateAddress,
+		CreatedAt:           time.Now().UTC(),
+		UpdatedAt:           time.Now().UTC(),
 	}
 
 	if !domain.IsValid() {

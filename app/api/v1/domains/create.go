@@ -19,7 +19,7 @@ type CreateDomainRequest struct {
 
 // CreateDomain creates a new domain
 // @Summary Create a new domain
-// @Description Register a new domain for the authenticated user with encryption keys and optional webhook configuration
+// @Description Register a new domain for the authenticated user with user-provided encryption public key and optional webhook configuration
 // @Tags Domains
 // @Accept json
 // @Produce json

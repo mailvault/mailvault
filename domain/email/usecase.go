@@ -3,6 +3,7 @@ package email
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -90,7 +91,11 @@ func (uc *UseCase) CreateEmailAddressFromInput(ctx context.Context, req CreateEm
 	}
 
 	// Validate forward addresses
+	slog.Info("validating forward addresses", "forward_addresses", req.ForwardAddresses)
 	for _, addr := range req.ForwardAddresses {
+		if addr == "" {
+			continue
+		}
 		if !isValidEmail(addr) {
 			return nil, fmt.Errorf("invalid forward address: %s", addr)
 		}
@@ -323,6 +328,9 @@ func (uc *UseCase) GetReceivedEmailByID(ctx context.Context, receivedEmailID uui
 		return nil, fmt.Errorf("access denied: email does not belong to user")
 	}
 
+	receivedEmail.DomainName = domain.Domain
+	receivedEmail.EmailAddress = emailAddress.LocalPart + "@" + domain.Domain
+
 	return receivedEmail, nil
 }
 
@@ -364,6 +372,27 @@ func (uc *UseCase) DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid
 	}
 
 	return nil
+}
+
+func (uc *UseCase) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+	if userID == uuid.Nil {
+		return nil, 0, fmt.Errorf("user ID is required")
+	}
+
+	if limit <= 0 {
+		limit = 50 // Default limit
+	}
+	if limit > 1000 {
+		limit = 1000 // Maximum limit
+	}
+
+	// Get all emails for the user
+	emails, total, err := uc.receivedEmailRepo.GetByUserID(ctx, userID, limit, offset, domain)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get received emails: %w", err)
+	}
+
+	return emails, total, nil
 }
 
 // Validation helpers
