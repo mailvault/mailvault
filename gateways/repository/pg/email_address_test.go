@@ -52,7 +52,6 @@ func TestEmailAddressRepository_CRUD(t *testing.T) {
 		ID:               uuid.Must(uuid.NewV4()),
 		DomainID:         domainID,
 		LocalPart:        "john",
-		IsCatchAll:       false,
 		ForwardAddresses: []string{"fwd@x.tld"},
 		CreatedAt:        time.Now().UTC(),
 		UpdatedAt:        time.Now().UTC(),
@@ -76,29 +75,8 @@ func TestEmailAddressRepository_CRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, e.ID, got2.ID)
 
-	// Catch-all none yet
-	_, err = repo.GetCatchAllByDomainID(ctx, domainID)
-	require.Error(t, err)
-	assert.Equal(t, sql.ErrNoRows, err)
-
-	// Create catch-all
-	catch := &entities.EmailAddress{
-		ID:         uuid.Must(uuid.NewV4()),
-		DomainID:   domainID,
-		LocalPart:  "*",
-		IsCatchAll: true,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
-	}
-	require.NoError(t, repo.Create(ctx, catch))
-
-	got3, err := repo.GetCatchAllByDomainID(ctx, domainID)
-	require.NoError(t, err)
-	assert.True(t, got3.IsCatchAll)
-
 	// Update
 	e.ForwardAddresses = []string{"new@x.tld"}
-	e.IsCatchAll = false
 	e.UpdatedAt = time.Now().UTC()
 	require.NoError(t, repo.Update(ctx, e))
 

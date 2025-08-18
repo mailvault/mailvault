@@ -42,16 +42,16 @@ func createUserDomainAndTwoEmails(t *testing.T, pool *pgxpool.Pool) (uuid.UUID, 
 
 	email1ID := uuid.Must(uuid.NewV4())
 	_, err = pool.Exec(context.Background(), `
-        INSERT INTO email_addresses (id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, email1ID, domainID, "alice", false, []string{}, now, now)
+        INSERT INTO email_addresses (id, domain_id, local_part, forward_addresses, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `, email1ID, domainID, "alice", []string{}, now, now)
 	require.NoError(t, err)
 
 	email2ID := uuid.Must(uuid.NewV4())
 	_, err = pool.Exec(context.Background(), `
-        INSERT INTO email_addresses (id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, email2ID, domainID, "bob", false, []string{}, now, now)
+        INSERT INTO email_addresses (id, domain_id, local_part, forward_addresses, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `, email2ID, domainID, "bob", []string{}, now, now)
 	require.NoError(t, err)
 
 	return email1ID, email2ID, domainID

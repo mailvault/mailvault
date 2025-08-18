@@ -108,7 +108,6 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 			ID:               uuid.Must(uuid.NewV4()),
 			DomainID:         domain.ID,
 			LocalPart:        localPart,
-			IsCatchAll:       false,
 			ForwardAddresses: []string{},
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),

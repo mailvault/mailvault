@@ -24,15 +24,14 @@ func NewEmailAddressRepository(db DBTX) email.EmailAddressRepository {
 
 func (r *EmailAddressRepository) Create(ctx context.Context, emailAddress *entities.EmailAddress) error {
 	query := `
-		INSERT INTO email_addresses (id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO email_addresses (id, domain_id, local_part, forward_addresses, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		emailAddress.ID,
 		emailAddress.DomainID,
 		emailAddress.LocalPart,
-		emailAddress.IsCatchAll,
 		emailAddress.ForwardAddresses,
 		emailAddress.CreatedAt,
 		emailAddress.UpdatedAt,
@@ -43,7 +42,7 @@ func (r *EmailAddressRepository) Create(ctx context.Context, emailAddress *entit
 
 func (r *EmailAddressRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 	query := `
-		SELECT id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at
+		SELECT id, domain_id, local_part, forward_addresses, created_at, updated_at
 		FROM email_addresses
 		WHERE id = $1
 	`
@@ -53,7 +52,7 @@ func (r *EmailAddressRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 func (r *EmailAddressRepository) GetByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error) {
 	query := `
-		SELECT id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at
+		SELECT id, domain_id, local_part, forward_addresses, created_at, updated_at
 		FROM email_addresses
 		WHERE domain_id = $1
 		ORDER BY created_at DESC
@@ -83,7 +82,7 @@ func (r *EmailAddressRepository) GetByDomainID(ctx context.Context, domainID uui
 
 func (r *EmailAddressRepository) GetByLocalPartAndDomain(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error) {
 	query := `
-		SELECT id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at
+		SELECT id, domain_id, local_part, forward_addresses, created_at, updated_at
 		FROM email_addresses
 		WHERE local_part = $1 AND domain_id = $2
 	`
@@ -91,20 +90,10 @@ func (r *EmailAddressRepository) GetByLocalPartAndDomain(ctx context.Context, lo
 	return r.scanEmailAddress(r.db.QueryRow(ctx, query, localPart, domainID))
 }
 
-func (r *EmailAddressRepository) GetCatchAllByDomainID(ctx context.Context, domainID uuid.UUID) (*entities.EmailAddress, error) {
-	query := `
-		SELECT id, domain_id, local_part, is_catch_all, forward_addresses, created_at, updated_at
-		FROM email_addresses
-		WHERE domain_id = $1 AND is_catch_all = true
-	`
-
-	return r.scanEmailAddress(r.db.QueryRow(ctx, query, domainID))
-}
-
 func (r *EmailAddressRepository) Update(ctx context.Context, emailAddress *entities.EmailAddress) error {
 	query := `
 		UPDATE email_addresses
-		SET domain_id = $2, local_part = $3, is_catch_all = $4, forward_addresses = $5, updated_at = $6
+		SET domain_id = $2, local_part = $3, forward_addresses = $4, updated_at = $5
 		WHERE id = $1
 	`
 
@@ -112,7 +101,6 @@ func (r *EmailAddressRepository) Update(ctx context.Context, emailAddress *entit
 		emailAddress.ID,
 		emailAddress.DomainID,
 		emailAddress.LocalPart,
-		emailAddress.IsCatchAll,
 		emailAddress.ForwardAddresses,
 		emailAddress.UpdatedAt,
 	)
@@ -150,7 +138,6 @@ func (r *EmailAddressRepository) scanEmailAddress(row pgx.Row) (*entities.EmailA
 		&e.ID,
 		&e.DomainID,
 		&e.LocalPart,
-		&e.IsCatchAll,
 		&e.ForwardAddresses,
 		&e.CreatedAt,
 		&e.UpdatedAt,
@@ -173,7 +160,6 @@ func (r *EmailAddressRepository) scanEmailAddressFromRows(rows pgx.Rows) (*entit
 		&e.ID,
 		&e.DomainID,
 		&e.LocalPart,
-		&e.IsCatchAll,
 		&e.ForwardAddresses,
 		&e.CreatedAt,
 		&e.UpdatedAt,

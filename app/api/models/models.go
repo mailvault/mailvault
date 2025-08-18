@@ -17,17 +17,17 @@ type User struct {
 // Domain represents a domain configuration
 // @Description Domain configuration for email services
 type Domain struct {
-	ID               string               `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	UserID           string               `json:"user_id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Domain           string               `json:"domain" example:"example.com"`
-	PublicKey        string               `json:"public_key" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
-	APIKey           string               `json:"api_key" example:"sk_test_1234567890"`
-	Verified         bool                 `json:"verified" example:"true"`
-	WebhookConfig    *WebhookConfigResult `json:"webhook_config,omitempty"`
-	StorageEnabled   bool                 `json:"storage_enabled" example:"true"`
-	AutoCreateAddress bool                `json:"auto_create_address" example:"false"`
-	CreatedAt        time.Time            `json:"created_at" example:"2023-01-01T00:00:00Z"`
-	UpdatedAt        time.Time            `json:"updated_at" example:"2023-01-01T00:00:00Z"`
+	ID                string               `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	UserID            string               `json:"user_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Domain            string               `json:"domain" example:"example.com"`
+	PublicKey         string               `json:"public_key" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
+	APIKey            string               `json:"api_key" example:"sk_test_1234567890"`
+	Verified          bool                 `json:"verified" example:"true"`
+	WebhookConfig     *WebhookConfigResult `json:"webhook_config,omitempty"`
+	StorageEnabled    bool                 `json:"storage_enabled" example:"true"`
+	AutoCreateAddress bool                 `json:"auto_create_address" example:"false"`
+	CreatedAt         time.Time            `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	UpdatedAt         time.Time            `json:"updated_at" example:"2023-01-01T00:00:00Z"`
 }
 
 // EmailAddress represents an email address configuration
@@ -37,7 +37,6 @@ type EmailAddress struct {
 	DomainID         string    `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
 	LocalPart        string    `json:"local_part" example:"support"`
 	FullAddress      string    `json:"full_address" example:"support@example.com"`
-	IsCatchAll       bool      `json:"is_catch_all" example:"false"`
 	ForwardAddresses []string  `json:"forward_addresses" example:"[\"user@company.com\", \"admin@company.com\"]"`
 	CreatedAt        time.Time `json:"created_at" example:"2023-01-01T00:00:00Z"`
 	UpdatedAt        time.Time `json:"updated_at" example:"2023-01-01T00:00:00Z"`
@@ -79,43 +78,41 @@ type AuthResponse struct {
 
 // Domain management types
 type CreateDomainRequest struct {
-	Domain           string                `json:"domain" validate:"required" example:"example.com"`
-	PublicKey        string                `json:"public_key" validate:"required" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
-	WebhookConfig    *WebhookConfigRequest `json:"webhook_config,omitempty"`
-	StorageEnabled   *bool                 `json:"storage_enabled,omitempty" example:"true"`
-	AutoCreateAddress *bool                `json:"auto_create_address,omitempty" example:"false"`
+	Domain            string                `json:"domain" validate:"required" example:"example.com"`
+	PublicKey         string                `json:"public_key" validate:"required" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
+	WebhookConfig     *WebhookConfigRequest `json:"webhook_config,omitempty"`
+	StorageEnabled    *bool                 `json:"storage_enabled,omitempty" example:"true"`
+	AutoCreateAddress *bool                 `json:"auto_create_address,omitempty" example:"false"`
 }
 
 type UpdateDomainRequest struct {
-	PublicKey        *string               `json:"public_key,omitempty" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
-	Verified         *bool                 `json:"verified,omitempty" example:"true"`
-	WebhookConfig    *WebhookConfigRequest `json:"webhook_config,omitempty"`
-	StorageEnabled   *bool                 `json:"storage_enabled,omitempty" example:"false"`
-	AutoCreateAddress *bool                `json:"auto_create_address,omitempty" example:"false"`
+	PublicKey         *string               `json:"public_key,omitempty" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
+	Verified          *bool                 `json:"verified,omitempty" example:"true"`
+	WebhookConfig     *WebhookConfigRequest `json:"webhook_config,omitempty"`
+	StorageEnabled    *bool                 `json:"storage_enabled,omitempty" example:"false"`
+	AutoCreateAddress *bool                 `json:"auto_create_address,omitempty" example:"false"`
 }
 
 type DomainResult struct {
-	ID               string               `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Domain           string               `json:"domain" example:"example.com"`
-	PublicKey        string               `json:"public_key" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
-	APIKey           string               `json:"api_key" example:"sk_test_1234567890"`
-	Verified         bool                 `json:"verified" example:"true"`
-	WebhookConfig    *WebhookConfigResult `json:"webhook_config,omitempty"`
-	StorageEnabled   bool                 `json:"storage_enabled" example:"true"`
-	AutoCreateAddress bool                `json:"auto_create_address" example:"false"`
-	CreatedAt        string               `json:"created_at" example:"2023-01-01T00:00:00Z"`
-	UpdatedAt        string               `json:"updated_at" example:"2023-01-01T00:00:00Z"`
+	ID                string               `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Domain            string               `json:"domain" example:"example.com"`
+	PublicKey         string               `json:"public_key" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
+	APIKey            string               `json:"api_key" example:"sk_test_1234567890"`
+	Verified          bool                 `json:"verified" example:"true"`
+	WebhookConfig     *WebhookConfigResult `json:"webhook_config,omitempty"`
+	StorageEnabled    bool                 `json:"storage_enabled" example:"true"`
+	AutoCreateAddress bool                 `json:"auto_create_address" example:"false"`
+	CreatedAt         string               `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	UpdatedAt         string               `json:"updated_at" example:"2023-01-01T00:00:00Z"`
 }
 
 // Email address management types
 type CreateEmailRequest struct {
 	LocalPart        string   `json:"local_part" validate:"required" example:"info"`
-	IsCatchAll       bool     `json:"is_catch_all" example:"false"`
 	ForwardAddresses []string `json:"forward_addresses,omitempty" example:"[\"forward@example.com\"]"`
 }
 
 type UpdateEmailRequest struct {
-	IsCatchAll       *bool    `json:"is_catch_all,omitempty" example:"true"`
 	ForwardAddresses []string `json:"forward_addresses,omitempty" example:"[\"forward1@example.com\", \"forward2@example.com\"]"`
 }
 
@@ -124,7 +121,6 @@ type EmailAddressResult struct {
 	DomainID         string   `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174001"`
 	LocalPart        string   `json:"local_part" example:"info"`
 	FullAddress      string   `json:"full_address" example:"info@example.com"`
-	IsCatchAll       bool     `json:"is_catch_all" example:"false"`
 	ForwardAddresses []string `json:"forward_addresses" example:"[\"forward@example.com\"]"`
 	CreatedAt        string   `json:"created_at" example:"2023-01-01T00:00:00Z"`
 	UpdatedAt        string   `json:"updated_at" example:"2023-01-01T00:00:00Z"`

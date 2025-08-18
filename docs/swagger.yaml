@@ -125,8 +125,6 @@ definitions:
         items:
           type: string
         type: array
-      is_catch_all:
-        type: boolean
       local_part:
         type: string
     required:
@@ -146,8 +144,6 @@ definitions:
         type: string
       id:
         type: string
-      is_catch_all:
-        type: boolean
       local_part:
         type: string
       updated_at:
@@ -178,8 +174,6 @@ definitions:
         items:
           type: string
         type: array
-      is_catch_all:
-        type: boolean
     type: object
   models.ErrorResponseBody:
     properties:
@@ -459,7 +453,7 @@ paths:
       consumes:
       - application/json
       description: Create a new email address for a specific domain with optional
-        forwarding and catch-all settings
+        forwarding settings
       parameters:
       - description: Domain ID
         format: uuid
@@ -567,8 +561,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update email address settings such as catch-all and forwarding
-        configuration
+      description: Update email address settings such as forwarding configuration
       parameters:
       - description: Domain ID
         format: uuid

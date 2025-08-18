@@ -33,7 +33,7 @@ Examples:
 }
 
 var inboxShowCmd = &cobra.Command{
-	Use:   "show <domain-name|email@domain.com> [email-name] <email-reference>",
+	Use:   "show <email@domain.com> <email-reference>",
 	Short: "Show email details",
 	Long: `Display detailed information about a specific received email.
 
@@ -42,16 +42,12 @@ Email reference can be:
   - Short ID (e.g., a1b2c3d4)
   - Full UUID
 
-If email reference not provided, shows interactive selection.
-
 Examples:
-  mailvault inbox show example.com hello 1        # Show email #1 from hello@example.com
-  mailvault inbox show hello@example.com 1        # Same as above
-  mailvault inbox show example.com hello a1b2c3d4 # Show email by short ID  
-  mailvault inbox show example.com hello          # Interactive selection
-  mailvault inbox show example.com *              # Interactive selection for catch-all
-  mailvault inbox show example.com hello 1 --decrypt # Show decrypted content`,
-	Args: cobra.RangeArgs(1, 3),
+  mailvault inbox show hello@example.com 1        # Show by email address and sequence
+  mailvault inbox show hello@example.com a1b2c3d4 # Show by short ID
+  mailvault inbox show hello@example.com 123e...  # Show by UUID reference
+  mailvault inbox show hello@example.com 1 --decrypt # Show decrypted content`,
+	Args: cobra.ExactArgs(2),
 	RunE: runInboxShow,
 }
 
@@ -152,10 +148,6 @@ func listEmailsForAddressResolved(client *Client, domain *Domain, emailAddr *Ema
 	}
 
 	addressDisplay := emailAddr.LocalPart + "@" + domain.Domain
-	if emailAddr.IsCatchAll {
-		addressDisplay = "*@" + domain.Domain + " (catch-all)"
-	}
-
 	fmt.Printf("Received emails for %s:\n", addressDisplay)
 
 	if len(receivedEmails) == 0 {
@@ -195,9 +187,6 @@ func listEmailsForDomainResolved(client *Client, domain *Domain) error {
 
 		if len(receivedEmails) > 0 {
 			addressDisplay := email.LocalPart + "@" + domain.Domain
-			if email.IsCatchAll {
-				addressDisplay = "*@" + domain.Domain + " (catch-all)"
-			}
 			fmt.Printf("\n--- %s ---\n", addressDisplay)
 			printReceivedEmailsTable(receivedEmails)
 			totalEmails += len(receivedEmails)
@@ -213,102 +202,7 @@ func listEmailsForDomainResolved(client *Client, domain *Domain) error {
 	return nil
 }
 
-// Keep old functions for backwards compatibility
-func listEmailsForAddress(client *Client, domainID, emailID string) error {
-	// Get domain and email details for display
-	domain, err := client.GetDomain(domainID)
-	if err != nil {
-		return fmt.Errorf("failed to get domain details: %w", err)
-	}
-
-	emails, err := client.ListEmailAddresses(domainID)
-	if err != nil {
-		return fmt.Errorf("failed to get email addresses: %w", err)
-	}
-
-	var targetEmail *EmailAddress
-	for _, email := range emails {
-		if email.ID == emailID {
-			targetEmail = email
-			break
-		}
-	}
-
-	if targetEmail == nil {
-		return fmt.Errorf("email address not found")
-	}
-
-	receivedEmails, err := client.ListReceivedEmails(domainID, emailID, inboxLimit, inboxOffset)
-	if err != nil {
-		return fmt.Errorf("failed to list received emails: %w", err)
-	}
-
-	addressDisplay := targetEmail.LocalPart + "@" + domain.Domain
-	if targetEmail.IsCatchAll {
-		addressDisplay = "*@" + domain.Domain + " (catch-all)"
-	}
-
-	fmt.Printf("Received emails for %s:\n", addressDisplay)
-
-	if len(receivedEmails) == 0 {
-		fmt.Println("No emails received yet")
-		return nil
-	}
-
-	printReceivedEmailsTable(receivedEmails)
-
-	if len(receivedEmails) == inboxLimit {
-		fmt.Printf("\nShowing %d emails (use --offset to see more)\n", inboxLimit)
-	}
-
-	return nil
-}
-
-func listEmailsForDomainInbox(client *Client, domainID string) error {
-	domain, err := client.GetDomain(domainID)
-	if err != nil {
-		return fmt.Errorf("failed to get domain details: %w", err)
-	}
-
-	emailAddresses, err := client.ListEmailAddresses(domainID)
-	if err != nil {
-		return fmt.Errorf("failed to get email addresses: %w", err)
-	}
-
-	if len(emailAddresses) == 0 {
-		fmt.Printf("No email addresses found for domain %s\n", domain.Domain)
-		return nil
-	}
-
-	fmt.Printf("Received emails for domain %s:\n", domain.Domain)
-
-	totalEmails := 0
-	for _, email := range emailAddresses {
-		receivedEmails, err := client.ListReceivedEmails(domainID, email.ID, inboxLimit, inboxOffset)
-		if err != nil {
-			fmt.Printf("Warning: failed to get emails for %s: %v\n", email.LocalPart, err)
-			continue
-		}
-
-		if len(receivedEmails) > 0 {
-			addressDisplay := email.LocalPart + "@" + domain.Domain
-			if email.IsCatchAll {
-				addressDisplay = "*@" + domain.Domain + " (catch-all)"
-			}
-			fmt.Printf("\n--- %s ---\n", addressDisplay)
-			printReceivedEmailsTable(receivedEmails)
-			totalEmails += len(receivedEmails)
-		}
-	}
-
-	if totalEmails == 0 {
-		fmt.Println("No emails received yet")
-	} else {
-		fmt.Printf("\nTotal: %d emails\n", totalEmails)
-	}
-
-	return nil
-}
+// Removed legacy interactive helpers and old list variants to simplify CLI (no backward compatibility).
 
 func listAllEmails(client *Client) error {
 	domains, err := client.ListDomains()
@@ -338,9 +232,6 @@ func listAllEmails(client *Client) error {
 
 			if len(receivedEmails) > 0 {
 				addressDisplay := email.LocalPart + "@" + domain.Domain
-				if email.IsCatchAll {
-					addressDisplay = "*@" + domain.Domain + " (catch-all)"
-				}
 				fmt.Printf("\n--- %s ---\n", addressDisplay)
 				printReceivedEmailsTable(receivedEmails)
 				totalEmails += len(receivedEmails)
@@ -407,61 +298,20 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 	var emailAddr *EmailAddress
 	var emailReference string
 
-	// Parse arguments with smart resolution
-	switch len(args) {
-	case 1:
-		// Full email address format: hello@example.com
-		if strings.Contains(args[0], "@") {
-			domain, emailAddr, err = client.ResolveEmailReference(args[0], "")
-			if err != nil {
-				return fmt.Errorf("failed to resolve email address: %w", err)
-			}
-			// Interactive mode - no email reference provided
-		} else {
-			return fmt.Errorf("invalid format. Use: mailvault inbox show <domain> <email> [reference] or <email@domain> [reference]")
-		}
-	case 2:
-		// Two args: domain + email OR email@domain + reference
-		if strings.Contains(args[0], "@") {
-			// email@domain + reference
-			domain, emailAddr, err = client.ResolveEmailReference(args[0], "")
-			if err != nil {
-				return fmt.Errorf("failed to resolve email address: %w", err)
-			}
-			emailReference = args[1]
-		} else {
-			// domain + email (interactive mode)
-			domain, emailAddr, err = client.ResolveEmailReference(args[0], args[1])
-			if err != nil {
-				return fmt.Errorf("failed to resolve email address: %w", err)
-			}
-			// Interactive mode - no email reference provided
-		}
-	case 3:
-		// Three args: domain + email + reference
-		domain, emailAddr, err = client.ResolveEmailReference(args[0], args[1])
-		if err != nil {
-			return fmt.Errorf("failed to resolve email address: %w", err)
-		}
-		emailReference = args[2]
-	default:
-		return fmt.Errorf("invalid number of arguments")
+	// Strict parsing: args[0] must be email@domain, args[1] is reference
+	if !strings.Contains(args[0], "@") {
+		return fmt.Errorf("invalid format. Use: mailvault inbox show <email@domain> <reference>")
 	}
+	domain, emailAddr, err = client.ResolveEmailReference(args[0], "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve email address: %w", err)
+	}
+	emailReference = args[1]
 
-	var targetEmail *ReceivedEmail
-
-	// If email reference is provided, use it to find the email
-	if emailReference != "" {
-		targetEmail, err = client.FindReceivedEmailByReference(domain.ID, emailAddr.ID, emailReference)
-		if err != nil {
-			return fmt.Errorf("failed to find email: %w", err)
-		}
-	} else {
-		// Interactive mode - show list and let user select
-		targetEmail, err = interactiveEmailSelectionResolved(client, domain, emailAddr)
-		if err != nil {
-			return err
-		}
+	// Find the email
+	targetEmail, err := client.FindReceivedEmailByReference(domain.ID, emailAddr.ID, emailReference)
+	if err != nil {
+		return fmt.Errorf("failed to find email: %w", err)
 	}
 
 	// Display email details
@@ -482,78 +332,16 @@ func runInboxShow(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Received At:  %s\n", targetEmail.ReceivedAt)
 
 	addressDisplay := emailAddr.LocalPart + "@" + domain.Domain
-	if emailAddr.IsCatchAll {
-		addressDisplay = "*@" + domain.Domain + " (catch-all)"
-	}
 	fmt.Printf("  Delivered To: %s\n", addressDisplay)
 
 	fmt.Printf("\n")
 
 	// Display email body with optional decryption
 	if decryptFlag {
-		err = displayDecryptedEmailBody(targetEmail.EncryptedBody, domain.Domain, decryptPassword, outputPath)
-		if err != nil {
-			fmt.Printf("❌ Failed to decrypt email: %v\n", err)
-			fmt.Printf("📧 Showing encrypted content instead:\n")
-			displayEmailBody(targetEmail.EncryptedBody)
-		}
-	} else {
-		displayEmailBody(targetEmail.EncryptedBody)
+		return displayDecryptedEmailBody(targetEmail.EncryptedBody, domain.Domain, decryptPassword, outputPath)
 	}
-
+	displayEmailBody(targetEmail.EncryptedBody)
 	return nil
-}
-
-func interactiveEmailSelectionResolved(client *Client, domain *Domain, emailAddr *EmailAddress) (*ReceivedEmail, error) {
-	// Get received emails
-	emails, err := client.ListReceivedEmails(domain.ID, emailAddr.ID, 20, 0) // Show first 20
-	if err != nil {
-		return nil, fmt.Errorf("failed to list received emails: %w", err)
-	}
-
-	if len(emails) == 0 {
-		return nil, fmt.Errorf("no emails found")
-	}
-
-	addressDisplay := emailAddr.LocalPart + "@" + domain.Domain
-	if emailAddr.IsCatchAll {
-		addressDisplay = "*@" + domain.Domain + " (catch-all)"
-	}
-
-	fmt.Printf("Select email to view from %s:\n\n", addressDisplay)
-
-	// Display numbered list
-	for i, email := range emails {
-		subject := email.Subject
-		if subject == "" {
-			subject = "(No Subject)"
-		}
-		if len(subject) > 50 {
-			subject = subject[:47] + "..."
-		}
-
-		shortIDStr := shortID(parseUUIDString(email.ID))
-
-		fmt.Printf("%2d) #%-3d %s - %s - %s\n",
-			i+1,
-			email.SequenceNumber,
-			shortIDStr,
-			email.FromAddress,
-			subject)
-	}
-
-	fmt.Printf("\nEnter selection (1-%d): ", len(emails))
-
-	var selection int
-	if _, err := fmt.Scanln(&selection); err != nil {
-		return nil, fmt.Errorf("failed to read selection: %w", err)
-	}
-
-	if selection < 1 || selection > len(emails) {
-		return nil, fmt.Errorf("invalid selection")
-	}
-
-	return emails[selection-1], nil
 }
 
 func runInboxDecrypt(cmd *cobra.Command, args []string) error {

@@ -44,7 +44,6 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		assert.NotNil(t, result)
 		assert.Equal(t, domainID, result.DomainID)
 		assert.Equal(t, localPart, result.LocalPart)
-		assert.False(t, result.IsCatchAll)
 		assert.Empty(t, result.ForwardAddresses)
 
 		// Verify calls
@@ -120,40 +119,6 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		assert.Len(t, mockEmailRepo.GetByLocalPartAndDomainCalls(), 1)
 	})
 
-	t.Run("catch-all creation with existing catch-all", func(t *testing.T) {
-		// Create fresh mocks for each test case
-		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
-		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
-		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
-
-		existingCatchAll := &entities.EmailAddress{
-			ID:         uuid.Must(uuid.NewV4()),
-			IsCatchAll: true,
-		}
-
-		mockEmailRepo.GetByLocalPartAndDomainFunc = func(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error) {
-			return nil, sql.ErrNoRows
-		}
-		mockEmailRepo.GetCatchAllByDomainIDFunc = func(ctx context.Context, domainID uuid.UUID) (*entities.EmailAddress, error) {
-			return existingCatchAll, nil
-		}
-
-		result, err := uc.CreateEmailAddressFromInput(ctx, CreateEmailAddressInput{
-			DomainID:   domainID,
-			LocalPart:  localPart,
-			IsCatchAll: true,
-		})
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "already has a catch-all")
-		assert.Nil(t, result)
-
-		// Verify calls
-		assert.Len(t, mockEmailRepo.GetByLocalPartAndDomainCalls(), 1)
-		assert.Len(t, mockEmailRepo.GetCatchAllByDomainIDCalls(), 1)
-	})
-
 	t.Run("with forward addresses", func(t *testing.T) {
 		// Create fresh mocks for each test case
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
@@ -218,39 +183,31 @@ func TestUpdateEmailAddress(t *testing.T) {
 		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
 
 		existingEmail := &entities.EmailAddress{
-			ID:         emailID,
-			DomainID:   domainID,
-			LocalPart:  "test",
-			IsCatchAll: false,
-			CreatedAt:  time.Now().UTC(),
-			UpdatedAt:  time.Now().UTC(),
+			ID:        emailID,
+			DomainID:  domainID,
+			LocalPart: "test",
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
 		}
 
-		isCatchAll := true
 		forwardAddresses := []string{"forward@example.com"}
 
 		mockEmailRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 			return existingEmail, nil
-		}
-		mockEmailRepo.GetCatchAllByDomainIDFunc = func(ctx context.Context, domainID uuid.UUID) (*entities.EmailAddress, error) {
-			return nil, sql.ErrNoRows
 		}
 		mockEmailRepo.UpdateFunc = func(ctx context.Context, emailAddress *entities.EmailAddress) error {
 			return nil
 		}
 
 		result, err := uc.UpdateEmailAddress(ctx, emailID, UpdateEmailAddressInput{
-			IsCatchAll:       &isCatchAll,
 			ForwardAddresses: forwardAddresses,
 		})
 
 		assert.NoError(t, err)
-		assert.True(t, result.IsCatchAll)
 		assert.Equal(t, forwardAddresses, result.ForwardAddresses)
 
 		// Verify calls
 		assert.Len(t, mockEmailRepo.GetByIDCalls(), 1)
-		assert.Len(t, mockEmailRepo.GetCatchAllByDomainIDCalls(), 1)
 		assert.Len(t, mockEmailRepo.UpdateCalls(), 1)
 	})
 

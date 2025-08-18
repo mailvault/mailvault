@@ -309,7 +309,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new email address for a specific domain with optional forwarding and catch-all settings",
+                "description": "Create a new email address for a specific domain with optional forwarding settings",
                 "consumes": [
                     "application/json"
                 ],
@@ -427,7 +427,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update email address settings such as catch-all and forwarding configuration",
+                "description": "Update email address settings such as forwarding configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -1217,9 +1217,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "is_catch_all": {
-                    "type": "boolean"
-                },
                 "local_part": {
                     "type": "string"
                 }
@@ -1245,9 +1242,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
-                },
-                "is_catch_all": {
-                    "type": "boolean"
                 },
                 "local_part": {
                     "type": "string"
@@ -1294,9 +1288,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                },
-                "is_catch_all": {
-                    "type": "boolean"
                 }
             }
         },

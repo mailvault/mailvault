@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	configDir  string
-	serverURL  string
-	verbose    bool
+	configDir string
+	serverURL string
+	verbose   bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -25,10 +25,13 @@ through this command-line interface.
 
 Examples:
   mailvault login                    # Login to your account
+  mailvault register                 # Create a new account
   mailvault keys generate example.com # Generate encryption keys
   mailvault domain create           # Create a new domain
   mailvault email list              # List your email addresses
   mailvault inbox                   # View received emails`,
+	SilenceErrors: true,
+	SilenceUsage:  false,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -42,13 +45,14 @@ func init() {
 	// Global flags
 	homeDir, _ := os.UserHomeDir()
 	defaultConfigDir := filepath.Join(homeDir, ".mailvault")
-	
+
 	rootCmd.PersistentFlags().StringVar(&configDir, "config", defaultConfigDir, "config directory")
 	rootCmd.PersistentFlags().StringVar(&serverURL, "server", "http://localhost:8080", "MailVault server URL")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Add subcommands
 	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(registerCmd)
 	rootCmd.AddCommand(userCmd)
 	rootCmd.AddCommand(domainCmd)
 	rootCmd.AddCommand(emailCmd)

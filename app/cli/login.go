@@ -15,14 +15,18 @@ var loginCmd = &cobra.Command{
 	RunE:  runLogin,
 }
 
+var registerCmd = &cobra.Command{
+	Use:   "register",
+	Short: "Register a new MailVault account",
+	Long:  "Create a new MailVault account and store credentials locally.",
+	RunE:  runRegisterCmd,
+}
 
 var (
-	registerFlag bool
-	forceFlag    bool
+	forceFlag bool
 )
 
 func init() {
-	loginCmd.Flags().BoolVarP(&registerFlag, "register", "r", false, "register a new account instead of login")
 	loginCmd.Flags().BoolVarP(&forceFlag, "force", "f", false, "force login even if already authenticated")
 }
 
@@ -30,10 +34,6 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	config, err := loadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	if registerFlag {
-		return runRegister(config)
 	}
 
 	// Check if already logged in (unless force flag is used)
@@ -46,7 +46,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 			fmt.Println("Use 'mailvault login --force' to login with a different account")
 			return nil
 		}
-		
+
 		// Token is invalid, clear it and continue with login
 		fmt.Println("⚠️  Current authentication is invalid, proceeding with login...")
 		config.AccessToken = ""
@@ -90,6 +90,14 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	fmt.Println("You can now use other MailVault commands")
 
 	return nil
+}
+
+func runRegisterCmd(cmd *cobra.Command, args []string) error {
+	config, err := loadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+	return runRegister(config)
 }
 
 func runRegister(config *Config) error {
