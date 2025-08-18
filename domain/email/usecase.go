@@ -3,7 +3,6 @@ package email
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -30,12 +29,10 @@ func NewUseCase(emailRepo EmailAddressRepository, receivedEmailRepo ReceivedEmai
 type CreateEmailAddressInput struct {
 	DomainID         uuid.UUID `json:"domain_id"`
 	LocalPart        string    `json:"local_part"`
-	IsCatchAll       bool      `json:"is_catch_all"`
 	ForwardAddresses []string  `json:"forward_addresses,omitempty"`
 }
 
 type UpdateEmailAddressInput struct {
-	IsCatchAll       *bool    `json:"is_catch_all,omitempty"`
 	ForwardAddresses []string `json:"forward_addresses,omitempty"`
 }
 
@@ -82,16 +79,7 @@ func (uc *UseCase) CreateEmailAddressFromInput(ctx context.Context, req CreateEm
 		return nil, fmt.Errorf("email address %s already exists for this domain", normalizedLocalPart)
 	}
 
-	// If this is a catch-all, ensure there isn't already one for this domain
-	if req.IsCatchAll {
-		existingCatchAll, err := uc.emailRepo.GetCatchAllByDomainID(ctx, req.DomainID)
-		if err == nil && existingCatchAll != nil {
-			return nil, fmt.Errorf("domain already has a catch-all email address")
-		}
-	}
-
 	// Validate forward addresses
-	slog.Info("validating forward addresses", "forward_addresses", req.ForwardAddresses)
 	for _, addr := range req.ForwardAddresses {
 		if addr == "" {
 			continue
@@ -105,7 +93,6 @@ func (uc *UseCase) CreateEmailAddressFromInput(ctx context.Context, req CreateEm
 		ID:               uuid.Must(uuid.NewV4()),
 		DomainID:         req.DomainID,
 		LocalPart:        normalizedLocalPart,
-		IsCatchAll:       req.IsCatchAll,
 		ForwardAddresses: req.ForwardAddresses,
 		CreatedAt:        time.Now().UTC(),
 		UpdatedAt:        time.Now().UTC(),
@@ -159,17 +146,6 @@ func (uc *UseCase) UpdateEmailAddress(ctx context.Context, id uuid.UUID, req Upd
 	}
 
 	// Update fields if provided
-	if req.IsCatchAll != nil {
-		// If setting as catch-all, ensure there isn't already one for this domain
-		if *req.IsCatchAll && !emailAddress.IsCatchAll {
-			existingCatchAll, err := uc.emailRepo.GetCatchAllByDomainID(ctx, emailAddress.DomainID)
-			if err == nil && existingCatchAll != nil && existingCatchAll.ID != emailAddress.ID {
-				return nil, fmt.Errorf("domain already has a catch-all email address")
-			}
-		}
-		emailAddress.IsCatchAll = *req.IsCatchAll
-	}
-
 	if req.ForwardAddresses != nil {
 		// Validate forward addresses
 		for _, addr := range req.ForwardAddresses {

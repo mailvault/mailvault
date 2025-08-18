@@ -43,13 +43,11 @@ func NewEmailsHandlers(emailUseCase UseCase) *EmailsHandlers {
 // CreateEmailRequest represents email address creation request
 type CreateEmailRequest struct {
 	LocalPart        string   `json:"local_part" validate:"required"`
-	IsCatchAll       bool     `json:"is_catch_all"`
 	ForwardAddresses []string `json:"forward_addresses,omitempty"`
 }
 
 // UpdateEmailRequest represents email address update request
 type UpdateEmailRequest struct {
-	IsCatchAll       *bool    `json:"is_catch_all,omitempty"`
 	ForwardAddresses []string `json:"forward_addresses,omitempty"`
 }
 
@@ -59,7 +57,6 @@ type EmailAddressResult struct {
 	DomainID         string   `json:"domain_id"`
 	LocalPart        string   `json:"local_part"`
 	FullAddress      string   `json:"full_address"`
-	IsCatchAll       bool     `json:"is_catch_all"`
 	ForwardAddresses []string `json:"forward_addresses"`
 	CreatedAt        string   `json:"created_at"`
 	UpdatedAt        string   `json:"updated_at"`
@@ -79,7 +76,7 @@ type ReceivedEmailResult struct {
 
 // CreateEmailAddress creates a new email address for a domain
 // @Summary Create email address
-// @Description Create a new email address for a specific domain with optional forwarding and catch-all settings
+// @Description Create a new email address for a specific domain with optional forwarding settings
 // @Tags Emails
 // @Accept json
 // @Produce json
@@ -109,7 +106,6 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 	emailAddress, err := h.emailUseCase.CreateEmailAddressFromInput(r.Context(), email.CreateEmailAddressInput{
 		DomainID:         domainID,
 		LocalPart:        req.LocalPart,
-		IsCatchAll:       req.IsCatchAll,
 		ForwardAddresses: req.ForwardAddresses,
 	})
 	if err != nil {
@@ -189,7 +185,7 @@ func (h *EmailsHandlers) GetEmailAddress(w http.ResponseWriter, r *http.Request)
 
 // UpdateEmailAddress updates an existing email address
 // @Summary Update email address
-// @Description Update email address settings such as catch-all and forwarding configuration
+// @Description Update email address settings such as forwarding configuration
 // @Tags Emails
 // @Accept json
 // @Produce json
@@ -217,7 +213,6 @@ func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Reque
 
 	// Update email address
 	emailAddress, err := h.emailUseCase.UpdateEmailAddress(r.Context(), emailID, email.UpdateEmailAddressInput{
-		IsCatchAll:       req.IsCatchAll,
 		ForwardAddresses: req.ForwardAddresses,
 	})
 	if err != nil {
@@ -452,7 +447,6 @@ func (h *EmailsHandlers) mapEmailAddressToResult(emailAddress *entities.EmailAdd
 		DomainID:         emailAddress.DomainID.String(),
 		LocalPart:        emailAddress.LocalPart,
 		FullAddress:      fullAddress,
-		IsCatchAll:       emailAddress.IsCatchAll,
 		ForwardAddresses: emailAddress.ForwardAddresses,
 		CreatedAt:        emailAddress.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:        emailAddress.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

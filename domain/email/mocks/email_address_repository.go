@@ -31,9 +31,6 @@ import (
 //			GetByLocalPartAndDomainFunc: func(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error) {
 //				panic("mock out the GetByLocalPartAndDomain method")
 //			},
-//			GetCatchAllByDomainIDFunc: func(ctx context.Context, domainID uuid.UUID) (*entities.EmailAddress, error) {
-//				panic("mock out the GetCatchAllByDomainID method")
-//			},
 //			UpdateFunc: func(ctx context.Context, emailAddress *entities.EmailAddress) error {
 //				panic("mock out the Update method")
 //			},
@@ -58,9 +55,6 @@ type EmailAddressRepositoryMock struct {
 
 	// GetByLocalPartAndDomainFunc mocks the GetByLocalPartAndDomain method.
 	GetByLocalPartAndDomainFunc func(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error)
-
-	// GetCatchAllByDomainIDFunc mocks the GetCatchAllByDomainID method.
-	GetCatchAllByDomainIDFunc func(ctx context.Context, domainID uuid.UUID) (*entities.EmailAddress, error)
 
 	// UpdateFunc mocks the Update method.
 	UpdateFunc func(ctx context.Context, emailAddress *entities.EmailAddress) error
@@ -104,13 +98,6 @@ type EmailAddressRepositoryMock struct {
 			// DomainID is the domainID argument value.
 			DomainID uuid.UUID
 		}
-		// GetCatchAllByDomainID holds details about calls to the GetCatchAllByDomainID method.
-		GetCatchAllByDomainID []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// DomainID is the domainID argument value.
-			DomainID uuid.UUID
-		}
 		// Update holds details about calls to the Update method.
 		Update []struct {
 			// Ctx is the ctx argument value.
@@ -124,7 +111,6 @@ type EmailAddressRepositoryMock struct {
 	lockGetByDomainID           sync.RWMutex
 	lockGetByID                 sync.RWMutex
 	lockGetByLocalPartAndDomain sync.RWMutex
-	lockGetCatchAllByDomainID   sync.RWMutex
 	lockUpdate                  sync.RWMutex
 }
 
@@ -327,46 +313,6 @@ func (mock *EmailAddressRepositoryMock) GetByLocalPartAndDomainCalls() []struct 
 	mock.lockGetByLocalPartAndDomain.RLock()
 	calls = mock.calls.GetByLocalPartAndDomain
 	mock.lockGetByLocalPartAndDomain.RUnlock()
-	return calls
-}
-
-// GetCatchAllByDomainID calls GetCatchAllByDomainIDFunc.
-func (mock *EmailAddressRepositoryMock) GetCatchAllByDomainID(ctx context.Context, domainID uuid.UUID) (*entities.EmailAddress, error) {
-	callInfo := struct {
-		Ctx      context.Context
-		DomainID uuid.UUID
-	}{
-		Ctx:      ctx,
-		DomainID: domainID,
-	}
-	mock.lockGetCatchAllByDomainID.Lock()
-	mock.calls.GetCatchAllByDomainID = append(mock.calls.GetCatchAllByDomainID, callInfo)
-	mock.lockGetCatchAllByDomainID.Unlock()
-	if mock.GetCatchAllByDomainIDFunc == nil {
-		var (
-			emailAddressOut *entities.EmailAddress
-			errOut          error
-		)
-		return emailAddressOut, errOut
-	}
-	return mock.GetCatchAllByDomainIDFunc(ctx, domainID)
-}
-
-// GetCatchAllByDomainIDCalls gets all the calls that were made to GetCatchAllByDomainID.
-// Check the length with:
-//
-//	len(mockedEmailAddressRepository.GetCatchAllByDomainIDCalls())
-func (mock *EmailAddressRepositoryMock) GetCatchAllByDomainIDCalls() []struct {
-	Ctx      context.Context
-	DomainID uuid.UUID
-} {
-	var calls []struct {
-		Ctx      context.Context
-		DomainID uuid.UUID
-	}
-	mock.lockGetCatchAllByDomainID.RLock()
-	calls = mock.calls.GetCatchAllByDomainID
-	mock.lockGetCatchAllByDomainID.RUnlock()
 	return calls
 }
 

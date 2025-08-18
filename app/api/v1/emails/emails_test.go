@@ -28,12 +28,10 @@ func TestEmailsHandlers_CreateEmailAddress(t *testing.T) {
 		CreateEmailAddressFromInputFunc: func(ctx context.Context, in email.CreateEmailAddressInput) (*entities.EmailAddress, error) {
 			assert.Equal(t, domainID, in.DomainID)
 			assert.Equal(t, "info", in.LocalPart)
-			assert.False(t, in.IsCatchAll)
 			return &entities.EmailAddress{
 				ID:               uuid.Must(uuid.NewV4()),
 				DomainID:         domainID,
 				LocalPart:        in.LocalPart,
-				IsCatchAll:       in.IsCatchAll,
 				ForwardAddresses: []string{"a@example.com"},
 				CreatedAt:        now,
 				UpdatedAt:        now,
@@ -42,7 +40,7 @@ func TestEmailsHandlers_CreateEmailAddress(t *testing.T) {
 	}
 	h := NewEmailsHandlers(mock)
 
-	body, _ := json.Marshal(CreateEmailRequest{LocalPart: "info", IsCatchAll: false, ForwardAddresses: []string{"a@example.com"}})
+	body, _ := json.Marshal(CreateEmailRequest{LocalPart: "info", ForwardAddresses: []string{"a@example.com"}})
 	req := httptest.NewRequest(http.MethodPost, "/domains/"+domainID.String()+"/emails", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rctx := chi.NewRouteContext()
@@ -115,18 +113,16 @@ func TestEmailsHandlers_UpdateEmailAddress(t *testing.T) {
 
 	emailID := uuid.Must(uuid.NewV4())
 	now := time.Now().UTC()
-	newCatchAll := true
 
 	mock := &mocks.UseCaseMock{
 		UpdateEmailAddressFunc: func(ctx context.Context, id uuid.UUID, in email.UpdateEmailAddressInput) (*entities.EmailAddress, error) {
 			assert.Equal(t, emailID, id)
-			assert.NotNil(t, in.IsCatchAll)
-			return &entities.EmailAddress{ID: id, DomainID: uuid.Must(uuid.NewV4()), LocalPart: "info", IsCatchAll: true, CreatedAt: now, UpdatedAt: now}, nil
+			return &entities.EmailAddress{ID: id, DomainID: uuid.Must(uuid.NewV4()), LocalPart: "info", CreatedAt: now, UpdatedAt: now}, nil
 		},
 	}
 	h := NewEmailsHandlers(mock)
 
-	body, _ := json.Marshal(UpdateEmailRequest{IsCatchAll: &newCatchAll})
+	body, _ := json.Marshal(UpdateEmailRequest{ForwardAddresses: []string{"a@example.com"}})
 	req := httptest.NewRequest(http.MethodPut, "/emails/"+emailID.String(), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rctx := chi.NewRouteContext()

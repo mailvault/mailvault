@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var domainCmd = &cobra.Command{
@@ -38,7 +40,7 @@ Examples:
 }
 
 var domainDeleteCmd = &cobra.Command{
-	Use:   "delete <domain-id>",
+	Use:   "delete <domain>",
 	Short: "Delete a domain",
 	Long:  "Delete a domain and all its associated email addresses.",
 	Args:  cobra.ExactArgs(1),
@@ -46,7 +48,7 @@ var domainDeleteCmd = &cobra.Command{
 }
 
 var domainShowCmd = &cobra.Command{
-	Use:   "show <domain-id>",
+	Use:   "show <domain>",
 	Short: "Show domain details",
 	Long:  "Display detailed information about a specific domain.",
 	Args:  cobra.ExactArgs(1),
@@ -54,13 +56,17 @@ var domainShowCmd = &cobra.Command{
 }
 
 var (
-	domainName       string
-	publicKey        string
-	webhookURL       string
-	webhookSecret    string
-	storageEnabled   bool
+	domainName        string
+	publicKey         string
+	webhookURL        string
+	webhookSecret     string
+	storageEnabled    bool
 	autoCreateAddress bool
-	force            bool
+	force             bool
+	// new common flags
+	outputFormat string
+	domainLimit  int
+	domainOffset int
 )
 
 func init() {
@@ -79,6 +85,12 @@ func init() {
 
 	// Delete command flags
 	domainDeleteCmd.Flags().BoolVarP(&force, "force", "f", false, "force deletion without confirmation")
+
+	// List/Show output and pagination flags
+	domainListCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table|json|yaml")
+	domainListCmd.Flags().IntVarP(&domainLimit, "limit", "l", 0, "maximum number of domains to show (0 = all)")
+	domainListCmd.Flags().IntVarP(&domainOffset, "offset", "O", 0, "number of domains to skip")
+	domainShowCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table|json|yaml")
 }
 
 func runDomainList(cmd *cobra.Command, args []string) error {
@@ -95,44 +107,73 @@ func runDomainList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to list domains: %w", err)
 	}
 
+	// Apply offset/limit client-side
+	start := domainOffset
+	if start < 0 {
+		start = 0
+	}
+	if start > len(domains) {
+		start = len(domains)
+	}
+	end := len(domains)
+	if domainLimit > 0 && start+domainLimit < end {
+		end = start + domainLimit
+	}
+	domains = domains[start:end]
+
 	if len(domains) == 0 {
+		if outputFormat == "json" {
+			fmt.Println("[]")
+			return nil
+		}
+		if outputFormat == "yaml" {
+			fmt.Println("[]")
+			return nil
+		}
 		fmt.Println("No domains found. Create one with 'mailvault domain create'")
 		return nil
 	}
 
-	// Print domains in a table format
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tDOMAIN\tVERIFIED\tSTORAGE\tAUTO-CREATE\tCREATED")
-	fmt.Fprintln(w, "--\t------\t--------\t-------\t-----------\t-------")
-
-	for _, domain := range domains {
-		verified := "No"
-		if domain.Verified {
-			verified = "Yes"
+	switch outputFormat {
+	case "json":
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(domains)
+	case "yaml":
+		data, err := yaml.Marshal(domains)
+		if err != nil {
+			return fmt.Errorf("failed to marshal yaml: %w", err)
 		}
-		
-		storage := "No"
-		if domain.StorageEnabled {
-			storage = "Yes"
+		fmt.Print(string(data))
+		return nil
+	case "table":
+		// Print in a table format
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "ID\tDOMAIN\tVERIFIED\tSTORAGE\tAUTO-CREATE\tCREATED")
+		fmt.Fprintln(w, "--\t------\t--------\t-------\t-----------\t-------")
+		for _, domain := range domains {
+			verified := "No"
+			if domain.Verified {
+				verified = "Yes"
+			}
+			storage := "No"
+			if domain.StorageEnabled {
+				storage = "Yes"
+			}
+			autoCreate := "No" // TODO: enable when SDK exposes
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+				domain.ID[:8]+"...",
+				domain.Domain,
+				verified,
+				storage,
+				autoCreate,
+				formatDate(domain.CreatedAt))
 		}
-		
-		// TODO: Add when SDK is updated
-		autoCreate := "No"
-		// if domain.AutoCreateAddress {
-		// 	autoCreate = "Yes"
-		// }
-
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			domain.ID[:8]+"...", // Truncate ID for display
-			domain.Domain,
-			verified,
-			storage,
-			autoCreate,
-			formatDate(domain.CreatedAt))
+		w.Flush()
+		return nil
+	default:
+		return fmt.Errorf("unknown output format: %s (use table|json|yaml)", outputFormat)
 	}
-
-	w.Flush()
-	return nil
 }
 
 func runDomainCreate(cmd *cobra.Command, args []string) error {
@@ -201,7 +242,7 @@ func runDomainCreate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Storage:         %t\n", domain.StorageEnabled)
 	// TODO: Add when SDK is updated
 	// fmt.Printf("  Auto-create:     %t\n", domain.AutoCreateAddress)
-	
+
 	if domain.WebhookConfig != nil && domain.WebhookConfig.Enabled {
 		fmt.Printf("  Webhook URL:   %s\n", domain.WebhookConfig.URL)
 	}
@@ -219,40 +260,40 @@ func runDomainDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	domainID := args[0]
+	domainRef := args[0]
 
 	client := NewClient(config.ServerURL)
 	client.SetToken(config.AccessToken)
 
-	// Get domain details for confirmation
-	domain, err := client.GetDomain(domainID)
+	// Resolve domain by name or id for confirmation and deletion
+	d, err := client.ResolveDomainReference(domainRef)
 	if err != nil {
-		return fmt.Errorf("failed to get domain details: %w", err)
+		return fmt.Errorf("failed to resolve domain: %w", err)
 	}
 
 	// Confirmation prompt unless force flag is used
 	if !force {
-		fmt.Printf("Are you sure you want to delete domain '%s'? This will also delete all associated email addresses.\n", domain.Domain)
+		fmt.Printf("Are you sure you want to delete domain '%s'? This will also delete all associated email addresses.\n", d.Domain)
 		fmt.Print("Type 'yes' to confirm: ")
-		
+
 		var confirmation string
 		if _, err := fmt.Scanln(&confirmation); err != nil {
 			return fmt.Errorf("failed to read confirmation: %w", err)
 		}
-		
+
 		if strings.ToLower(confirmation) != "yes" {
 			fmt.Println("Domain deletion cancelled")
 			return nil
 		}
 	}
 
-	fmt.Printf("Deleting domain '%s'...\n", domain.Domain)
+	fmt.Printf("Deleting domain '%s'...\n", d.Domain)
 
-	if err := client.DeleteDomain(domainID); err != nil {
+	if err := client.DeleteDomain(d.ID); err != nil {
 		return fmt.Errorf("failed to delete domain: %w", err)
 	}
 
-	fmt.Printf("✓ Domain '%s' deleted successfully\n", domain.Domain)
+	fmt.Printf("✓ Domain '%s' deleted successfully\n", d.Domain)
 	return nil
 }
 
@@ -262,46 +303,61 @@ func runDomainShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	domainID := args[0]
+	domainRef := args[0]
 
 	client := NewClient(config.ServerURL)
 	client.SetToken(config.AccessToken)
 
-	domain, err := client.GetDomain(domainID)
+	d, err := client.ResolveDomainReference(domainRef)
 	if err != nil {
-		return fmt.Errorf("failed to get domain details: %w", err)
+		return fmt.Errorf("failed to resolve domain: %w", err)
 	}
 
-	fmt.Printf("Domain Details:\n")
-	fmt.Printf("  ID:              %s\n", domain.ID)
-	fmt.Printf("  Domain:          %s\n", domain.Domain)
-	fmt.Printf("  API Key:         %s\n", domain.APIKey)
-	fmt.Printf("  Verified:        %t\n", domain.Verified)
-	fmt.Printf("  Storage:         %t\n", domain.StorageEnabled)
-	// TODO: Add when SDK is updated
-	// fmt.Printf("  Auto-create:     %t\n", domain.AutoCreateAddress)
-	fmt.Printf("  Created:         %s\n", formatDate(domain.CreatedAt))
-	fmt.Printf("  Updated:         %s\n", formatDate(domain.UpdatedAt))
-	
-	if domain.WebhookConfig != nil {
-		fmt.Printf("\nWebhook Configuration:\n")
-		fmt.Printf("  Enabled:       %t\n", domain.WebhookConfig.Enabled)
-		if domain.WebhookConfig.Enabled {
-			fmt.Printf("  URL:           %s\n", domain.WebhookConfig.URL)
-			if len(domain.WebhookConfig.Headers) > 0 {
-				fmt.Printf("  Headers:       %d custom headers configured\n", len(domain.WebhookConfig.Headers))
+	switch outputFormat {
+	case "json":
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(d)
+	case "yaml":
+		data, err := yaml.Marshal(d)
+		if err != nil {
+			return fmt.Errorf("failed to marshal yaml: %w", err)
+		}
+		fmt.Print(string(data))
+		return nil
+	case "table":
+		fmt.Printf("Domain Details:\n")
+		fmt.Printf("  ID:              %s\n", d.ID)
+		fmt.Printf("  Domain:          %s\n", d.Domain)
+		fmt.Printf("  API Key:         %s\n", d.APIKey)
+		fmt.Printf("  Verified:        %t\n", d.Verified)
+		fmt.Printf("  Storage:         %t\n", d.StorageEnabled)
+		// TODO: Add when SDK is updated
+		// fmt.Printf("  Auto-create:     %t\n", d.AutoCreateAddress)
+		fmt.Printf("  Created:         %s\n", formatDate(d.CreatedAt))
+		fmt.Printf("  Updated:         %s\n", formatDate(d.UpdatedAt))
+
+		if d.WebhookConfig != nil {
+			fmt.Printf("\nWebhook Configuration:\n")
+			fmt.Printf("  Enabled:       %t\n", d.WebhookConfig.Enabled)
+			if d.WebhookConfig.Enabled {
+				fmt.Printf("  URL:           %s\n", d.WebhookConfig.URL)
+				if len(d.WebhookConfig.Headers) > 0 {
+					fmt.Printf("  Headers:       %d custom headers configured\n", len(d.WebhookConfig.Headers))
+				}
 			}
 		}
-	}
 
-	fmt.Printf("\nPublic Key (truncated):\n")
-	if len(domain.PublicKey) > 100 {
-		fmt.Printf("  %s...\n", domain.PublicKey[:100])
-	} else {
-		fmt.Printf("  %s\n", domain.PublicKey)
+		fmt.Printf("\nPublic Key (truncated):\n")
+		if len(d.PublicKey) > 100 {
+			fmt.Printf("  %s...\n", d.PublicKey[:100])
+		} else {
+			fmt.Printf("  %s\n", d.PublicKey)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unknown output format: %s (use table|json|yaml)", outputFormat)
 	}
-
-	return nil
 }
 
 // formatDate formats a date string for display

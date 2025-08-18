@@ -261,14 +261,6 @@ func (c *Client) ResolveEmailReference(domainRef, emailRef string) (*Domain, *Em
 	if err != nil {
 		return domain, nil, fmt.Errorf("failed to list email addresses: %w", err)
 	}
-	if emailRef == "*" || emailRef == "catchall" {
-		for _, email := range emails {
-			if email.IsCatchAll {
-				return domain, email, nil
-			}
-		}
-		return domain, nil, fmt.Errorf("no catch-all address found for domain %s", domain.Domain)
-	}
 	for _, email := range emails {
 		if email.LocalPart == emailRef {
 			return domain, email, nil
@@ -278,11 +270,7 @@ func (c *Client) ResolveEmailReference(domainRef, emailRef string) (*Domain, *Em
 		fmt.Printf("Email address '%s' not found in domain '%s'.\n", emailRef, domain.Domain)
 		fmt.Printf("Available addresses:\n")
 		for _, email := range emails {
-			if email.IsCatchAll {
-				fmt.Printf("  * (catch-all)\n")
-			} else {
-				fmt.Printf("  %s\n", email.LocalPart)
-			}
+			fmt.Printf("  %s\n", email.LocalPart)
 		}
 	}
 	return domain, nil, fmt.Errorf("email address not found: %s@%s", emailRef, domain.Domain)
