@@ -10,18 +10,21 @@ import (
 	"time"
 
 	"mailvault/domain/entities"
+	"mailvault/domain/user"
 	"mailvault/internal/encryption"
 
 	"github.com/gofrs/uuid/v5"
 )
 
 type UseCase struct {
-	repo Repository
+	repo     Repository
+	userRepo user.Repository
 }
 
-func NewUseCase(repo Repository) *UseCase {
+func NewUseCase(repo Repository, userRepo user.Repository) *UseCase {
 	return &UseCase{
-		repo: repo,
+		repo:     repo,
+		userRepo: userRepo,
 	}
 }
 
@@ -68,6 +71,24 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 
 	// Normalize domain (lowercase)
 	normalizedDomain := strings.ToLower(req.Domain)
+
+	// Get user to check account type and domain limits
+	user, err := uc.userRepo.GetByID(ctx, req.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Check domain limit based on account type
+	userDomains, err := uc.repo.GetByUserID(ctx, req.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user domains: %w", err)
+	}
+
+	domainLimit := user.AccountType.DomainLimit()
+	if domainLimit > 0 && len(userDomains) >= domainLimit {
+		return nil, fmt.Errorf("domain limit exceeded: %s accounts can have maximum %d domain(s), you currently have %d", 
+			user.AccountType, domainLimit, len(userDomains))
+	}
 
 	// Check if domain already exists
 	existing, err := uc.repo.GetByDomain(ctx, normalizedDomain)

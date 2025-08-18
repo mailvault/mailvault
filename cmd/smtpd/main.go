@@ -62,7 +62,7 @@ func main() {
 	repo := pg.NewRepository(db)
 
 	// Initialize use cases
-	domainUseCase := domainUseCase.NewUseCase(repo.DomainRepo)
+	domainUseCase := domainUseCase.NewUseCase(repo.DomainRepo, repo.UserRepo)
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
 
 	// Create SMTP server
