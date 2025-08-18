@@ -32,6 +32,7 @@ func TestUserRepository_CRUD(t *testing.T) {
 		Email:          "user_test@example.com",
 		AuthProvider:   "supabase",
 		AuthProviderID: "userprov",
+		AccountType:    entities.AccountTypeFreemium,
 		CreatedAt:      time.Now().UTC(),
 		UpdatedAt:      time.Now().UTC(),
 	}

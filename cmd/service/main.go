@@ -119,7 +119,7 @@ func main() {
 	// Use cases and their dependencies
 	// ------------------------------------------
 	userUseCase := user.NewUseCase(repo.UserRepo)
-	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo)
+	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo, repo.UserRepo)
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
 
 	// Handlers V1
