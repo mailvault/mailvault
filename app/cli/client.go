@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	mailvault "github.com/guilhermebr/mailvault-go-sdk"
 	"github.com/gofrs/uuid/v5"
+	mailvault "github.com/guilhermebr/mailvault-go-sdk"
 )
 
 type Client struct {
@@ -42,7 +42,7 @@ func (c *Client) Register(email, password string) (*mailvault.AuthResponse, erro
 }
 
 func (c *Client) GetMe() (*mailvault.User, error) {
-	return c.sdk.Auth.Me(context.Background())
+	return c.sdk.Users.Me(context.Background())
 }
 
 // Domain API methods

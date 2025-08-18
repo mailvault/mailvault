@@ -23,10 +23,18 @@ var domainListCmd = &cobra.Command{
 }
 
 var domainCreateCmd = &cobra.Command{
-	Use:   "create",
+	Use:   "create [domain]",
 	Short: "Create a new domain",
-	Long:  "Create a new domain with encryption settings.",
-	RunE:  runDomainCreate,
+	Long: `Create a new domain with encryption settings.
+
+If you have locally generated keys for this domain, they will be used automatically.
+Otherwise, you must provide a public key with --public-key.
+
+Examples:
+  mailvault domain create example.com           # Use local keys if available
+  mailvault domain create example.com --public-key x25519:...  # Use specific key`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runDomainCreate,
 }
 
 var domainDeleteCmd = &cobra.Command{
@@ -62,15 +70,12 @@ func init() {
 	domainCmd.AddCommand(domainShowCmd)
 
 	// Create command flags
-	domainCreateCmd.Flags().StringVarP(&domainName, "domain", "d", "", "domain name (required)")
-	domainCreateCmd.Flags().StringVarP(&publicKey, "public-key", "k", "", "public key for email encryption (required)")
+	domainCreateCmd.Flags().StringVarP(&domainName, "domain", "d", "", "domain name (overrides positional argument)")
+	domainCreateCmd.Flags().StringVarP(&publicKey, "public-key", "k", "", "public key for email encryption (auto-detected from local keys if available)")
 	domainCreateCmd.Flags().StringVar(&webhookURL, "webhook-url", "", "webhook URL for email notifications")
 	domainCreateCmd.Flags().StringVar(&webhookSecret, "webhook-secret", "", "webhook secret for authentication")
 	domainCreateCmd.Flags().BoolVar(&storageEnabled, "storage", true, "enable email storage")
 	domainCreateCmd.Flags().BoolVar(&autoCreateAddress, "auto-create", false, "automatically create email addresses when receiving emails to non-existent addresses")
-	
-	domainCreateCmd.MarkFlagRequired("domain")
-	domainCreateCmd.MarkFlagRequired("public-key")
 
 	// Delete command flags
 	domainDeleteCmd.Flags().BoolVarP(&force, "force", "f", false, "force deletion without confirmation")
@@ -136,12 +141,37 @@ func runDomainCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Determine domain name from args or flag
+	var targetDomain string
+	if len(args) > 0 {
+		targetDomain = strings.ToLower(args[0])
+	} else if domainName != "" {
+		targetDomain = strings.ToLower(domainName)
+	} else {
+		return fmt.Errorf("domain name is required (provide as argument or --domain flag)")
+	}
+
+	// Determine public key - check local keys first, then flag
+	var targetPublicKey string
+	if publicKey != "" {
+		// Use provided public key
+		targetPublicKey = publicKey
+	} else {
+		// Try to load from local keys
+		keyFile, err := loadKeyFile(targetDomain)
+		if err != nil {
+			return fmt.Errorf("no public key provided and no local keys found for domain %s. Generate keys first with 'mailvault keys generate %s' or provide --public-key", targetDomain, targetDomain)
+		}
+		targetPublicKey = keyFile.PublicKey
+		fmt.Printf("Using local public key for domain: %s\n", targetDomain)
+	}
+
 	client := NewClient(config.ServerURL)
 	client.SetToken(config.AccessToken)
 
 	req := CreateDomainRequest{
-		Domain:         domainName,
-		PublicKey:      publicKey,
+		Domain:         targetDomain,
+		PublicKey:      targetPublicKey,
 		StorageEnabled: &storageEnabled,
 		// AutoCreateAddress: &autoCreateAddress, // TODO: Add when SDK is updated
 	}
@@ -155,7 +185,7 @@ func runDomainCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	fmt.Printf("Creating domain '%s'...\n", domainName)
+	fmt.Printf("Creating domain '%s'...\n", targetDomain)
 
 	domain, err := client.CreateDomain(req)
 	if err != nil {

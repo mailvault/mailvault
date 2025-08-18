@@ -9,6 +9,7 @@ import (
 
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
+	"mailvault/internal/encryption"
 
 	"github.com/emersion/go-smtp"
 	"github.com/gofrs/uuid/v5"
@@ -95,20 +96,20 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 	emailAddress, err := s.backend.emailUseCase.GetEmailAddressByAddress(context.Background(), recipient)
 	if err != nil {
 		s.logger.Info("Email address not found, checking domain auto-creation policy", "email", recipient, "auto_create_enabled", domain.AutoCreateAddress)
-		
+
 		// Check if domain allows auto-creation of email addresses
 		if !domain.AutoCreateAddress {
 			s.logger.Warn("Email rejected: address not found and auto-creation disabled", "email", recipient, "domain", domainName)
 			return &smtp.SMTPError{Code: 550, Message: "Email address not found"}
 		}
-		
+
 		// Auto-create new email address since domain allows it
 		emailAddress = &entities.EmailAddress{
 			ID:               uuid.Must(uuid.NewV4()),
 			DomainID:         domain.ID,
 			LocalPart:        localPart,
 			IsCatchAll:       false,
-			ForwardAddresses: []string{}, // No forwarding by default
+			ForwardAddresses: []string{},
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),
 		}
@@ -118,19 +119,26 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 			s.logger.Error("Failed to auto-create email address", "email", recipient, "error", err)
 			return &smtp.SMTPError{Code: 451, Message: "Temporary failure creating email address"}
 		}
-		
+
 		s.logger.Info("Auto-created email address", "email", recipient, "domain", domainName)
 	}
 
 	// Parse email headers to extract subject and from address
 	subject, fromAddr := s.parseEmailHeaders(string(body))
 
-	// Process the incoming email
+	// Encrypt the email body using the domain's public key
+	encryptedBody, err := s.encryptEmailBody(body, domain.PublicKey)
+	if err != nil {
+		s.logger.Error("Failed to encrypt email body", "domain", domainName, "error", err)
+		return &smtp.SMTPError{Code: 451, Message: "Temporary failure processing email"}
+	}
+
+	// Process the incoming email with encrypted body
 	err = s.backend.emailUseCase.ProcessIncomingEmail(context.Background(), email.ProcessIncomingEmailInput{
 		EmailAddressID: emailAddress.ID,
 		FromAddress:    fromAddr,
 		Subject:        subject,
-		Body:           string(body),
+		Body:           encryptedBody,
 		DomainID:       domain.ID,
 	})
 
@@ -145,29 +153,52 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 
 // parseEmailHeaders extracts basic information from email headers
 func (s *Session) parseEmailHeaders(body string) (subject, from string) {
-	lines := strings.Split(body, "\n")
-	
-	for _, line := range lines {
+	lines := strings.SplitSeq(body, "\n")
+
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			break // End of headers
 		}
-		
+
 		if strings.HasPrefix(strings.ToLower(line), "subject:") {
 			subject = strings.TrimSpace(line[8:]) // Remove "Subject: "
 		} else if strings.HasPrefix(strings.ToLower(line), "from:") {
 			from = strings.TrimSpace(line[5:]) // Remove "From: "
 		}
 	}
-	
+
 	if subject == "" {
 		subject = "(No Subject)"
 	}
 	if from == "" {
 		from = "(Unknown Sender)"
 	}
-	
+
 	return subject, from
+}
+
+// encryptEmailBody encrypts the email body using the domain's public key
+func (s *Session) encryptEmailBody(body []byte, domainPublicKey string) (string, error) {
+	// Parse the domain's public key
+	publicKeyBytes, err := encryption.ParsePublicKey(domainPublicKey)
+	if err != nil {
+		return "", err
+	}
+
+	// Encrypt the email body
+	encryptedData, err := encryption.Encrypt(body, publicKeyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Serialize the encrypted data for storage
+	serializedData, err := encryptedData.Serialize()
+	if err != nil {
+		return "", err
+	}
+
+	return serializedData, nil
 }
 
 // Reset resets the session state

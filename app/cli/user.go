@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -66,7 +65,9 @@ func runLogout(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Clear auth info
+	userEmail := config.UserEmail
+	
+	// Clear authentication data
 	config.AccessToken = ""
 	config.UserEmail = ""
 	config.UserID = ""
@@ -75,12 +76,12 @@ func runLogout(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
-	// Also remove the config file entirely for a clean logout
-	configPath := getConfigPath()
-	if err := os.Remove(configPath); err != nil && !os.IsNotExist(err) {
-		fmt.Printf("Warning: failed to remove config file: %v\n", err)
+	if userEmail != "" {
+		fmt.Printf("✓ Successfully logged out from %s\n", userEmail)
+	} else {
+		fmt.Println("✓ Successfully logged out")
 	}
+	fmt.Println("Use 'mailvault login' to sign in again")
 
-	fmt.Println("✓ Successfully logged out")
 	return nil
 }

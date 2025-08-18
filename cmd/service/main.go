@@ -40,7 +40,7 @@ import (
 	"log/slog"
 	"mailvault/app/api"
 	v1 "mailvault/app/api/v1"
-	"mailvault/domain/auth"
+	authDomain "mailvault/domain/auth"
 	domainpkg "mailvault/domain/domain"
 	"mailvault/domain/email"
 	"mailvault/domain/user"
@@ -104,7 +104,7 @@ func main() {
 
 	// Authentication provider
 	// ------------------------------------------
-	authProvider, err := auth.NewAuthProvider(auth.Config{
+	authProvider, err := authDomain.NewAuthProvider(authDomain.Config{
 		Provider:       cfg.AuthProvider,
 		SupabaseURL:    cfg.SupabaseURL,
 		SupabaseAPIKey: cfg.SupabaseAPIKey,
@@ -126,6 +126,7 @@ func main() {
 	apiV1 := v1.ApiHandlers{
 		AuthProvider:  authProvider,
 		UserUseCase:   userUseCase,
+		AuthUseCase:   userUseCase,
 		DomainUseCase: domainUseCase,
 		EmailUseCase:  emailUseCase,
 		AuthSecretKey: cfg.AuthSecretKey,

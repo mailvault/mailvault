@@ -15,10 +15,15 @@ var loginCmd = &cobra.Command{
 	RunE:  runLogin,
 }
 
-var registerFlag bool
+
+var (
+	registerFlag bool
+	forceFlag    bool
+)
 
 func init() {
 	loginCmd.Flags().BoolVarP(&registerFlag, "register", "r", false, "register a new account instead of login")
+	loginCmd.Flags().BoolVarP(&forceFlag, "force", "f", false, "force login even if already authenticated")
 }
 
 func runLogin(cmd *cobra.Command, args []string) error {
@@ -31,11 +36,22 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		return runRegister(config)
 	}
 
-	// Check if already logged in
-	if config.AccessToken != "" {
-		fmt.Printf("Already logged in as %s\n", config.UserEmail)
-		fmt.Println("Use 'mailvault user info' to view your account details")
-		return nil
+	// Check if already logged in (unless force flag is used)
+	if config.AccessToken != "" && !forceFlag {
+		// Validate current token
+		validConfig, err := validateAndRefreshAuth(config)
+		if err == nil {
+			fmt.Printf("Already logged in as %s\n", validConfig.UserEmail)
+			fmt.Println("Use 'mailvault user info' to view your account details")
+			fmt.Println("Use 'mailvault login --force' to login with a different account")
+			return nil
+		}
+		
+		// Token is invalid, clear it and continue with login
+		fmt.Println("⚠️  Current authentication is invalid, proceeding with login...")
+		config.AccessToken = ""
+		config.UserEmail = ""
+		config.UserID = ""
 	}
 
 	client := NewClient(config.ServerURL)

@@ -204,7 +204,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Register a new domain for the authenticated user with encryption keys and optional webhook configuration",
+                "description": "Register a new domain for the authenticated user with user-provided encryption public key and optional webhook configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -782,6 +782,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/emails/received": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all received emails for the authenticated user across all domains",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Emails"
+                ],
+                "summary": "List user's received emails",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of emails to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of emails to skip",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by domain",
+                        "name": "domain",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of received emails",
+                        "schema": {
+                            "$ref": "#/definitions/models.PaginatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Check if the API is running and healthy",
@@ -1198,6 +1260,12 @@ const docTemplate = `{
         "emails.ReceivedEmailResult": {
             "type": "object",
             "properties": {
+                "domain_name": {
+                    "type": "string"
+                },
+                "email_address": {
+                    "type": "string"
+                },
                 "encrypted_body": {
                     "type": "string"
                 },

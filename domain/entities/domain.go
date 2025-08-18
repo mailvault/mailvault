@@ -11,6 +11,7 @@ type Domain struct {
 	UserID           uuid.UUID      `json:"user_id" db:"user_id"`
 	Domain           string         `json:"domain" db:"domain"`
 	PublicKey        string         `json:"public_key" db:"public_key"`
+	EncryptedPrivateKey *string     `json:"-" db:"encrypted_private_key"` // Encrypted with user-derived key, never exposed in API
 	APIKey           string         `json:"api_key" db:"api_key"`
 	Verified         bool           `json:"verified" db:"verified"`
 	WebhookConfig    *WebhookConfig `json:"webhook_config,omitempty" db:"webhook_config"`

@@ -155,6 +155,10 @@ definitions:
     type: object
   emails.ReceivedEmailResult:
     properties:
+      domain_name:
+        type: string
+      email_address:
+        type: string
       encrypted_body:
         type: string
       from_address:
@@ -386,8 +390,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new domain for the authenticated user with encryption
-        keys and optional webhook configuration
+      description: Register a new domain for the authenticated user with user-provided
+        encryption public key and optional webhook configuration
       parameters:
       - description: Domain creation details
         in: body
@@ -769,6 +773,47 @@ paths:
       summary: Update domain
       tags:
       - Domains
+  /emails/received:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all received emails for the authenticated user across
+        all domains
+      parameters:
+      - default: 50
+        description: Maximum number of emails to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of emails to skip
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by domain
+        in: query
+        name: domain
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of received emails
+          schema:
+            $ref: '#/definitions/models.PaginatedResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: List user's received emails
+      tags:
+      - Emails
   /health:
     get:
       description: Check if the API is running and healthy
