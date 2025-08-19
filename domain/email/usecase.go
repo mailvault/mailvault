@@ -371,6 +371,19 @@ func (uc *UseCase) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID
 	return emails, total, nil
 }
 
+func (uc *UseCase) GetDomainByID(ctx context.Context, domainID uuid.UUID) (*entities.Domain, error) {
+	if domainID == uuid.Nil {
+		return nil, fmt.Errorf("domain ID is required")
+	}
+
+	domain, err := uc.domainRepo.GetByID(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	return domain, nil
+}
+
 // Validation helpers
 func isValidLocalPart(localPart string) bool {
 	// Basic local part validation (simplified)
@@ -393,7 +406,3 @@ func isValidEmail(email string) bool {
 	return emailRegex.MatchString(email)
 }
 
-func isValidURL(url string) bool {
-	urlRegex := regexp.MustCompile(`^https?://[^\s/$.?#].[^\s]*$`)
-	return urlRegex.MatchString(url)
-}

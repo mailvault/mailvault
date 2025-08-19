@@ -3,12 +3,14 @@ package emails
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"mailvault/app/api"
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
+	"mailvault/internal/emailrender"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"
@@ -27,16 +29,19 @@ type UseCase interface {
 	GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error)
 	DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error
 	GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
+	GetDomainByID(ctx context.Context, domainID uuid.UUID) (*entities.Domain, error)
 }
 
 // EmailsHandlers contains email-related endpoints
 type EmailsHandlers struct {
 	emailUseCase UseCase
+	renderEngine *emailrender.RenderEngine
 }
 
 func NewEmailsHandlers(emailUseCase UseCase) *EmailsHandlers {
 	return &EmailsHandlers{
 		emailUseCase: emailUseCase,
+		renderEngine: emailrender.NewRenderEngine(),
 	}
 }
 
@@ -72,6 +77,20 @@ type ReceivedEmailResult struct {
 	DomainName     string `json:"domain_name"`
 	EmailAddress   string `json:"email_address"`
 	ReceivedAt     string `json:"received_at"`
+}
+
+// ParsedEmailResult represents parsed email content in API responses
+type ParsedEmailResult struct {
+	ID                string                           `json:"id"`
+	SequenceNumber    int                              `json:"sequence_number"`
+	FromAddress       string                           `json:"from_address"`
+	Subject           string                           `json:"subject"`
+	DomainName        string                           `json:"domain_name"`
+	EmailAddress      string                           `json:"email_address"`
+	ReceivedAt        string                           `json:"received_at"`
+	ParsedContent     *emailrender.EmailResponse       `json:"parsed_content,omitempty"`
+	AvailableFormats  []string                         `json:"available_formats,omitempty"`
+	RenderingError    string                           `json:"rendering_error,omitempty"`
 }
 
 // CreateEmailAddress creates a new email address for a domain
@@ -435,6 +454,72 @@ func (h *EmailsHandlers) ListReceivedEmailsForUser(w http.ResponseWriter, r *htt
 	api.SuccessResponse(w, r, response)
 }
 
+// GetParsedReceivedEmail gets a specific received email with parsed content
+// @Summary Get parsed received email by ID
+// @Description Retrieve a specific received email with parsed content in multiple formats
+// @Tags Emails
+// @Produce json
+// @Security BearerAuth
+// @Param receivedEmailId path string true "Received Email ID" format(uuid)
+// @Param private_key query string false "Base64 encoded private key for decryption"
+// @Param format query string false "Content format preference: auto, plain, html, markdown, raw" default(auto)
+// @Success 200 {object} ParsedEmailResult "Parsed received email details"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
+// @Failure 404 {object} models.ErrorResponseBody "Received email not found"
+// @Router /received/{receivedEmailId}/parsed [get]
+func (h *EmailsHandlers) GetParsedReceivedEmail(w http.ResponseWriter, r *http.Request) {
+	receivedEmailIDStr := chi.URLParam(r, "receivedEmailId")
+	receivedEmailID, err := api.ParseUUID(receivedEmailIDStr)
+	if err != nil {
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Get user ID from context
+	userID, err := api.GetUserIDFromContext(r)
+	if err != nil {
+		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
+		return
+	}
+
+	// Get received email
+	receivedEmail, err := h.emailUseCase.GetReceivedEmailByID(r.Context(), receivedEmailID, userID)
+	if err != nil {
+		slog.Error("failed to get received email", "error", err, "received_email_id", receivedEmailID)
+		api.ErrorResponse(w, r, http.StatusNotFound, err)
+		return
+	}
+
+	// Create base result
+	result := h.mapReceivedEmailToParsedResult(receivedEmail)
+
+	// Check if private key is provided for parsing
+	privateKeyBase64 := r.URL.Query().Get("private_key")
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "auto"
+	}
+	_ = format // format parameter used for future enhancements
+
+	if privateKeyBase64 != "" {
+		// Parse encrypted email content
+		parsed, err := h.renderEngine.ParseFromEncrypted(receivedEmail.EncryptedBody, privateKeyBase64)
+		if err != nil {
+			result.RenderingError = fmt.Sprintf("failed to parse email: %v", err)
+		} else {
+			// Create email response
+			response := h.renderEngine.CreateEmailResponse(receivedEmail, parsed)
+			result.ParsedContent = response
+			result.AvailableFormats = parsed.GetAvailableFormats()
+		}
+	} else {
+		result.RenderingError = "Private key required for content parsing. Provide 'private_key' query parameter."
+	}
+
+	api.SuccessResponse(w, r, result)
+}
+
 // mapEmailAddressToResult converts email address entity to API result
 func (h *EmailsHandlers) mapEmailAddressToResult(emailAddress *entities.EmailAddress, domain string) *EmailAddressResult {
 	fullAddress := emailAddress.LocalPart + "@" + domain
@@ -466,6 +551,24 @@ func (h *EmailsHandlers) mapReceivedEmailToResult(receivedEmail *entities.Receiv
 		FromAddress:    receivedEmail.FromAddress,
 		Subject:        subject,
 		EncryptedBody:  receivedEmail.EncryptedBody,
+		DomainName:     receivedEmail.DomainName,
+		EmailAddress:   receivedEmail.EmailAddress,
+		ReceivedAt:     receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+}
+
+// mapReceivedEmailToParsedResult converts received email entity to parsed API result
+func (h *EmailsHandlers) mapReceivedEmailToParsedResult(receivedEmail *entities.ReceivedEmail) *ParsedEmailResult {
+	subject := ""
+	if receivedEmail.Subject != nil {
+		subject = *receivedEmail.Subject
+	}
+
+	return &ParsedEmailResult{
+		ID:             receivedEmail.ID.String(),
+		SequenceNumber: receivedEmail.SequenceNumber,
+		FromAddress:    receivedEmail.FromAddress,
+		Subject:        subject,
 		DomainName:     receivedEmail.DomainName,
 		EmailAddress:   receivedEmail.EmailAddress,
 		ReceivedAt:     receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),

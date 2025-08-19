@@ -1,27 +1,31 @@
-# MailSafe Development Guide for Claude
+# MailVault Development Guide for Claude
 
 ## Project Overview
-MailSafe (mailsafe.sh) is an open-source, developer-focused email service providing private, encrypted email services where users point their own domains to create secure email addresses. This is a complete email platform with web frontend, APIs, and SMTP server, designed for easy integration by developers similar to Resend and inbox.new.
+MailVault (mailvault.sh) is an open-source, developer-focused email service providing private, encrypted email services where users point their own domains to create secure email addresses. This is a complete email platform with REST APIs, CLI client, and SMTP server, designed for easy integration by developers similar to Resend and inbox.new.
 
 ## Current Status
-- **Status**: Core development completed, ready for SMTP server implementation
-- **Location**: `/home/guilhermebr/code/guilhermebr/privatemail` (will be renamed to mailsafe)
-- **Domain**: mailsafe.sh
-- **Technology**: Go-based email service with SSR frontend
+- **Status**: Core development completed with functional API, CLI, and SMTP server
+- **Location**: `/home/guilhermebr/code/guilhermebr/mailvault`
+- **Domain**: mailvault.sh
+- **Technology**: Go-based email service with comprehensive API and CLI tooling
+- **SDK**: External Go SDK available at `/home/guilhermebr/code/guilhermebr/mailvault-go-sdk`
 
 ## Architecture Overview
 
 ### Core Services
-1. **Web Frontend** (`cmd/web`) - Server-side rendered with Templ + HTMX + Tailwind
-2. **API Backend** (`cmd/service`) - REST APIs with OpenAPI/Swagger
-3. **Admin Panel** (`cmd/admin`) - Management interface
-4. **SMTP Server** (`cmd/smtpd`) - Email receiving/sending using github.com/emersion/go-smtp
+1. **API Backend** (`cmd/service`) - REST APIs with OpenAPI/Swagger documentation
+2. **SMTP Server** (`cmd/smtpd`) - Email receiving/processing using github.com/emersion/go-smtp
+3. **CLI Client** (`cmd/cli`) - Command-line interface for domain/email management
+4. **Admin Panel** - Management interface (next to be reimplemented)
 
 ### Key Features
-- **User Authentication**: Email/password + OAuth2 (Google, Github)
-- **Domain Management**: Users add domains with public keys for encryption
-- **Email Addresses**: Create emails per domain with webhook/catch-all/forwarding options
-- **API Access**: Send emails via API using domain API_KEY
+- **User Authentication**: Supabase Auth integration with JWT tokens
+- **Domain Management**: Users add domains with public keys for encryption and webhook configuration
+- **Email Addresses**: Create emails per domain with catch-all/forwarding options
+- **Email Storage**: Configurable storage with encryption using domain public keys
+- **API Access**: Send emails via API using domain API keys
+- **CLI Integration**: Full command-line interface for all operations
+- **Webhook Support**: Configurable webhooks for real-time email notifications
 - **Security**: End-to-end encryption for all received emails
 
 ## Technology Stack
@@ -29,19 +33,21 @@ MailSafe (mailsafe.sh) is an open-source, developer-focused email service provid
 ### Backend (Go)
 ```go
 // Core Dependencies
-github.com/guilhermebr/gox/logger     // Logging utilities
-github.com/guilhermebr/gox/postgres   // Database utilities  
-github.com/supabase/auth              // Supabase Auth provider integration
-github.com/emersion/go-smtp           // SMTP server
-github.com/go-chi/chi/v5              // HTTP router
-github.com/jackc/pgx/v5               // PostgreSQL driver
+github.com/guilhermebr/gox/logger          // Logging utilities
+github.com/guilhermebr/gox/postgres        // Database utilities  
+github.com/guilhermebr/mailvault-go-sdk    // MailVault Go SDK
+github.com/supabase-community/supabase-go  // Supabase client
+github.com/emersion/go-smtp                // SMTP server
+github.com/go-chi/chi/v5                   // HTTP router
+github.com/jackc/pgx/v5                    // PostgreSQL driver
+github.com/spf13/cobra                     // CLI framework
+github.com/swaggo/swag                     // OpenAPI/Swagger generation
 ```
 
-### Frontend
-- **Server Side Rendering**: Go with Templ templates
-- **Interactivity**: HTMX for dynamic behavior
-- **Styling**: Tailwind CSS
-- **Build**: Standard Go build process
+### CLI Tools
+- **Command Interface**: Cobra framework for structured CLI commands
+- **SDK Integration**: Uses external MailVault Go SDK for API communication
+- **Configuration**: File-based configuration with environment overrides
 
 ### Infrastructure
 - **Database**: PostgreSQL with migrations
@@ -49,32 +55,37 @@ github.com/jackc/pgx/v5               // PostgreSQL driver
 - **Observability**: OpenTelemetry with tracing and structured logging
 - **Documentation**: OpenAPI/Swagger for APIs
 
-## Project Structure (DDD Pattern from go-template)
+## Project Structure (DDD Pattern)
 ```
-mailsafe/
+mailvault/
 ├── cmd/
-│   ├── web/           # Frontend server (Templ + HTMX)
 │   ├── service/       # API backend server
-│   ├── admin/         # Admin panel server
-│   └── smtpd/         # SMTP server daemon (minimal main.go)
+│   ├── smtpd/         # SMTP server daemon
+│   └── cli/           # CLI client application
+├── app/
+│   ├── api/           # HTTP handlers and routing
+│   │   ├── middleware/     # Authentication middleware
+│   │   ├── models/         # API models
+│   │   └── v1/             # API v1 endpoints
+│   ├── smtp/          # SMTP server implementation
+│   │   ├── server.go       # SMTP server wrapper
+│   │   ├── backend.go      # SMTP backend implementation
+│   │   ├── session.go      # SMTP session handling
+│   │   └── config.go       # SMTP configuration
+│   └── cli/           # CLI command implementations
 ├── domain/
 │   ├── entities/      # Core business entities
 │   ├── user/          # User management use cases
 │   ├── domain/        # Domain management use cases  
 │   ├── email/         # Email management use cases
-│   └── auth/          # Authentication use cases
-├── internal/
-│   ├── api/           # HTTP handlers and routing
-│   ├── config/        # Configuration management
-│   ├── smtp/          # SMTP server implementation
-│   │   ├── server.go  # SMTP server wrapper
-│   │   ├── backend.go # SMTP backend implementation
-│   │   └── session.go # SMTP session handling
+│   └── auth/          # Authentication providers
+├── gateways/
 │   └── repository/    # Data persistence layer
 │       └── pg/        # PostgreSQL implementations
-├── migrations/        # Database migrations
-├── web/              # Static assets and templates
-└── docs/             # API documentation
+│           └── migrations/  # Database migrations
+├── docs/             # OpenAPI/Swagger documentation
+├── scripts/          # Development and deployment scripts
+└── build/            # Compiled binaries
 ```
 
 ## Database Schema Design
@@ -91,7 +102,7 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Domains table  
+-- Domains table with webhook config and storage option
 CREATE TABLE domains (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -99,18 +110,19 @@ CREATE TABLE domains (
     public_key TEXT NOT NULL, -- For email encryption
     api_key VARCHAR(255) UNIQUE NOT NULL, -- For API access
     verified BOOLEAN DEFAULT false,
+    webhook_config JSONB, -- JSON configuration for webhook (URL, secret, headers, enabled)
+    storage_enabled BOOLEAN DEFAULT true, -- Whether to store emails in database
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Email addresses table
+-- Email addresses table (simplified, no webhook URL)
 CREATE TABLE email_addresses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     domain_id UUID REFERENCES domains(id) ON DELETE CASCADE,
     local_part VARCHAR(255) NOT NULL, -- part before @
-    webhook_url VARCHAR(500),
     is_catch_all BOOLEAN DEFAULT false,
-    forward_addresses TEXT[], -- JSON array of forward emails
+    forward_addresses TEXT[], -- Array of forward emails
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(domain_id, local_part)
@@ -167,24 +179,29 @@ func NewAuthProvider(config AuthConfig) AuthProvider {
 
 ### Commands to Run
 ```bash
+# Setup and Build
+make setup        # Install all required tools (moq, linters, etc.)
+make build        # Build service, smtpd, and cli binaries
+make generate     # Generate templates and code
+
 # Development
-make build        # Build service and smtpd binaries
 ./build/service   # Start API backend server  
 ./build/smtpd     # Start SMTP server
+./build/cli       # Use CLI client
 
 # Testing
-go test ./...                    # Run all tests
-go test -race ./...             # Run with race detection  
-go test -coverprofile=cover.out ./...  # Generate coverage
+make test         # Run tests (short)
+make test-full    # Run comprehensive tests with coverage
+make coverage     # Generate HTML coverage report
 
 # Database
 make migration/up    # Run database migrations
 make migration/down  # Rollback migrations
+make migration/create  # Create new migration
 
 # Code Quality
 make lint         # Run linter
 make gosec        # Run security analysis
-make test-full    # Run comprehensive tests
 
 # Environment
 cp .env.example .env  # Copy environment template
@@ -213,6 +230,11 @@ cp .env.example .env  # Copy environment template
 
 ### RESTful Endpoints
 ```go
+// Authentication
+POST   /api/v1/register             # User registration
+POST   /api/v1/login                # User login
+GET    /api/v1/me                   # Get current user
+
 // Domain management
 POST   /api/v1/domains              # Create domain
 GET    /api/v1/domains              # List user domains  
@@ -221,13 +243,22 @@ PUT    /api/v1/domains/{id}         # Update domain
 DELETE /api/v1/domains/{id}         # Delete domain
 
 // Email address management  
-POST   /api/v1/domains/{id}/emails  # Create email address
-GET    /api/v1/domains/{id}/emails  # List domain emails
-PUT    /api/v1/domains/{id}/emails/{email_id}  # Update email
-DELETE /api/v1/domains/{id}/emails/{email_id}  # Delete email
+POST   /api/v1/domains/{domainId}/emails    # Create email address
+GET    /api/v1/domains/{domainId}/emails    # List domain emails
+GET    /api/v1/domains/{domainId}/emails/{emailId}  # Get email details
+PUT    /api/v1/domains/{domainId}/emails/{emailId}  # Update email
+DELETE /api/v1/domains/{domainId}/emails/{emailId}  # Delete email
+GET    /api/v1/domains/{domainId}/emails/{emailId}/received  # Get received emails
+
+// Received emails direct access
+GET    /api/v1/received/{receivedEmailId}   # Get received email by ID
+DELETE /api/v1/received/{receivedEmailId}   # Delete received email
 
 // Email sending (with API key auth)
 POST   /api/v1/send                 # Send email using domain API key
+
+// System
+GET    /health                      # Health check
 ```
 
 ### Error Handling
@@ -240,30 +271,32 @@ type APIError struct {
 }
 ```
 
-## Frontend Development (HTMX + Templ)
+## CLI Development (Cobra Framework)
 
-### Page Structure
+### CLI Structure
 ```go
-// Templ templates for each page
-templ Dashboard(user *User, domains []*Domain) {
-    @layout.Base("Dashboard") {
-        <div hx-get="/dashboard/domains" hx-trigger="load">
-            // Domain list component
-        </div>
-    }
-}
+// Root command
+mailvault [command]
 
-// HTMX endpoints for dynamic updates
-func (h *Handlers) DashboardDomains(w http.ResponseWriter, r *http.Request) {
-    // Return partial HTML for HTMX swap
-}
+// Available Commands:
+auth        Authentication commands (login, logout, whoami)
+domain      Domain management commands
+email       Email address management commands
+inbox       Inbox and received email management
+user        User management commands
+
+// Flags:
+--config    Config file location
+--api-url   API server URL
+--debug     Enable debug output
 ```
 
-### Key Pages
-- **Landing Page**: Marketing site with signup
-- **Dashboard**: Domain and email management  
-- **Settings**: User preferences and billing
-- **Documentation**: API docs and guides
+### CLI Features
+- **Authentication**: Login with email/password, store tokens securely
+- **Domain Management**: Create, list, update, delete domains
+- **Email Management**: Create email addresses, configure forwarding/catch-all
+- **Inbox Access**: View and manage received emails
+- **Configuration**: File-based config with environment overrides
 
 ## SMTP Server Implementation
 
@@ -402,9 +435,15 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 - **SMTP Inspiration**: `/home/guilhermebr/code/guilhermebr/receive/sasmail`
 
 ### Development Priorities
-1. **Phase 1**: Core APIs and basic web frontend
-2. **Phase 2**: SMTP server and email processing
-3. **Phase 3**: Admin panel and monitoring
+1. **Phase 1**: ✅ Core APIs and CLI client
+2. **Phase 2**: ✅ SMTP server and email processing
+3. **Phase 3**: 🔄 Admin panel reimplementation (current focus)
 4. **Phase 4**: Advanced features and optimization
+
+### Next Steps
+- **Admin Panel Redesign**: Complete reimplementation of admin interface
+- **Enhanced Monitoring**: Advanced observability and metrics
+- **Performance Optimization**: SMTP server and API performance tuning
+- **Security Audits**: Comprehensive security reviews and improvements
 
 Remember: This handles sensitive email data - security, privacy, and reliability are paramount. Always encrypt emails at rest, validate all inputs, and follow secure coding practices.
