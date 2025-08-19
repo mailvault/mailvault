@@ -971,6 +971,72 @@ const docTemplate = `{
                 }
             }
         },
+        "/received/{receivedEmailId}/parsed": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific received email with parsed content in multiple formats",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Emails"
+                ],
+                "summary": "Get parsed received email by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Received Email ID",
+                        "name": "receivedEmailId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Base64 encoded private key for decryption",
+                        "name": "private_key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "auto",
+                        "description": "Content format preference: auto, plain, html, markdown, raw",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Parsed received email details",
+                        "schema": {
+                            "$ref": "#/definitions/emails.ParsedEmailResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Received email not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/send": {
             "post": {
                 "security": [
@@ -1205,6 +1271,94 @@ const docTemplate = `{
                 }
             }
         },
+        "emailrender.AttachmentInfo": {
+            "type": "object",
+            "properties": {
+                "cid": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_inline": {
+                    "type": "boolean"
+                },
+                "size": {
+                    "type": "integer"
+                }
+            }
+        },
+        "emailrender.ContentFormat": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "\"text/plain\", \"text/html\", \"text/markdown\"",
+                    "type": "string"
+                }
+            }
+        },
+        "emailrender.EmailResponse": {
+            "type": "object",
+            "properties": {
+                "attachment_count": {
+                    "type": "integer"
+                },
+                "attachments": {
+                    "description": "Attachments metadata (content served separately)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/emailrender.AttachmentInfo"
+                    }
+                },
+                "available_formats": {
+                    "description": "Available content formats",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "content": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/emailrender.ContentFormat"
+                    }
+                },
+                "date": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "has_attachments": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inline_image_count": {
+                    "type": "integer"
+                },
+                "is_multipart": {
+                    "description": "Metadata",
+                    "type": "boolean"
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
         "emails.CreateEmailRequest": {
             "type": "object",
             "required": [
@@ -1247,6 +1401,44 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "emails.ParsedEmailResult": {
+            "type": "object",
+            "properties": {
+                "available_formats": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "domain_name": {
+                    "type": "string"
+                },
+                "email_address": {
+                    "type": "string"
+                },
+                "from_address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "parsed_content": {
+                    "$ref": "#/definitions/emailrender.EmailResponse"
+                },
+                "received_at": {
+                    "type": "string"
+                },
+                "rendering_error": {
+                    "type": "string"
+                },
+                "sequence_number": {
+                    "type": "integer"
+                },
+                "subject": {
                     "type": "string"
                 }
             }

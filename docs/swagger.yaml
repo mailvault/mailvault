@@ -119,6 +119,65 @@ definitions:
       url:
         type: string
     type: object
+  emailrender.AttachmentInfo:
+    properties:
+      cid:
+        type: string
+      content_type:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      is_inline:
+        type: boolean
+      size:
+        type: integer
+    type: object
+  emailrender.ContentFormat:
+    properties:
+      content:
+        type: string
+      size:
+        type: integer
+      type:
+        description: '"text/plain", "text/html", "text/markdown"'
+        type: string
+    type: object
+  emailrender.EmailResponse:
+    properties:
+      attachment_count:
+        type: integer
+      attachments:
+        description: Attachments metadata (content served separately)
+        items:
+          $ref: '#/definitions/emailrender.AttachmentInfo'
+        type: array
+      available_formats:
+        description: Available content formats
+        items:
+          type: string
+        type: array
+      content:
+        items:
+          $ref: '#/definitions/emailrender.ContentFormat'
+        type: array
+      date:
+        type: string
+      from:
+        type: string
+      has_attachments:
+        type: boolean
+      id:
+        type: string
+      inline_image_count:
+        type: integer
+      is_multipart:
+        description: Metadata
+        type: boolean
+      subject:
+        type: string
+    type: object
   emails.CreateEmailRequest:
     properties:
       forward_addresses:
@@ -147,6 +206,31 @@ definitions:
       local_part:
         type: string
       updated_at:
+        type: string
+    type: object
+  emails.ParsedEmailResult:
+    properties:
+      available_formats:
+        items:
+          type: string
+        type: array
+      domain_name:
+        type: string
+      email_address:
+        type: string
+      from_address:
+        type: string
+      id:
+        type: string
+      parsed_content:
+        $ref: '#/definitions/emailrender.EmailResponse'
+      received_at:
+        type: string
+      rendering_error:
+        type: string
+      sequence_number:
+        type: integer
+      subject:
         type: string
     type: object
   emails.ReceivedEmailResult:
@@ -889,6 +973,50 @@ paths:
       security:
       - BearerAuth: []
       summary: Get received email by ID
+      tags:
+      - Emails
+  /received/{receivedEmailId}/parsed:
+    get:
+      description: Retrieve a specific received email with parsed content in multiple
+        formats
+      parameters:
+      - description: Received Email ID
+        format: uuid
+        in: path
+        name: receivedEmailId
+        required: true
+        type: string
+      - description: Base64 encoded private key for decryption
+        in: query
+        name: private_key
+        type: string
+      - default: auto
+        description: 'Content format preference: auto, plain, html, markdown, raw'
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Parsed received email details
+          schema:
+            $ref: '#/definitions/emails.ParsedEmailResult'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Received email not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get parsed received email by ID
       tags:
       - Emails
   /send:

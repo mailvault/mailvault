@@ -79,6 +79,7 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 		r.Route("/received", func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
 			r.Get("/{receivedEmailId}", emailsHandlers.GetReceivedEmail)
+			r.Get("/{receivedEmailId}/parsed", emailsHandlers.GetParsedReceivedEmail)
 			r.Delete("/{receivedEmailId}", emailsHandlers.DeleteReceivedEmail)
 		})
 
