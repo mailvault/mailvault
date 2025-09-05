@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"mailvault/domain/entities"
+	"mailvault/app/smtp/verification"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -37,11 +38,13 @@ type UpdateEmailAddressInput struct {
 }
 
 type ProcessIncomingEmailInput struct {
-	EmailAddressID uuid.UUID `json:"email_address_id"`
-	FromAddress    string    `json:"from_address"`
-	Subject        string    `json:"subject"`
-	Body           string    `json:"body"`
-	DomainID       uuid.UUID `json:"domain_id"`
+	EmailAddressID      uuid.UUID                       `json:"email_address_id"`
+	FromAddress         string                          `json:"from_address"`
+	Subject             string                          `json:"subject"`
+	Body                string                          `json:"body"`
+	DomainID            uuid.UUID                       `json:"domain_id"`
+	VerificationResults *verification.VerificationResult `json:"verification_results,omitempty"`
+	IsQuarantined       bool                            `json:"is_quarantined"`
 }
 
 func (uc *UseCase) CreateEmailAddress(ctx context.Context, emailAddress *entities.EmailAddress) error {

@@ -6,6 +6,7 @@ import (
 	"mailvault/domain/entities"
 )
 
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/provider.go . Provider
 type Provider interface {
 	Provider() string
 	CreateUser(ctx context.Context, email, password string) (string, error)
@@ -25,6 +26,6 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token string         `json:"token"`
 	User  *entities.User `json:"user"`
 }

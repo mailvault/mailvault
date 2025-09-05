@@ -16,4 +16,6 @@ type Repository interface {
 	GetByAuthProvider(ctx context.Context, provider, providerID string) (*entities.User, error)
 	Update(ctx context.Context, user *entities.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	List(ctx context.Context, page, pageSize int) ([]entities.User, int64, error)
+	SearchUsers(ctx context.Context, page, pageSize int, search, accountType string) ([]entities.User, int64, error)
 }

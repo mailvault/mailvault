@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 
 	"mailvault/domain/entities"
 	"mailvault/domain/user"
@@ -171,4 +173,129 @@ func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]entities.User, int64, error) {
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM users`
+	var total int64
+	err := r.db.QueryRow(ctx, countQuery).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get users with pagination
+	query := `
+		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		FROM users
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.db.Query(ctx, query, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var users []entities.User
+	for rows.Next() {
+		var user entities.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.AuthProvider,
+			&user.AuthProviderID,
+			&user.AccountType,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+func (r *UserRepository) SearchUsers(ctx context.Context, page, pageSize int, search, accountType string) ([]entities.User, int64, error) {
+	offset := (page - 1) * pageSize
+	
+	var whereConditions []string
+	var args []interface{}
+	argIndex := 1
+
+	if search != "" {
+		whereConditions = append(whereConditions, "email ILIKE $"+fmt.Sprintf("%d", argIndex))
+		args = append(args, "%"+search+"%")
+		argIndex++
+	}
+
+	if accountType != "" {
+		whereConditions = append(whereConditions, "account_type = $"+fmt.Sprintf("%d", argIndex))
+		args = append(args, accountType)
+		argIndex++
+	}
+
+	whereClause := ""
+	if len(whereConditions) > 0 {
+		whereClause = "WHERE " + strings.Join(whereConditions, " AND ")
+	}
+
+	// Get total count
+	countQuery := "SELECT COUNT(*) FROM users " + whereClause
+	var total int64
+	err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Add pagination arguments
+	args = append(args, pageSize, offset)
+	
+	// Get users with pagination and filtering
+	query := fmt.Sprintf(`
+		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		FROM users
+		%s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, whereClause, argIndex, argIndex+1)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var users []entities.User
+	for rows.Next() {
+		var user entities.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.AuthProvider,
+			&user.AuthProviderID,
+			&user.AccountType,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
 }

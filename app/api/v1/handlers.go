@@ -1,27 +1,36 @@
 package v1
 
 import (
+	"log/slog"
 	"net/http"
 
 	"mailvault/app/api/middleware"
+	"mailvault/app/api/v1/admin"
 	"mailvault/app/api/v1/auth"
 	"mailvault/app/api/v1/domains"
 	"mailvault/app/api/v1/emails"
 	"mailvault/app/api/v1/send"
 	"mailvault/app/api/v1/users"
 	authDomain "mailvault/domain/auth"
+	"mailvault/domain/smtp_stats"
+	userDomain "mailvault/domain/user"
+	httpPkg "mailvault/internal/http/middleware"
+	"mailvault/internal/jwt"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type ApiHandlers struct {
-	AuthProvider  authDomain.Provider
-	UserUseCase   users.UseCase
-	AuthUseCase   auth.UseCase
-	DomainUseCase domains.UseCase
-	EmailUseCase  emails.UseCase
-	AuthSecretKey string
-	AuthTokenTTL  string
+	AuthProvider     authDomain.Provider
+	UserUseCase      users.UseCase
+	AuthUseCase      auth.UseCase
+	DomainUseCase    domains.UseCase
+	EmailUseCase     emails.UseCase
+	SMTPStatsUseCase *smtp_stats.UseCase
+	UserAdminUseCase *userDomain.UseCase
+	AuthSecretKey    string
+	AuthTokenTTL     string
+	Logger           *slog.Logger
 }
 
 func (h *ApiHandlers) Routes(r chi.Router) {
@@ -37,6 +46,19 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(h.AuthSecretKey)
+
+	// Initialize JWT service and admin auth middleware
+	jwtService := jwt.NewService(h.AuthSecretKey, "mailvault", h.AuthTokenTTL)
+	adminAuthMw := httpPkg.NewAuthMiddleware(jwtService, h.Logger)
+
+	// Initialize admin handlers
+	adminHandlers := admin.NewAdminHandler(
+		h.SMTPStatsUseCase,
+		h.UserAdminUseCase,
+		jwtService,
+		adminAuthMw,
+		h.Logger,
+	)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public auth endpoints
@@ -85,7 +107,11 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 
 		// Public email sending endpoint (API key auth)
 		r.Post("/send", sendHandlers.SendEmail)
+
 	})
+	// Admin endpoints
+	r.Mount("/admin/v1", adminHandlers.Routes())
+
 }
 
 // Health returns the health status of the API

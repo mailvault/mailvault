@@ -31,6 +31,12 @@ import (
 //			GetByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
 //				panic("mock out the GetByID method")
 //			},
+//			ListFunc: func(ctx context.Context, page int, pageSize int) ([]entities.User, int64, error) {
+//				panic("mock out the List method")
+//			},
+//			SearchUsersFunc: func(ctx context.Context, page int, pageSize int, search string, accountType string) ([]entities.User, int64, error) {
+//				panic("mock out the SearchUsers method")
+//			},
 //			UpdateFunc: func(ctx context.Context, user *entities.User) error {
 //				panic("mock out the Update method")
 //			},
@@ -55,6 +61,12 @@ type RepositoryMock struct {
 
 	// GetByIDFunc mocks the GetByID method.
 	GetByIDFunc func(ctx context.Context, id uuid.UUID) (*entities.User, error)
+
+	// ListFunc mocks the List method.
+	ListFunc func(ctx context.Context, page int, pageSize int) ([]entities.User, int64, error)
+
+	// SearchUsersFunc mocks the SearchUsers method.
+	SearchUsersFunc func(ctx context.Context, page int, pageSize int, search string, accountType string) ([]entities.User, int64, error)
 
 	// UpdateFunc mocks the Update method.
 	UpdateFunc func(ctx context.Context, user *entities.User) error
@@ -98,6 +110,28 @@ type RepositoryMock struct {
 			// ID is the id argument value.
 			ID uuid.UUID
 		}
+		// List holds details about calls to the List method.
+		List []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Page is the page argument value.
+			Page int
+			// PageSize is the pageSize argument value.
+			PageSize int
+		}
+		// SearchUsers holds details about calls to the SearchUsers method.
+		SearchUsers []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Page is the page argument value.
+			Page int
+			// PageSize is the pageSize argument value.
+			PageSize int
+			// Search is the search argument value.
+			Search string
+			// AccountType is the accountType argument value.
+			AccountType string
+		}
 		// Update holds details about calls to the Update method.
 		Update []struct {
 			// Ctx is the ctx argument value.
@@ -111,6 +145,8 @@ type RepositoryMock struct {
 	lockGetByAuthProvider sync.RWMutex
 	lockGetByEmail        sync.RWMutex
 	lockGetByID           sync.RWMutex
+	lockList              sync.RWMutex
+	lockSearchUsers       sync.RWMutex
 	lockUpdate            sync.RWMutex
 }
 
@@ -313,6 +349,104 @@ func (mock *RepositoryMock) GetByIDCalls() []struct {
 	mock.lockGetByID.RLock()
 	calls = mock.calls.GetByID
 	mock.lockGetByID.RUnlock()
+	return calls
+}
+
+// List calls ListFunc.
+func (mock *RepositoryMock) List(ctx context.Context, page int, pageSize int) ([]entities.User, int64, error) {
+	callInfo := struct {
+		Ctx      context.Context
+		Page     int
+		PageSize int
+	}{
+		Ctx:      ctx,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	mock.lockList.Lock()
+	mock.calls.List = append(mock.calls.List, callInfo)
+	mock.lockList.Unlock()
+	if mock.ListFunc == nil {
+		var (
+			usersOut []entities.User
+			nOut     int64
+			errOut   error
+		)
+		return usersOut, nOut, errOut
+	}
+	return mock.ListFunc(ctx, page, pageSize)
+}
+
+// ListCalls gets all the calls that were made to List.
+// Check the length with:
+//
+//	len(mockedRepository.ListCalls())
+func (mock *RepositoryMock) ListCalls() []struct {
+	Ctx      context.Context
+	Page     int
+	PageSize int
+} {
+	var calls []struct {
+		Ctx      context.Context
+		Page     int
+		PageSize int
+	}
+	mock.lockList.RLock()
+	calls = mock.calls.List
+	mock.lockList.RUnlock()
+	return calls
+}
+
+// SearchUsers calls SearchUsersFunc.
+func (mock *RepositoryMock) SearchUsers(ctx context.Context, page int, pageSize int, search string, accountType string) ([]entities.User, int64, error) {
+	callInfo := struct {
+		Ctx         context.Context
+		Page        int
+		PageSize    int
+		Search      string
+		AccountType string
+	}{
+		Ctx:         ctx,
+		Page:        page,
+		PageSize:    pageSize,
+		Search:      search,
+		AccountType: accountType,
+	}
+	mock.lockSearchUsers.Lock()
+	mock.calls.SearchUsers = append(mock.calls.SearchUsers, callInfo)
+	mock.lockSearchUsers.Unlock()
+	if mock.SearchUsersFunc == nil {
+		var (
+			usersOut []entities.User
+			nOut     int64
+			errOut   error
+		)
+		return usersOut, nOut, errOut
+	}
+	return mock.SearchUsersFunc(ctx, page, pageSize, search, accountType)
+}
+
+// SearchUsersCalls gets all the calls that were made to SearchUsers.
+// Check the length with:
+//
+//	len(mockedRepository.SearchUsersCalls())
+func (mock *RepositoryMock) SearchUsersCalls() []struct {
+	Ctx         context.Context
+	Page        int
+	PageSize    int
+	Search      string
+	AccountType string
+} {
+	var calls []struct {
+		Ctx         context.Context
+		Page        int
+		PageSize    int
+		Search      string
+		AccountType string
+	}
+	mock.lockSearchUsers.RLock()
+	calls = mock.calls.SearchUsers
+	mock.lockSearchUsers.RUnlock()
 	return calls
 }
 

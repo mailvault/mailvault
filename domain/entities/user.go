@@ -47,3 +47,9 @@ type User struct {
 func (u *User) IsValid() bool {
 	return u.Email != "" && u.AuthProvider != ""
 }
+
+type UserStats struct {
+	DomainsCount int                    `json:"domains_count"`
+	EmailsCount  int                    `json:"emails_count"`
+	SMTPStats    []SMTPVerificationStat `json:"smtp_stats"`
+}

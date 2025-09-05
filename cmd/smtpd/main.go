@@ -12,6 +12,7 @@ import (
 	"mailvault/app/smtp"
 	domainUseCase "mailvault/domain/domain"
 	"mailvault/domain/email"
+	"mailvault/domain/smtp_stats"
 	"mailvault/gateways/repository/pg"
 
 	"github.com/guilhermebr/gox/logger"
@@ -64,6 +65,10 @@ func main() {
 	// Initialize use cases
 	domainUseCase := domainUseCase.NewUseCase(repo.DomainRepo, repo.UserRepo)
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
+	
+	// Initialize SMTP stats repository and use case
+	smtpStatsRepo := pg.NewSMTPStatsRepository(db)
+	smtpStatsUseCase := smtp_stats.NewUseCase(smtpStatsRepo)
 
 	// Create SMTP server
 	smtpCfg := smtp.Config{
@@ -76,7 +81,7 @@ func main() {
 		TLSImplicit: cfg.TLSImplicit,
 	}
 
-	backend := smtp.NewBackend(domainUseCase, emailUseCase, logger)
+	backend := smtp.NewBackend(domainUseCase, emailUseCase, smtpStatsUseCase, logger)
 
 	smtpServer, err := smtp.NewServer(smtpCfg, backend, logger)
 	if err != nil {

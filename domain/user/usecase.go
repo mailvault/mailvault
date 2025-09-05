@@ -124,3 +124,33 @@ func (uc *UseCase) GetOrCreateUserByAuthProvider(ctx context.Context, provider, 
 		AuthProviderID: providerID,
 	})
 }
+
+func (uc *UseCase) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	if userID == uuid.Nil {
+		return fmt.Errorf("user ID is required")
+	}
+
+	return uc.repo.Delete(ctx, userID)
+}
+
+func (uc *UseCase) ListUsers(ctx context.Context, page, pageSize int) ([]entities.User, int64, error) {
+	return uc.repo.List(ctx, page, pageSize)
+}
+
+func (uc *UseCase) UpdateUser(ctx context.Context, user entities.User) error {
+	if user.ID == uuid.Nil {
+		return fmt.Errorf("user ID is required")
+	}
+
+	if !user.IsValid() {
+		return fmt.Errorf("invalid user data")
+	}
+
+	user.UpdatedAt = time.Now()
+
+	return uc.repo.Update(ctx, &user)
+}
+
+func (uc *UseCase) SearchUsers(ctx context.Context, page, pageSize int, search, accountType string) ([]entities.User, int64, error) {
+	return uc.repo.SearchUsers(ctx, page, pageSize, search, accountType)
+}
