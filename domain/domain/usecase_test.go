@@ -32,7 +32,8 @@ func TestCreateDomain(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -80,7 +81,8 @@ func TestCreateDomain(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -100,7 +102,7 @@ func TestCreateDomain(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "domain limit exceeded")
-		assert.Contains(t, err.Error(), "freemium accounts can have maximum 1 domain(s)")
+		assert.Contains(t, err.Error(), "free plan can have maximum 1 domain(s)")
 	})
 
 	t.Run("validation errors", func(t *testing.T) {
@@ -162,7 +164,8 @@ func TestCreateDomain(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -202,7 +205,8 @@ func TestCreateDomain(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -245,7 +249,8 @@ func TestCreateDomain(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -513,7 +518,8 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -552,7 +558,8 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
@@ -589,7 +596,8 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 			return &entities.User{
 				ID:          userID,
 				Email:       "test@example.com",
-				AccountType: entities.AccountTypeFreemium,
+				AccountType: entities.AccountTypeUser,
+				UserPlan:    entities.UserPlanFree,
 			}, nil
 		}
 		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {

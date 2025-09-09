@@ -78,16 +78,16 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Check domain limit based on account type
+	// Check domain limit based on user plan
 	userDomains, err := uc.repo.GetByUserID(ctx, req.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user domains: %w", err)
 	}
 
-	domainLimit := user.AccountType.DomainLimit()
+	domainLimit := user.GetDomainLimit()
 	if domainLimit > 0 && len(userDomains) >= domainLimit {
-		return nil, fmt.Errorf("domain limit exceeded: %s accounts can have maximum %d domain(s), you currently have %d", 
-			user.AccountType, domainLimit, len(userDomains))
+		return nil, fmt.Errorf("domain limit exceeded: %s plan can have maximum %d domain(s), you currently have %d", 
+			user.UserPlan, domainLimit, len(userDomains))
 	}
 
 	// Check if domain already exists

@@ -26,8 +26,8 @@ func NewUserRepository(db DBTX) user.Repository {
 
 func (r *UserRepository) Create(ctx context.Context, user *entities.User) error {
 	query := `
-		INSERT INTO users (id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO users (id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	_, err := r.db.Exec(ctx, query,
@@ -36,6 +36,7 @@ func (r *UserRepository) Create(ctx context.Context, user *entities.User) error 
 		user.AuthProvider,
 		user.AuthProviderID,
 		user.AccountType,
+		user.UserPlan,
 		user.CreatedAt,
 		user.UpdatedAt,
 	)
@@ -45,7 +46,7 @@ func (r *UserRepository) Create(ctx context.Context, user *entities.User) error 
 
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.User, error) {
 	query := `
-		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		SELECT id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -59,6 +60,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.U
 		&user.AuthProvider,
 		&user.AuthProviderID,
 		&user.AccountType,
+		&user.UserPlan,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -75,7 +77,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.U
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
 	query := `
-		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		SELECT id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -89,6 +91,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entitie
 		&user.AuthProvider,
 		&user.AuthProviderID,
 		&user.AccountType,
+		&user.UserPlan,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -105,7 +108,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entitie
 
 func (r *UserRepository) GetByAuthProvider(ctx context.Context, provider, providerID string) (*entities.User, error) {
 	query := `
-		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		SELECT id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at
 		FROM users
 		WHERE auth_provider = $1 AND auth_provider_id = $2
 	`
@@ -119,6 +122,7 @@ func (r *UserRepository) GetByAuthProvider(ctx context.Context, provider, provid
 		&user.AuthProvider,
 		&user.AuthProviderID,
 		&user.AccountType,
+		&user.UserPlan,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -136,7 +140,7 @@ func (r *UserRepository) GetByAuthProvider(ctx context.Context, provider, provid
 func (r *UserRepository) Update(ctx context.Context, user *entities.User) error {
 	query := `
 		UPDATE users
-		SET email = $2, auth_provider = $3, auth_provider_id = $4, account_type = $5, updated_at = $6
+		SET email = $2, auth_provider = $3, auth_provider_id = $4, account_type = $5, user_plan = $6, updated_at = $7
 		WHERE id = $1
 	`
 
@@ -146,6 +150,7 @@ func (r *UserRepository) Update(ctx context.Context, user *entities.User) error 
 		user.AuthProvider,
 		user.AuthProviderID,
 		user.AccountType,
+		user.UserPlan,
 		user.UpdatedAt,
 	)
 
@@ -188,7 +193,7 @@ func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]entiti
 
 	// Get users with pagination
 	query := `
-		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		SELECT id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
@@ -209,6 +214,7 @@ func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]entiti
 			&user.AuthProvider,
 			&user.AuthProviderID,
 			&user.AccountType,
+			&user.UserPlan,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
@@ -262,7 +268,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, page, pageSize int, se
 	
 	// Get users with pagination and filtering
 	query := fmt.Sprintf(`
-		SELECT id, email, auth_provider, auth_provider_id, account_type, created_at, updated_at
+		SELECT id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at
 		FROM users
 		%s
 		ORDER BY created_at DESC
@@ -284,6 +290,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, page, pageSize int, se
 			&user.AuthProvider,
 			&user.AuthProviderID,
 			&user.AccountType,
+			&user.UserPlan,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)

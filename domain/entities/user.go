@@ -9,28 +9,39 @@ import (
 type AccountType string
 
 const (
-	AccountTypeFreemium AccountType = "freemium"
-	AccountTypeBasic    AccountType = "basic"
-	AccountTypePro      AccountType = "pro"
-	AccountTypePayAsGo  AccountType = "pay-as-go"
+	// Account types for role/permission management
+	AccountTypeUser  AccountType = "user"
+	AccountTypeOwner AccountType = "owner"
+	AccountTypeAdmin AccountType = "admin"
+)
+
+type UserPlan string
+
+const (
+	// User plans for billing/feature management
+	UserPlanFree    UserPlan = "free"
+	UserPlanPro     UserPlan = "pro"
+	UserPlanPremium UserPlan = "premium"
 )
 
 func (a AccountType) String() string {
 	return string(a)
 }
 
-func (a AccountType) DomainLimit() int {
-	switch a {
-	case AccountTypeFreemium:
+func (p UserPlan) String() string {
+	return string(p)
+}
+
+func (p UserPlan) DomainLimit() int {
+	switch p {
+	case UserPlanFree:
 		return 1
-	case AccountTypeBasic:
-		return 3
-	case AccountTypePro:
+	case UserPlanPro:
 		return 10
-	case AccountTypePayAsGo:
+	case UserPlanPremium:
 		return -1 // unlimited
 	default:
-		return 1 // default to freemium limit
+		return 1 // default to free limit
 	}
 }
 
@@ -40,12 +51,24 @@ type User struct {
 	AuthProvider   string      `json:"auth_provider" db:"auth_provider"`
 	AuthProviderID string      `json:"auth_provider_id" db:"auth_provider_id"`
 	AccountType    AccountType `json:"account_type" db:"account_type"`
+	UserPlan       UserPlan    `json:"user_plan" db:"user_plan"`
 	CreatedAt      time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time   `json:"updated_at" db:"updated_at"`
 }
 
 func (u *User) IsValid() bool {
 	return u.Email != "" && u.AuthProvider != ""
+}
+
+func (u *User) IsAdmin() bool {
+	return u.AccountType == AccountTypeAdmin
+}
+
+func (u *User) GetDomainLimit() int {
+	if u.AccountType == AccountTypeAdmin {
+		return -1 // unlimited for admins
+	}
+	return u.UserPlan.DomainLimit()
 }
 
 type UserStats struct {
