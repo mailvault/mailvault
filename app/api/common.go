@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -9,9 +10,13 @@ import (
 )
 
 var (
-	ErrUnauthorized = errors.New("unauthorized")
-	ErrNotFound     = errors.New("not found")
-	ErrBadRequest   = errors.New("bad request")
+	ErrUnauthorized    = errors.New("unauthorized")
+	ErrNotFound        = errors.New("not found")
+	ErrBadRequest      = errors.New("bad request")
+	ErrForbidden       = errors.New("forbidden")
+	ErrConflict        = errors.New("conflict")
+	ErrValidation      = errors.New("validation error")
+	ErrInternalServer  = errors.New("internal server error")
 )
 
 // parseUUID parses a string into a UUID
@@ -101,6 +106,40 @@ type ErrorResponseBody struct {
 
 func ErrorResponse(w http.ResponseWriter, r *http.Request, code int, err error) {
 	render.Status(r, code)
+	render.JSON(w, r, ErrorResponseBody{
+		Error: err.Error(),
+	})
+}
+
+// ParseJSON parses JSON from request body
+func ParseJSON(r *http.Request, v interface{}) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(v); err != nil {
+		return ErrBadRequest
+	}
+	return nil
+}
+
+// ForbiddenResponse sends a 403 forbidden response
+func ForbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
+	render.Status(r, http.StatusForbidden)
+	render.JSON(w, r, ErrorResponseBody{
+		Error: err.Error(),
+	})
+}
+
+// ConflictResponse sends a 409 conflict response
+func ConflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	render.Status(r, http.StatusConflict)
+	render.JSON(w, r, ErrorResponseBody{
+		Error: err.Error(),
+	})
+}
+
+// ValidationErrorResponse sends a 422 validation error response
+func ValidationErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	render.Status(r, http.StatusUnprocessableEntity)
 	render.JSON(w, r, ErrorResponseBody{
 		Error: err.Error(),
 	})

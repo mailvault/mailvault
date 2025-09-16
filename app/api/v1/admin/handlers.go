@@ -8,13 +8,11 @@ import (
 	"time"
 
 	"mailvault/domain/entities"
-	"mailvault/internal/errors"
-	httpPkg "mailvault/internal/http"
-	"mailvault/internal/http/middleware"
-	"mailvault/internal/jwt"
-	"mailvault/internal/validation"
+	"mailvault/app/api"
+	"mailvault/app/api/middleware"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/uuid/v5"
 )
 
@@ -39,27 +37,22 @@ type UserUseCase interface {
 type AdminHandler struct {
 	smtpStatsUC SMTPStatsUseCase
 	userUC      UserUseCase
-	jwtService  jwt.Service
 	authMw      *middleware.AuthMiddleware
-	validator   *validation.Validator
-	respWriter  *httpPkg.ResponseWriter
+	validator   *validator.Validate
 	logger      *slog.Logger
 }
 
 func NewAdminHandler(
 	smtpStatsUC SMTPStatsUseCase,
 	userUC UserUseCase,
-	jwtService jwt.Service,
 	authMw *middleware.AuthMiddleware,
 	logger *slog.Logger,
 ) *AdminHandler {
 	return &AdminHandler{
 		smtpStatsUC: smtpStatsUC,
 		userUC:      userUC,
-		jwtService:  jwtService,
 		authMw:      authMw,
-		validator:   validation.NewValidator(),
-		respWriter:  httpPkg.NewResponseWriter(logger),
+		validator:   validator.New(),
 		logger:      logger,
 	}
 }
@@ -99,11 +92,11 @@ func (h *AdminHandler) GetSMTPStatsOverview(w http.ResponseWriter, r *http.Reque
 	overview, err := h.smtpStatsUC.GetOverview(r.Context(), filter)
 	if err != nil {
 		h.logger.Error("failed to get SMTP stats overview", slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to retrieve statistics"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.Success(w, r, overview)
+	api.SuccessResponse(w, r, overview)
 }
 
 // GetDomainSMTPStats returns SMTP statistics for a specific domain
@@ -111,7 +104,7 @@ func (h *AdminHandler) GetDomainSMTPStats(w http.ResponseWriter, r *http.Request
 	domainIDStr := chi.URLParam(r, "domainId")
 	domainID, err := uuid.FromString(domainIDStr)
 	if err != nil {
-		h.respWriter.Error(w, r, errors.BadRequest("invalid domain ID"))
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrBadRequest)
 		return
 	}
 
@@ -123,7 +116,7 @@ func (h *AdminHandler) GetDomainSMTPStats(w http.ResponseWriter, r *http.Request
 		h.logger.Error("failed to get domain SMTP stats",
 			slog.String("domain_id", domainIDStr),
 			slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to retrieve domain statistics"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
@@ -137,7 +130,7 @@ func (h *AdminHandler) GetDomainSMTPStats(w http.ResponseWriter, r *http.Request
 		"total_pages": totalPages,
 	}
 
-	h.respWriter.Success(w, r, response)
+	api.SuccessResponse(w, r, response)
 }
 
 // GetSMTPTimelineStats returns time-series data for SMTP verification
@@ -151,11 +144,11 @@ func (h *AdminHandler) GetSMTPTimelineStats(w http.ResponseWriter, r *http.Reque
 	timeSeriesData, err := h.smtpStatsUC.GetTimeSeriesData(r.Context(), filter, granularity)
 	if err != nil {
 		h.logger.Error("failed to get SMTP timeline stats", slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to retrieve timeline statistics"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.Success(w, r, timeSeriesData)
+	api.SuccessResponse(w, r, timeSeriesData)
 }
 
 // GetSMTPDistributions returns distribution data for SMTP verification
@@ -165,11 +158,11 @@ func (h *AdminHandler) GetSMTPDistributions(w http.ResponseWriter, r *http.Reque
 	distributions, err := h.smtpStatsUC.GetDistributions(r.Context(), filter)
 	if err != nil {
 		h.logger.Error("failed to get SMTP distributions", slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to retrieve distribution statistics"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.Success(w, r, distributions)
+	api.SuccessResponse(w, r, distributions)
 }
 
 // GetTopSenders returns top sender domains and IPs
@@ -187,11 +180,11 @@ func (h *AdminHandler) GetTopSenders(w http.ResponseWriter, r *http.Request) {
 	senders, err := h.smtpStatsUC.GetTopSenders(r.Context(), filter, limit)
 	if err != nil {
 		h.logger.Error("failed to get top senders", slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to retrieve sender statistics"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.Success(w, r, senders)
+	api.SuccessResponse(w, r, senders)
 }
 
 // User management handlers
@@ -214,11 +207,21 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		h.logger.Error("failed to list users", slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to retrieve users"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.Paginated(w, r, users, total, page, pageSize)
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+		response := map[string]interface{}{
+			"data": users,
+			"pagination": map[string]interface{}{
+				"total":       total,
+				"page":        page,
+				"page_size":   pageSize,
+				"total_pages": totalPages,
+			},
+		}
+		api.SuccessResponse(w, r, response)
 }
 
 // GetUser returns a specific user by ID
@@ -226,7 +229,7 @@ func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := chi.URLParam(r, "id")
 	userID, err := uuid.FromString(userIDStr)
 	if err != nil {
-		h.respWriter.Error(w, r, errors.BadRequest("invalid user ID"))
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrBadRequest)
 		return
 	}
 
@@ -235,11 +238,11 @@ func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to get user",
 			slog.String("user_id", userIDStr),
 			slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.NotFound("user not found"))
+		api.ErrorResponse(w, r, http.StatusNotFound, api.ErrNotFound)
 		return
 	}
 
-	h.respWriter.Success(w, r, user)
+	api.SuccessResponse(w, r, user)
 }
 
 // UpdateUser updates a user's information
@@ -247,25 +250,25 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := chi.URLParam(r, "id")
 	userID, err := uuid.FromString(userIDStr)
 	if err != nil {
-		h.respWriter.Error(w, r, errors.BadRequest("invalid user ID"))
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrBadRequest)
 		return
 	}
 
 	var req UpdateUserRequest
-	if err := httpPkg.ParseJSON(r, &req); err != nil {
-		h.respWriter.Error(w, r, errors.BadRequest("invalid request body"))
+	if err := api.ParseJSON(r, &req); err != nil {
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrBadRequest)
 		return
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
-		h.respWriter.Error(w, r, errors.BadRequest(err.Error()))
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrValidation)
 		return
 	}
 
 	// Get existing user
 	user, err := h.userUC.GetUserByID(r.Context(), userID)
 	if err != nil {
-		h.respWriter.Error(w, r, errors.NotFound("user not found"))
+		api.ErrorResponse(w, r, http.StatusNotFound, api.ErrNotFound)
 		return
 	}
 
@@ -283,11 +286,11 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to update user",
 			slog.String("user_id", userIDStr),
 			slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to update user"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.Success(w, r, user)
+	api.SuccessResponse(w, r, user)
 }
 
 // DeleteUser deletes a user
@@ -295,14 +298,14 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := chi.URLParam(r, "id")
 	userID, err := uuid.FromString(userIDStr)
 	if err != nil {
-		h.respWriter.Error(w, r, errors.BadRequest("invalid user ID"))
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrBadRequest)
 		return
 	}
 
 	// Check if trying to delete self
 	claims, ok := middleware.GetUserFromContext(r.Context())
 	if ok && claims.UserID == userIDStr {
-		h.respWriter.Error(w, r, errors.BadRequest("cannot delete your own account"))
+		api.ErrorResponse(w, r, http.StatusBadRequest, api.ErrBadRequest)
 		return
 	}
 
@@ -311,11 +314,11 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to delete user",
 			slog.String("user_id", userIDStr),
 			slog.String("error", err.Error()))
-		h.respWriter.Error(w, r, errors.InternalServer("failed to delete user"))
+		api.ErrorResponse(w, r, http.StatusInternalServerError, api.ErrInternalServer)
 		return
 	}
 
-	h.respWriter.NoContent(w, r)
+	api.NoContentResponse(w, r)
 }
 
 // Helper methods

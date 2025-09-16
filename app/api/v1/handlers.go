@@ -2,8 +2,6 @@ package v1
 
 import (
 	"log/slog"
-	"net/http"
-
 	"mailvault/app/api/middleware"
 	"mailvault/app/api/v1/admin"
 	"mailvault/app/api/v1/auth"
@@ -11,11 +9,12 @@ import (
 	"mailvault/app/api/v1/emails"
 	"mailvault/app/api/v1/send"
 	"mailvault/app/api/v1/users"
-	authDomain "mailvault/domain/auth"
 	"mailvault/domain/smtp_stats"
+	"net/http"
+
+	authDomain "mailvault/domain/auth"
+
 	userDomain "mailvault/domain/user"
-	httpPkg "mailvault/internal/http/middleware"
-	"mailvault/internal/jwt"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -47,15 +46,13 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(h.AuthSecretKey)
 
-	// Initialize JWT service and admin auth middleware
-	jwtService := jwt.NewService(h.AuthSecretKey, "mailvault", h.AuthTokenTTL)
-	adminAuthMw := httpPkg.NewAuthMiddleware(jwtService, h.Logger)
+	// Initialize admin auth middleware
+	adminAuthMw := middleware.NewAuthMiddleware(h.AuthSecretKey)
 
 	// Initialize admin handlers
 	adminHandlers := admin.NewAdminHandler(
 		h.SMTPStatsUseCase,
 		h.UserAdminUseCase,
-		jwtService,
 		adminAuthMw,
 		h.Logger,
 	)
@@ -107,11 +104,9 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 
 		// Public email sending endpoint (API key auth)
 		r.Post("/send", sendHandlers.SendEmail)
-
 	})
 	// Admin endpoints
 	r.Mount("/admin/v1", adminHandlers.Routes())
-
 }
 
 // Health returns the health status of the API

@@ -41,7 +41,7 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		}
 
 		// Validate our JWT and extract local user id
-		userID, email, err := m.parseJWT(token)
+		userID, email, accountType, err := m.parseJWT(token)
 		if err != nil {
 			m.unauthorizedResponse(w, r, "invalid token")
 			return
@@ -49,6 +49,7 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		// Add user info to context
 		ctx := context.WithValue(r.Context(), "user_id", userID)
 		ctx = context.WithValue(ctx, "user_email", email)
+		ctx = context.WithValue(ctx, "account_type", accountType)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -75,7 +76,7 @@ func (m *AuthMiddleware) OptionalAuth(next http.Handler) http.Handler {
 		}
 
 		// Validate token if present
-		userID, email, err := m.parseJWT(token)
+		userID, email, accountType, err := m.parseJWT(token)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
@@ -83,6 +84,7 @@ func (m *AuthMiddleware) OptionalAuth(next http.Handler) http.Handler {
 		// Add user info to context if token is valid
 		ctx := context.WithValue(r.Context(), "user_id", userID)
 		ctx = context.WithValue(ctx, "user_email", email)
+		ctx = context.WithValue(ctx, "account_type", accountType)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -97,11 +99,12 @@ func (m *AuthMiddleware) unauthorizedResponse(w http.ResponseWriter, r *http.Req
 	render.JSON(w, r, ErrorResponse{Error: message})
 }
 
-// parseJWT validates our HS256 token and extracts local user id and email
-func (m *AuthMiddleware) parseJWT(tokenString string) (string, string, error) {
+// parseJWT validates our HS256 token and extracts local user id, email, and account type
+func (m *AuthMiddleware) parseJWT(tokenString string) (string, string, string, error) {
 	type claims struct {
-		Sub   string `json:"sub"`
-		Email string `json:"email"`
+		Sub         string `json:"sub"`
+		Email       string `json:"email"`
+		AccountType string `json:"account_type,omitempty"`
 		jwt.RegisteredClaims
 	}
 	parsed, err := jwt.ParseWithClaims(tokenString, &claims{}, func(t *jwt.Token) (interface{}, error) {
@@ -111,11 +114,84 @@ func (m *AuthMiddleware) parseJWT(tokenString string) (string, string, error) {
 		return m.secret, nil
 	})
 	if err != nil || !parsed.Valid {
-		return "", "", err
+		return "", "", "", err
 	}
 	c, ok := parsed.Claims.(*claims)
 	if !ok || c.Sub == "" {
-		return "", "", jwt.ErrTokenInvalidClaims
+		return "", "", "", jwt.ErrTokenInvalidClaims
 	}
-	return c.Sub, c.Email, nil
+	return c.Sub, c.Email, c.AccountType, nil
+}
+
+// RequireAdmin middleware that requires admin authentication
+func (m *AuthMiddleware) RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract token from Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			m.unauthorizedResponse(w, r, "missing authorization header")
+			return
+		}
+
+		// Check Bearer prefix
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			m.unauthorizedResponse(w, r, "invalid authorization header format")
+			return
+		}
+
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token == "" {
+			m.unauthorizedResponse(w, r, "missing token")
+			return
+		}
+
+		// Validate our JWT and extract local user id
+		userID, email, accountType, err := m.parseJWT(token)
+		if err != nil {
+			m.unauthorizedResponse(w, r, "invalid token")
+			return
+		}
+
+		// Check if user has admin privileges
+		if accountType != "admin" && accountType != "super_admin" {
+			m.forbiddenResponse(w, r, "admin access required")
+			return
+		}
+
+		// Add user info to context
+		ctx := context.WithValue(r.Context(), "user_id", userID)
+		ctx = context.WithValue(ctx, "user_email", email)
+		ctx = context.WithValue(ctx, "account_type", accountType)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (m *AuthMiddleware) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
+	render.Status(r, http.StatusForbidden)
+	render.JSON(w, r, ErrorResponse{Error: message})
+}
+
+// UserClaims represents the JWT claims for a user (for context retrieval)
+type UserClaims struct {
+	UserID      string `json:"user_id"`
+	Email       string `json:"email"`
+	AccountType string `json:"account_type"`
+}
+
+// GetUserFromContext retrieves user claims from the request context
+func GetUserFromContext(ctx context.Context) (*UserClaims, bool) {
+	userID, ok := ctx.Value("user_id").(string)
+	if !ok {
+		return nil, false
+	}
+	
+	email, _ := ctx.Value("user_email").(string)
+	accountType, _ := ctx.Value("account_type").(string)
+	
+	return &UserClaims{
+		UserID:      userID,
+		Email:       email,
+		AccountType: accountType,
+	}, true
 }
