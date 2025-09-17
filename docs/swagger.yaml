@@ -44,8 +44,11 @@ definitions:
       auto_create_address:
         type: boolean
       domain:
+        maxLength: 253
+        minLength: 1
         type: string
       public_key:
+        minLength: 100
         type: string
       storage_enabled:
         type: boolean
@@ -100,8 +103,11 @@ definitions:
           type: string
         type: object
       secret:
+        maxLength: 256
+        minLength: 16
         type: string
       url:
+        maxLength: 2048
         type: string
     required:
     - url

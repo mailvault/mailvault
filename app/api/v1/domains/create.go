@@ -10,8 +10,8 @@ import (
 
 // CreateDomainRequest represents domain creation request
 type CreateDomainRequest struct {
-	Domain           string                `json:"domain" validate:"required"`
-	PublicKey        string                `json:"public_key" validate:"required"`
+	Domain           string                `json:"domain" validate:"required,domain,min=1,max=253"`
+	PublicKey        string                `json:"public_key" validate:"required,public_key,min=100"`
 	WebhookConfig    *WebhookConfigRequest `json:"webhook_config,omitempty"`
 	StorageEnabled   *bool                 `json:"storage_enabled,omitempty"`
 	AutoCreateAddress *bool                `json:"auto_create_address,omitempty"`

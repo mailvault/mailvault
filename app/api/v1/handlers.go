@@ -43,6 +43,21 @@ type HealthChecker interface {
 }
 
 func (h *ApiHandlers) Routes(r chi.Router) {
+	// Initialize rate limiting middleware
+	rateLimitConfig := middleware.DefaultRateLimitConfig()
+	rateLimitConfig.Logger = h.Logger
+	rateLimitMw := middleware.NewRateLimitMiddleware(rateLimitConfig)
+
+	// Initialize security middleware
+	securityConfig := middleware.DefaultSecurityConfig()
+	securityConfig.Logger = h.Logger
+	securityMw := middleware.NewSecurityMiddleware(securityConfig)
+
+	// Apply global security headers
+	r.Use(securityMw.SecurityHeaders())
+	r.Use(securityMw.CORS())
+
+	// Health endpoints without rate limiting (for monitoring)
 	r.Get("/health", h.Health)
 	r.Get("/ready", h.Readiness)
 
@@ -77,19 +92,27 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		// Public auth endpoints
-		r.Post("/register", authHandlers.Register)
-		r.Post("/login", authHandlers.Login)
+		// Apply general rate limiting to all API endpoints
+		r.Use(rateLimitMw.GeneralRateLimit())
+
+		// Public auth endpoints with stricter rate limiting
+		r.Group(func(r chi.Router) {
+			r.Use(rateLimitMw.AuthRateLimit())
+			r.Post("/register", authHandlers.Register)
+			r.Post("/login", authHandlers.Login)
+		})
 
 		// Protected users endpoints
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
+			r.Use(rateLimitMw.UserRateLimit())
 			r.Get("/me", usersHandlers.Me)
 		})
 
 		// Protected domain endpoints
 		r.Route("/domains", func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
+			r.Use(rateLimitMw.UserRateLimit())
 			r.Post("/", domainsHandlers.CreateDomain)
 			r.Get("/", domainsHandlers.GetDomains)
 			r.Get("/{id}", domainsHandlers.GetDomain)
@@ -110,19 +133,24 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 		// Email endpoints for CLI access
 		r.Route("/emails", func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
+			r.Use(rateLimitMw.UserRateLimit())
 			r.Get("/received", emailsHandlers.ListReceivedEmailsForUser)
 		})
 
 		// Direct access to received emails by ID
 		r.Route("/received", func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
+			r.Use(rateLimitMw.UserRateLimit())
 			r.Get("/{receivedEmailId}", emailsHandlers.GetReceivedEmail)
 			r.Get("/{receivedEmailId}/parsed", emailsHandlers.GetParsedReceivedEmail)
 			r.Delete("/{receivedEmailId}", emailsHandlers.DeleteReceivedEmail)
 		})
 
-		// Public email sending endpoint (API key auth)
-		r.Post("/send", sendHandlers.SendEmail)
+		// Public email sending endpoint with dedicated rate limiting
+		r.Group(func(r chi.Router) {
+			r.Use(rateLimitMw.EmailSendRateLimit())
+			r.Post("/send", sendHandlers.SendEmail)
+		})
 	})
 	// Admin endpoints
 	r.Mount("/admin/v1", adminHandlers.Routes())

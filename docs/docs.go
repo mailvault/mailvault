@@ -1189,10 +1189,13 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "domain": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 253,
+                    "minLength": 1
                 },
                 "public_key": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 100
                 },
                 "storage_enabled": {
                     "type": "boolean"
@@ -1273,10 +1276,13 @@ const docTemplate = `{
                     }
                 },
                 "secret": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 16
                 },
                 "url": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 2048
                 }
             }
         },

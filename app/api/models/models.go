@@ -55,13 +55,13 @@ type ReceivedEmail struct {
 
 // Authentication types
 type RegisterRequest struct {
-	Email    string `json:"email" validate:"required,email" example:"user@example.com"`
-	Password string `json:"password" validate:"required,min=8" example:"password123"`
+	Email    string `json:"email" validate:"required,email,max=254" example:"user@example.com"`
+	Password string `json:"password" validate:"required,min=8,max=128" example:"password123"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email" example:"user@example.com"`
-	Password string `json:"password" validate:"required" example:"password123"`
+	Email    string `json:"email" validate:"required,email,max=254" example:"user@example.com"`
+	Password string `json:"password" validate:"required,max=128" example:"password123"`
 }
 
 type UserResult struct {
@@ -78,8 +78,8 @@ type AuthResponse struct {
 
 // Domain management types
 type CreateDomainRequest struct {
-	Domain            string                `json:"domain" validate:"required" example:"example.com"`
-	PublicKey         string                `json:"public_key" validate:"required" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
+	Domain            string                `json:"domain" validate:"required,domain,min=1,max=253" example:"example.com"`
+	PublicKey         string                `json:"public_key" validate:"required,public_key,min=100" example:"-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"`
 	WebhookConfig     *WebhookConfigRequest `json:"webhook_config,omitempty"`
 	StorageEnabled    *bool                 `json:"storage_enabled,omitempty" example:"true"`
 	AutoCreateAddress *bool                 `json:"auto_create_address,omitempty" example:"false"`
@@ -108,12 +108,12 @@ type DomainResult struct {
 
 // Email address management types
 type CreateEmailRequest struct {
-	LocalPart        string   `json:"local_part" validate:"required" example:"info"`
-	ForwardAddresses []string `json:"forward_addresses,omitempty" example:"[\"forward@example.com\"]"`
+	LocalPart        string   `json:"local_part" validate:"required,min=1,max=64,safe_string" example:"info"`
+	ForwardAddresses []string `json:"forward_addresses,omitempty" validate:"omitempty,email_list,max=10" example:"[\"forward@example.com\"]"`
 }
 
 type UpdateEmailRequest struct {
-	ForwardAddresses []string `json:"forward_addresses,omitempty" example:"[\"forward1@example.com\", \"forward2@example.com\"]"`
+	ForwardAddresses []string `json:"forward_addresses,omitempty" validate:"omitempty,email_list,max=10" example:"[\"forward1@example.com\", \"forward2@example.com\"]"`
 }
 
 type EmailAddressResult struct {
@@ -137,9 +137,9 @@ type ReceivedEmailResult struct {
 
 // Webhook configuration types
 type WebhookConfigRequest struct {
-	URL     string            `json:"url" validate:"required" example:"https://api.example.com/webhook"`
-	Secret  string            `json:"secret,omitempty" example:"webhook_secret_key"`
-	Headers map[string]string `json:"headers,omitempty" example:"{\"X-Custom-Header\": \"value\"}"`
+	URL     string            `json:"url" validate:"required,url,max=2048" example:"https://api.example.com/webhook"`
+	Secret  string            `json:"secret,omitempty" validate:"omitempty,min=16,max=256,safe_string" example:"webhook_secret_key"`
+	Headers map[string]string `json:"headers,omitempty" validate:"omitempty,dive,keys,safe_string,endkeys,safe_string" example:"{\"X-Custom-Header\": \"value\"}"`
 	Enabled bool              `json:"enabled" example:"true"`
 }
 
@@ -152,13 +152,13 @@ type WebhookConfigResult struct {
 
 // Send email types
 type SendEmailRequest struct {
-	From     string   `json:"from" validate:"required,email" example:"sender@example.com"`
-	To       []string `json:"to" validate:"required,min=1" example:"[\"recipient@example.com\"]"`
-	CC       []string `json:"cc,omitempty" example:"[\"cc@example.com\"]"`
-	BCC      []string `json:"bcc,omitempty" example:"[\"bcc@example.com\"]"`
-	Subject  string   `json:"subject" validate:"required" example:"Hello from MailVault"`
-	TextBody string   `json:"text_body,omitempty" example:"Plain text email body"`
-	HTMLBody string   `json:"html_body,omitempty" example:"<p>HTML email body</p>"`
+	From     string   `json:"from" validate:"required,email,max=254" example:"sender@example.com"`
+	To       []string `json:"to" validate:"required,min=1,email_list,max=100" example:"[\"recipient@example.com\"]"`
+	CC       []string `json:"cc,omitempty" validate:"omitempty,email_list,max=50" example:"[\"cc@example.com\"]"`
+	BCC      []string `json:"bcc,omitempty" validate:"omitempty,email_list,max=50" example:"[\"bcc@example.com\"]"`
+	Subject  string   `json:"subject" validate:"required,min=1,max=998" example:"Hello from MailVault"`
+	TextBody string   `json:"text_body,omitempty" validate:"omitempty,max=1048576" example:"Plain text email body"`
+	HTMLBody string   `json:"html_body,omitempty" validate:"omitempty,max=1048576" example:"<p>HTML email body</p>"`
 }
 
 type SendEmailResponse struct {

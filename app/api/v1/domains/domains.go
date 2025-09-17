@@ -35,9 +35,9 @@ func NewDomainsHandlers(domainUseCase UseCase) *DomainsHandlers {
 
 // WebhookConfigRequest represents webhook configuration in requests
 type WebhookConfigRequest struct {
-	URL     string            `json:"url" validate:"required"`
-	Secret  string            `json:"secret,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
+	URL     string            `json:"url" validate:"required,url,max=2048"`
+	Secret  string            `json:"secret,omitempty" validate:"omitempty,min=16,max=256,safe_string"`
+	Headers map[string]string `json:"headers,omitempty" validate:"omitempty,dive,keys,safe_string,endkeys,safe_string"`
 	Enabled bool              `json:"enabled"`
 }
 
