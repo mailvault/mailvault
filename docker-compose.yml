@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mailvault-postgres
+    environment:
+      - POSTGRES_DB=mailvault
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mailvault
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mailvault-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mailvault
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # MailVault API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mailvault-api
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/mailvault?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
+      - API_ADDRESS=:3000
+      - METRICS_ADDRESS=:8080
+      - AUTH_PROVIDER=supabase
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY:-dev-secret-change-me}
+      - ENABLE_DATABASE_METRICS=true
+      - ENABLE_QUERY_INSTRUMENTATION=true
+    ports:
+      - "3000:3000"  # API endpoints
+      - "8080:8080"  # Metrics endpoint
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - mailvault
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MailVault SMTP Server
+  smtp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: mailvault-smtp
+    command: ["./smtpd"]
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/mailvault?sslmode=disable
+      - SMTP_ADDR=:25
+      - SMTP_METRICS_PORT=8081
+      - SMTP_DOMAIN=${SMTP_DOMAIN:-mail.localhost}
+    ports:
+      - "25:25"     # SMTP port
+      - "8081:8081" # SMTP metrics port
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - mailvault
+    restart: unless-stopped
+    volumes:
+      - ./certs:/app/certs:ro  # SSL certificates if needed
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  mailvault:
+    driver: bridge

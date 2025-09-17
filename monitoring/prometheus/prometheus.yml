@@ -1,0 +1,88 @@
+# Prometheus configuration for MailVault monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'mailvault-monitor'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # MailVault API Service (containerized)
+  - job_name: 'mailvault-api'
+    static_configs:
+      - targets: ['mailvault-api:8080']  # Container name and metrics port
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    params:
+      format: ['prometheus']
+
+  # MailVault API Service (host - for local development)
+  - job_name: 'mailvault-api-host'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    params:
+      format: ['prometheus']
+
+  # MailVault SMTP Server (containerized)
+  - job_name: 'mailvault-smtp'
+    static_configs:
+      - targets: ['mailvault-smtp:8081']  # Container name and SMTP metrics port
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    params:
+      format: ['prometheus']
+
+  # MailVault SMTP Server (host - for local development)
+  - job_name: 'mailvault-smtp-host'
+    static_configs:
+      - targets: ['host.docker.internal:8081']  # SMTP metrics port
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    params:
+      format: ['prometheus']
+
+  # System metrics via Node Exporter
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 10s
+
+  # PostgreSQL metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 15s
+
+  # Redis metrics (if Redis caching is enabled)
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 15s
+
+  # Docker container metrics (if Docker daemon metrics are exposed)
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+    scrape_interval: 30s

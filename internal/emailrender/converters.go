@@ -3,11 +3,11 @@ package emailrender
 import (
 	"fmt"
 	"html"
+	"regexp"
 	"strings"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/JohannesKaufmann/html-to-markdown/plugin"
-	"github.com/jaytaylor/html2text"
 )
 
 // htmlToPlainText converts HTML content to plain text
@@ -16,17 +16,8 @@ func htmlToPlainText(htmlContent string) string {
 		return ""
 	}
 
-	// Use html2text library for better formatting
-	text, err := html2text.FromString(htmlContent, html2text.Options{
-		PrettyTables: true,
-		OmitLinks:    false,
-	})
-	if err != nil {
-		// Fallback: strip HTML tags manually
-		return stripHTMLTags(htmlContent)
-	}
-
-	return text
+	// Use improved HTML stripping with better formatting
+	return stripHTMLTagsImproved(htmlContent)
 }
 
 // htmlToMarkdown converts HTML content to Markdown
@@ -77,16 +68,77 @@ func plainTextToMarkdown(plainText string) string {
 	return fmt.Sprintf("```\n%s\n```", plainText)
 }
 
+// stripHTMLTagsImproved removes HTML tags from text with better formatting
+func stripHTMLTagsImproved(htmlContent string) string {
+	if htmlContent == "" {
+		return ""
+	}
+
+	text := htmlContent
+
+	// Remove script and style content entirely
+	text = removeTagContent(text, "script")
+	text = removeTagContent(text, "style")
+	text = removeTagContent(text, "head")
+
+	// Handle common HTML entities
+	text = strings.ReplaceAll(text, "&nbsp;", " ")
+	text = strings.ReplaceAll(text, "&amp;", "&")
+	text = strings.ReplaceAll(text, "&lt;", "<")
+	text = strings.ReplaceAll(text, "&gt;", ">")
+	text = strings.ReplaceAll(text, "&quot;", "\"")
+	text = strings.ReplaceAll(text, "&#39;", "'")
+
+	// Handle tables - convert to simple text format
+	text = handleHTMLTables(text)
+
+	// Handle lists - add proper formatting
+	text = handleHTMLLists(text)
+
+	// Replace block elements with appropriate line breaks
+	blockElements := map[string]string{
+		"p":  "\n\n",
+		"div": "\n",
+		"br": "\n",
+		"h1": "\n\n",
+		"h2": "\n\n",
+		"h3": "\n\n",
+		"h4": "\n\n",
+		"h5": "\n\n",
+		"h6": "\n\n",
+		"hr": "\n---\n",
+		"blockquote": "\n> ",
+	}
+
+	for tag, replacement := range blockElements {
+		// Handle both opening and closing tags
+		re := regexp.MustCompile(fmt.Sprintf(`(?i)<%s[^>]*>`, tag))
+		text = re.ReplaceAllString(text, replacement)
+		text = strings.ReplaceAll(text, fmt.Sprintf("</%s>", tag), "")
+	}
+
+	// Handle inline formatting
+	text = handleInlineFormatting(text)
+
+	// Remove all remaining HTML tags
+	text = removeAllHTMLTags(text)
+
+	// Clean up whitespace
+	text = cleanupWhitespace(text)
+
+	return strings.TrimSpace(text)
+}
+
 // stripHTMLTags removes HTML tags from text (basic fallback)
 func stripHTMLTags(htmlContent string) string {
 	// This is a very basic implementation
 	// In a production environment, you might want to use a proper HTML parser
 	text := htmlContent
-	
+
 	// Remove script and style content entirely
 	text = removeTagContent(text, "script")
 	text = removeTagContent(text, "style")
-	
+
 	// Replace common block elements with line breaks
 	blockElements := []string{"div", "p", "br", "h1", "h2", "h3", "h4", "h5", "h6", "li"}
 	for _, tag := range blockElements {
@@ -94,7 +146,7 @@ func stripHTMLTags(htmlContent string) string {
 		text = strings.ReplaceAll(text, fmt.Sprintf("</%s>", tag), "\n")
 		text = strings.ReplaceAll(text, fmt.Sprintf("<%s/>", tag), "\n")
 	}
-	
+
 	// Remove all remaining HTML tags
 	inTag := false
 	var result strings.Builder
@@ -107,10 +159,96 @@ func stripHTMLTags(htmlContent string) string {
 			result.WriteRune(char)
 		}
 	}
-	
+
 	// Clean up multiple line breaks
 	cleaned := strings.ReplaceAll(result.String(), "\n\n\n", "\n\n")
 	return strings.TrimSpace(cleaned)
+}
+
+// handleHTMLTables converts HTML tables to simple text format
+func handleHTMLTables(text string) string {
+	// Simple table handling - convert <td> to spaces and <tr> to newlines
+	re := regexp.MustCompile(`(?i)<tr[^>]*>`)
+	text = re.ReplaceAllString(text, "\n")
+
+	re = regexp.MustCompile(`(?i)</?tr[^>]*>`)
+	text = re.ReplaceAllString(text, "")
+
+	re = regexp.MustCompile(`(?i)<td[^>]*>`)
+	text = re.ReplaceAllString(text, " | ")
+
+	re = regexp.MustCompile(`(?i)</?td[^>]*>`)
+	text = re.ReplaceAllString(text, "")
+
+	re = regexp.MustCompile(`(?i)</?th[^>]*>`)
+	text = re.ReplaceAllString(text, " | ")
+
+	re = regexp.MustCompile(`(?i)</?table[^>]*>`)
+	text = re.ReplaceAllString(text, "\n")
+
+	return text
+}
+
+// handleHTMLLists converts HTML lists to simple text format
+func handleHTMLLists(text string) string {
+	// Handle unordered lists
+	re := regexp.MustCompile(`(?i)<li[^>]*>`)
+	text = re.ReplaceAllString(text, "\n• ")
+
+	re = regexp.MustCompile(`(?i)</?li[^>]*>`)
+	text = re.ReplaceAllString(text, "")
+
+	re = regexp.MustCompile(`(?i)</?ul[^>]*>`)
+	text = re.ReplaceAllString(text, "\n")
+
+	re = regexp.MustCompile(`(?i)</?ol[^>]*>`)
+	text = re.ReplaceAllString(text, "\n")
+
+	return text
+}
+
+// handleInlineFormatting converts inline HTML formatting
+func handleInlineFormatting(text string) string {
+	// Handle links - extract text and optionally show URL
+	re := regexp.MustCompile(`(?i)<a[^>]+href=["']([^"']+)["'][^>]*>([^<]+)</a>`)
+	text = re.ReplaceAllString(text, "$2")
+
+	// Handle bold/strong - keep text, remove tags
+	re = regexp.MustCompile(`(?i)</?(?:b|strong)[^>]*>`)
+	text = re.ReplaceAllString(text, "")
+
+	// Handle italic/emphasis - keep text, remove tags
+	re = regexp.MustCompile(`(?i)</?(?:i|em)[^>]*>`)
+	text = re.ReplaceAllString(text, "")
+
+	// Handle code
+	re = regexp.MustCompile(`(?i)</?code[^>]*>`)
+	text = re.ReplaceAllString(text, "`")
+
+	return text
+}
+
+// removeAllHTMLTags removes any remaining HTML tags
+func removeAllHTMLTags(text string) string {
+	re := regexp.MustCompile(`<[^>]+>`)
+	return re.ReplaceAllString(text, "")
+}
+
+// cleanupWhitespace normalizes whitespace in text
+func cleanupWhitespace(text string) string {
+	// Replace multiple spaces with single space
+	re := regexp.MustCompile(`[ \t]+`)
+	text = re.ReplaceAllString(text, " ")
+
+	// Replace multiple newlines with maximum of two
+	re = regexp.MustCompile(`\n\s*\n\s*\n+`)
+	text = re.ReplaceAllString(text, "\n\n")
+
+	// Clean up space before newlines
+	re = regexp.MustCompile(`[ \t]+\n`)
+	text = re.ReplaceAllString(text, "\n")
+
+	return text
 }
 
 // removeTagContent removes content between opening and closing tags

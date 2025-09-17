@@ -17,6 +17,9 @@ type Config struct {
 	AuthTokenTTL   string `conf:"env:AUTH_TOKEN_TTL,default:24h"`
 	AuthProvider   string `conf:"env:AUTH_PROVIDER,default:basic"`
 
+	// Metrics server configuration
+	MetricsAddress string `conf:"env:METRICS_ADDRESS,default::8080"`
+
 	// Database optimization settings
 	EnableDatabaseMetrics bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
 	EnableQueryInstrumentation bool `conf:"env:ENABLE_QUERY_INSTRUMENTATION,default:true"`

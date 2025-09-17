@@ -24,12 +24,12 @@ type Config struct {
 	SSLMode  string `conf:"env:DATABASE_SSLMODE,default:disable"`
 
 	// Connection pooling settings
-	PoolMinSize         int32         `conf:"env:DATABASE_POOL_MIN_SIZE,default:5"`
-	PoolMaxSize         int32         `conf:"env:DATABASE_POOL_MAX_SIZE,default:25"`
-	MaxConnLifetime     time.Duration `conf:"env:DATABASE_MAX_CONN_LIFETIME,default:1h"`
-	MaxConnIdleTime     time.Duration `conf:"env:DATABASE_MAX_CONN_IDLE_TIME,default:15m"`
-	HealthCheckPeriod   time.Duration `conf:"env:DATABASE_HEALTH_CHECK_PERIOD,default:1m"`
-	ConnectTimeout      time.Duration `conf:"env:DATABASE_CONNECT_TIMEOUT,default:30s"`
+	PoolMinSize       int32         `conf:"env:DATABASE_POOL_MIN_SIZE,default:5"`
+	PoolMaxSize       int32         `conf:"env:DATABASE_POOL_MAX_SIZE,default:25"`
+	MaxConnLifetime   time.Duration `conf:"env:DATABASE_MAX_CONN_LIFETIME,default:1h"`
+	MaxConnIdleTime   time.Duration `conf:"env:DATABASE_MAX_CONN_IDLE_TIME,default:15m"`
+	HealthCheckPeriod time.Duration `conf:"env:DATABASE_HEALTH_CHECK_PERIOD,default:1m"`
+	ConnectTimeout    time.Duration `conf:"env:DATABASE_CONNECT_TIMEOUT,default:30s"`
 
 	// Performance settings
 	StatementCacheCapacity int32 `conf:"env:DATABASE_STATEMENT_CACHE_CAPACITY,default:512"`
@@ -76,7 +76,7 @@ func (c *Config) ConnectionString() string {
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s&pool_min_conns=%d&pool_max_conns=%d&pool_max_conn_lifetime=%s&pool_max_conn_idle_time=%s&pool_health_check_period=%s&connect_timeout=%s&default_query_exec_mode=cache_statement",
 		c.User, c.Password, c.Host, c.Port, c.Name,
 		c.SSLMode, c.PoolMinSize, c.PoolMaxSize,
-		c.MaxConnLifetime, c.MaxConnIdleTime, c.HealthCheckPeriod, c.ConnectTimeout,
+		c.MaxConnLifetime, c.MaxConnIdleTime, c.HealthCheckPeriod, c.ConnectTimeout.Seconds(),
 	)
 }
 
@@ -91,15 +91,15 @@ type DatabasePool struct {
 // DatabaseMetrics tracks database connection pool performance
 type DatabaseMetrics struct {
 	// Pool metrics
-	activeConnections   prometheus.Gauge
-	idleConnections     prometheus.Gauge
-	waitingConnections  prometheus.Gauge
-	totalConnections    prometheus.Gauge
+	activeConnections  prometheus.Gauge
+	idleConnections    prometheus.Gauge
+	waitingConnections prometheus.Gauge
+	totalConnections   prometheus.Gauge
 
 	// Connection lifecycle metrics
-	connectionsCreated  prometheus.Counter
+	connectionsCreated   prometheus.Counter
 	connectionsDestroyed prometheus.Counter
-	connectionsFailed   prometheus.Counter
+	connectionsFailed    prometheus.Counter
 
 	// Query performance metrics
 	queryDuration       prometheus.HistogramVec
@@ -310,17 +310,17 @@ func (db *DatabasePool) GetStats() map[string]interface{} {
 	stats := db.Pool.Stat()
 
 	return map[string]interface{}{
-		"total_conns":          stats.TotalConns(),
-		"acquired_conns":       stats.AcquiredConns(),
-		"idle_conns":           stats.IdleConns(),
-		"max_conns":            stats.MaxConns(),
-		"new_conns_count":      stats.NewConnsCount(),
-		"acquire_count":        stats.AcquireCount(),
-		"acquire_duration":     stats.AcquireDuration(),
-		"canceled_acquire_count": stats.CanceledAcquireCount(),
-		"constructing_conns":   stats.ConstructingConns(),
-		"empty_acquire_count":  stats.EmptyAcquireCount(),
-		"max_idle_destroy_count": stats.MaxIdleDestroyCount(),
+		"total_conns":                stats.TotalConns(),
+		"acquired_conns":             stats.AcquiredConns(),
+		"idle_conns":                 stats.IdleConns(),
+		"max_conns":                  stats.MaxConns(),
+		"new_conns_count":            stats.NewConnsCount(),
+		"acquire_count":              stats.AcquireCount(),
+		"acquire_duration":           stats.AcquireDuration(),
+		"canceled_acquire_count":     stats.CanceledAcquireCount(),
+		"constructing_conns":         stats.ConstructingConns(),
+		"empty_acquire_count":        stats.EmptyAcquireCount(),
+		"max_idle_destroy_count":     stats.MaxIdleDestroyCount(),
 		"max_lifetime_destroy_count": stats.MaxLifetimeDestroyCount(),
 
 		// Configuration

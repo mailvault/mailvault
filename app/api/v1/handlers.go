@@ -49,34 +49,13 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	rateLimitConfig := middleware.DefaultRateLimitConfig()
 	rateLimitConfig.Logger = h.Logger
 	rateLimitMw := middleware.NewRateLimitMiddleware(rateLimitConfig)
-
-	// Initialize security middleware
-	securityConfig := middleware.DefaultSecurityConfig()
-	securityConfig.Logger = h.Logger
-	securityMw := middleware.NewSecurityMiddleware(securityConfig)
-
-	// Initialize metrics middleware
-	metricsConfig := middleware.DefaultMetricsConfig()
-	metricsMw := middleware.NewMetricsMiddleware(metricsConfig)
-	h.MetricsMiddleware = metricsMw // Store for use in handlers
-
-	// Initialize audit middleware
-	auditConfig := middleware.DefaultAuditConfig()
-	auditConfig.Logger = h.Logger
-	auditMw := middleware.NewAuditMiddleware(auditConfig)
-
-	// Apply global middleware
-	r.Use(securityMw.SecurityHeaders())
-	r.Use(securityMw.CORS())
-	r.Use(auditMw.AuditLog())
-	r.Use(metricsMw.MetricsHandler())
+	// Use the metrics middleware passed from main (already initialized)
 
 	// Health endpoints without rate limiting (for monitoring)
 	r.Get("/health", h.Health)
 	r.Get("/ready", h.Readiness)
 
-	// Prometheus metrics endpoint
-	r.Handle("/metrics", metricsMw.PrometheusHandler())
+	// Metrics endpoint removed - now served on separate server
 
 	// Initialize handlers
 	// Parse JWT TTL
@@ -109,6 +88,10 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		// Apply metrics collection to all API endpoints
+		if h.MetricsMiddleware != nil {
+			r.Use(h.MetricsMiddleware.MetricsHandler())
+		}
 		// Apply general rate limiting to all API endpoints
 		r.Use(rateLimitMw.GeneralRateLimit())
 
@@ -183,9 +166,9 @@ type HealthResponse struct {
 
 // HealthCheck represents individual service health
 type HealthCheck struct {
-	Status   string  `json:"status"`
-	Duration string  `json:"duration,omitempty"`
-	Error    string  `json:"error,omitempty"`
+	Status   string `json:"status"`
+	Duration string `json:"duration,omitempty"`
+	Error    string `json:"error,omitempty"`
 }
 
 // Health returns the health status of the API with detailed checks

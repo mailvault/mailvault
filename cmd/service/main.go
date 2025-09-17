@@ -38,6 +38,7 @@ import (
 	"fmt"
 	"log/slog"
 	"mailvault/app/api"
+	"mailvault/app/api/middleware"
 	v1 "mailvault/app/api/v1"
 	authDomain "mailvault/domain/auth"
 	domainpkg "mailvault/domain/domain"
@@ -45,6 +46,7 @@ import (
 	"mailvault/domain/user"
 	"mailvault/gateways/repository/pg"
 	"mailvault/internal/database"
+	"net/http"
 	"runtime"
 	"time"
 
@@ -130,17 +132,37 @@ func main() {
 	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo, repo.UserRepo)
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
 
+	// Initialize metrics middleware for separate server
+	metricsMw := middleware.NewMetricsMiddleware(middleware.DefaultMetricsConfig())
+
+	// Start metrics server in separate goroutine
+	go func() {
+		metricsHandler := metricsMw.PrometheusHandler()
+		http.Handle("/metrics", metricsHandler)
+
+		log.Info("Starting metrics server",
+			slog.String("address", cfg.MetricsAddress),
+		)
+
+		if err := http.ListenAndServe(cfg.MetricsAddress, nil); err != nil {
+			log.Error("Metrics server failed",
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
+
 	// Handlers V1
 	apiV1 := v1.ApiHandlers{
-		AuthProvider:  authProvider,
-		UserUseCase:   userUseCase,
-		AuthUseCase:   userUseCase,
-		DomainUseCase: domainUseCase,
-		EmailUseCase:  emailUseCase,
-		AuthSecretKey: cfg.AuthSecretKey,
-		AuthTokenTTL:  cfg.AuthTokenTTL,
-		Logger:        log,
-		HealthChecker: dbPool, // optimized database pool implements the Ping interface
+		AuthProvider:      authProvider,
+		UserUseCase:       userUseCase,
+		AuthUseCase:       userUseCase,
+		DomainUseCase:     domainUseCase,
+		EmailUseCase:      emailUseCase,
+		AuthSecretKey:     cfg.AuthSecretKey,
+		AuthTokenTTL:      cfg.AuthTokenTTL,
+		Logger:            log,
+		HealthChecker:     dbPool, // optimized database pool implements the Ping interface
+		MetricsMiddleware: metricsMw, // Pass metrics middleware for business metrics
 	}
 
 	router := api.Router()
