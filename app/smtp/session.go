@@ -19,11 +19,13 @@ import (
 
 // Session represents an SMTP session
 type Session struct {
-	backend *Backend
-	conn    *smtp.Conn
-	logger  *slog.Logger
-	from    string
-	to      []string
+	backend   *Backend
+	conn      *smtp.Conn
+	logger    *slog.Logger
+	from      string
+	to        []string
+	startTime time.Time
+	remoteIP  string
 }
 
 // AuthPlain handles PLAIN authentication (optional)
@@ -37,6 +39,7 @@ func (s *Session) AuthPlain(username, password string) error {
 func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 	s.logger.Info("SMTP Mail from", "from", from)
 	s.from = from
+	s.backend.metrics.RecordSession("success", "MAIL")
 	return nil
 }
 
@@ -44,31 +47,69 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
 	s.logger.Info("SMTP Rcpt to", "to", to)
 	s.to = append(s.to, to)
+	s.backend.metrics.RecordSession("success", "RCPT")
 	return nil
 }
 
 // Data receives the email data
 func (s *Session) Data(r io.Reader) error {
+	dataStart := time.Now()
+
 	// Read the entire email body
 	body, err := io.ReadAll(r)
 	if err != nil {
 		s.logger.Error("Failed to read email body", "error", err)
+		s.backend.metrics.RecordSessionError("read_error", "DATA")
 		return err
 	}
 
-	s.logger.Info("SMTP Data received", "from", s.from, "to", s.to, "size", len(body))
+	emailSize := len(body)
+	s.logger.Info("SMTP Data received", "from", s.from, "to", s.to, "size", emailSize)
+
+	// Record email received metrics
+	s.backend.metrics.RecordSession("success", "DATA")
 
 	// Process each recipient
+	successCount := 0
 	for _, recipient := range s.to {
+		processStart := time.Now()
 		err := s.processEmail(recipient, body)
+
+		// Extract domain for metrics
+		parts := strings.Split(recipient, "@")
+		domain := "unknown"
+		if len(parts) == 2 {
+			domain = parts[1]
+		}
+
 		if err != nil {
 			s.logger.Error("Failed to process email", "recipient", recipient, "error", err)
-			// Continue processing other recipients even if one fails
+			s.backend.metrics.RecordEmailRejected(domain, "processing_error")
+			s.backend.metrics.RecordDomainError(domain, "processing_failed")
+		} else {
+			successCount++
+			s.backend.metrics.RecordEmailProcessed(domain, "success")
+			s.backend.metrics.RecordEmailSize(domain, emailSize)
+			s.backend.metrics.RecordDomainEmail(domain, "delivered")
 		}
+
+		// Record processing time for this recipient
+		s.backend.metrics.RecordEmailProcessingTime(domain, "recipient_processing", time.Since(processStart))
+	}
+
+	// Record overall data processing time
+	s.backend.metrics.RecordEmailProcessingTime("all", "data_processing", time.Since(dataStart))
+
+	// Record overall email status
+	if successCount == 0 {
+		s.backend.metrics.RecordSession("failed", "DATA")
+	} else if successCount < len(s.to) {
+		s.backend.metrics.RecordSession("partial", "DATA")
 	}
 
 	return nil
 }
+
 
 // processEmail handles incoming email for a specific recipient
 func (s *Session) processEmail(recipient string, body []byte) error {
@@ -109,7 +150,20 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 	}
 
 	// Perform spam verification
+	verifyStart := time.Now()
 	verificationResult := s.backend.verifier.VerifyEmail(context.Background(), emailCtx)
+	s.backend.metrics.RecordVerificationDuration("complete", time.Since(verifyStart))
+
+	// Record individual verification results
+	s.backend.metrics.RecordSPFCheck(verificationResult.SPF.Result.String())
+	s.backend.metrics.RecordDKIMCheck(func() string {
+		if verificationResult.DKIM.Valid {
+			return "pass"
+		}
+		return "fail"
+	}())
+	s.backend.metrics.RecordDMARCCheck(verificationResult.DMARC.Result.String(), string(verificationResult.DMARC.Policy))
+	s.backend.metrics.RecordVerificationCheck("overall", verificationResult.Action.String())
 
 	// Build Authentication-Results header and attach to the raw message for storage/forwarding
 	authResHeader := verification.BuildAuthResultsHeader("mailvault", emailCtx, verificationResult)
@@ -132,22 +186,26 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 		s.logger.Warn("Email rejected by spam filter",
 			"recipient", recipient,
 			"reason", s.backend.verifier.GetVerificationSummary(verificationResult))
+		s.backend.metrics.RecordEmailRejected(domainName, "spam_filter")
 		return &smtp.SMTPError{Code: 550, Message: "Email rejected by spam filter"}
 
 	case verification.ActionTempFail:
 		s.logger.Warn("Email temporarily rejected",
 			"recipient", recipient,
 			"reason", s.backend.verifier.GetVerificationSummary(verificationResult))
+		s.backend.metrics.RecordEmailDeferred(domainName, "temp_fail")
 		return &smtp.SMTPError{Code: 451, Message: "Temporary failure - try again later"}
 
 	case verification.ActionQuarantine:
 		s.logger.Info("Email quarantined",
 			"recipient", recipient,
 			"reason", s.backend.verifier.GetVerificationSummary(verificationResult))
+		s.backend.metrics.RecordEmailReceived(domainName, "quarantined")
 		// Continue processing but mark as quarantined
 
 	case verification.ActionAccept:
 		s.logger.Debug("Email accepted", "recipient", recipient)
+		s.backend.metrics.RecordEmailReceived(domainName, "accepted")
 		// Continue normal processing
 	}
 
@@ -289,6 +347,12 @@ func (s *Session) Reset() {
 
 // Logout ends the session
 func (s *Session) Logout() error {
+	// Record session duration and cleanup
+	if !s.startTime.IsZero() {
+		duration := time.Since(s.startTime)
+		s.backend.metrics.RecordSessionDuration(duration, "completed")
+		s.backend.metrics.RecordConnectionEnd(duration, "completed")
+	}
 	return nil
 }
 

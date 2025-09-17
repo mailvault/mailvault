@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -91,7 +92,18 @@ func main() {
 		return
 	}
 
-	// Start server in goroutine
+	// Start HTTP server for metrics
+	go func() {
+		metricsHandler := backend.GetMetrics().PrometheusHandler()
+		http.Handle("/metrics", metricsHandler)
+
+		log.Info("Starting metrics server on :8080")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Error("Metrics server failed", slog.String("error", err.Error()))
+		}
+	}()
+
+	// Start SMTP server in goroutine
 	go func() {
 		if err := smtpServer.Start(); err != nil {
 			log.Error("SMTP server failed",

@@ -35,6 +35,8 @@ type ApiHandlers struct {
 	Logger           *slog.Logger
 	// For health checks
 	HealthChecker HealthChecker
+	// For metrics collection
+	MetricsMiddleware *middleware.MetricsMiddleware
 }
 
 // HealthChecker interface for database health checks
@@ -53,13 +55,28 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	securityConfig.Logger = h.Logger
 	securityMw := middleware.NewSecurityMiddleware(securityConfig)
 
-	// Apply global security headers
+	// Initialize metrics middleware
+	metricsConfig := middleware.DefaultMetricsConfig()
+	metricsMw := middleware.NewMetricsMiddleware(metricsConfig)
+	h.MetricsMiddleware = metricsMw // Store for use in handlers
+
+	// Initialize audit middleware
+	auditConfig := middleware.DefaultAuditConfig()
+	auditConfig.Logger = h.Logger
+	auditMw := middleware.NewAuditMiddleware(auditConfig)
+
+	// Apply global middleware
 	r.Use(securityMw.SecurityHeaders())
 	r.Use(securityMw.CORS())
+	r.Use(auditMw.AuditLog())
+	r.Use(metricsMw.MetricsHandler())
 
 	// Health endpoints without rate limiting (for monitoring)
 	r.Get("/health", h.Health)
 	r.Get("/ready", h.Readiness)
+
+	// Prometheus metrics endpoint
+	r.Handle("/metrics", metricsMw.PrometheusHandler())
 
 	// Initialize handlers
 	// Parse JWT TTL
