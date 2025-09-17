@@ -16,6 +16,10 @@ type Config struct {
 	AuthSecretKey  string `conf:"env:AUTH_SECRET_KEY,default:dev-secret-change-me"`
 	AuthTokenTTL   string `conf:"env:AUTH_TOKEN_TTL,default:24h"`
 	AuthProvider   string `conf:"env:AUTH_PROVIDER,default:basic"`
+
+	// Database optimization settings
+	EnableDatabaseMetrics bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
+	EnableQueryInstrumentation bool `conf:"env:ENABLE_QUERY_INSTRUMENTATION,default:true"`
 }
 
 func (c *Config) Load(prefix string) error {

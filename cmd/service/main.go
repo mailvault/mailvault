@@ -44,6 +44,7 @@ import (
 	"mailvault/domain/email"
 	"mailvault/domain/user"
 	"mailvault/gateways/repository/pg"
+	"mailvault/internal/database"
 	"runtime"
 	"time"
 
@@ -51,7 +52,6 @@ import (
 
 	goxhttp "github.com/guilhermebr/gox/http"
 	"github.com/guilhermebr/gox/logger"
-	"github.com/guilhermebr/gox/postgres"
 )
 
 // Injected on build time by ldflags.
@@ -82,24 +82,33 @@ func main() {
 		slog.Int("runtime_num_cpu", runtime.NumCPU()),
 	)
 
-	// Repositories
-	conn, err := postgres.New(ctx, "")
+	// Optimized Database Connection Pool
+	dbPool, err := database.NewOptimizedPool(ctx, "", log)
 	if err != nil {
-		log.Error("failed to setup postgres",
+		log.Error("failed to setup optimized database pool",
 			slog.String("error", err.Error()),
 		)
 		return
 	}
-	defer conn.Close()
+	defer dbPool.Close()
 
-	err = conn.Ping(ctx)
+	err = dbPool.Ping(ctx)
 	if err != nil {
-		log.Error("failed to reach postgres",
+		log.Error("failed to reach database",
 			slog.String("error", err.Error()),
 		)
 		return
 	}
-	repo := pg.NewRepository(conn)
+
+	// Log database statistics for monitoring
+	if cfg.EnableDatabaseMetrics {
+		stats := dbPool.GetStats()
+		log.Info("Database pool statistics",
+			slog.Any("stats", stats),
+		)
+	}
+
+	repo := pg.NewRepository(dbPool.Pool)
 
 	// Authentication provider
 	// ------------------------------------------
@@ -131,7 +140,7 @@ func main() {
 		AuthSecretKey: cfg.AuthSecretKey,
 		AuthTokenTTL:  cfg.AuthTokenTTL,
 		Logger:        log,
-		HealthChecker: conn, // postgres connection implements the Ping interface
+		HealthChecker: dbPool, // optimized database pool implements the Ping interface
 	}
 
 	router := api.Router()

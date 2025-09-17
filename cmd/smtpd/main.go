@@ -15,9 +15,9 @@ import (
 	"mailvault/domain/email"
 	"mailvault/domain/smtp_stats"
 	"mailvault/gateways/repository/pg"
+	"mailvault/internal/database"
 
 	"github.com/guilhermebr/gox/logger"
-	"github.com/guilhermebr/gox/postgres"
 )
 
 // Injected on build time by ldflags.
@@ -50,25 +50,31 @@ func main() {
 		slog.Int("runtime_num_cpu", runtime.NumCPU()),
 	)
 
-	// Initialize database connection
-	db, err := postgres.New(context.Background(), "")
+	// Initialize optimized database connection pool
+	dbPool, err := database.NewOptimizedPool(context.Background(), "", log)
 	if err != nil {
 		log.Error("failed to connect to database",
 			slog.String("error", err.Error()),
 		)
 		return
 	}
-	defer db.Close()
+	defer dbPool.Close()
+
+	// Log database pool statistics
+	stats := dbPool.GetStats()
+	log.Info("Database pool statistics",
+		slog.Any("stats", stats),
+	)
 
 	// Initialize repositories
-	repo := pg.NewRepository(db)
+	repo := pg.NewRepository(dbPool.Pool)
 
 	// Initialize use cases
 	domainUseCase := domainUseCase.NewUseCase(repo.DomainRepo, repo.UserRepo)
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
 	
 	// Initialize SMTP stats repository and use case
-	smtpStatsRepo := pg.NewSMTPStatsRepository(db)
+	smtpStatsRepo := pg.NewSMTPStatsRepository(dbPool.Pool)
 	smtpStatsUseCase := smtp_stats.NewUseCase(smtpStatsRepo)
 
 	// Create SMTP server

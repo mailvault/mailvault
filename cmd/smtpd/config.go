@@ -22,6 +22,9 @@ type Config struct {
 	// If true, the listener will expect TLS from the start (implicit TLS, e.g. port 465).
 	// If false and TLSMode is cert, STARTTLS will be offered on the plaintext connection (e.g. port 25/587).
 	TLSImplicit bool `conf:"env:SMTP_TLS_IMPLICIT,default:false"`
+
+	// Database optimization settings
+	EnableDatabaseMetrics bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
 }
 
 func (c *Config) Load(prefix string) error {
