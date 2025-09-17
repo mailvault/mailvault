@@ -86,7 +86,8 @@ func (r *ReceivedEmailRepository) GetByEmailAddressID(ctx context.Context, email
 func (r *ReceivedEmailRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
 	// Build the query with optional domain filtering
 	baseQuery := `
-		SELECT re.id, re.email_address_id, re.sequence_number, re.from_address, re.subject, re.encrypted_body, re.received_at
+		SELECT re.id, re.email_address_id, re.sequence_number, re.from_address, re.subject, re.encrypted_body,
+		       d.domain as domain_name, CONCAT(ea.local_part, '@', d.domain) as email_address, re.received_at
 		FROM received_emails re
 		JOIN email_addresses ea ON re.email_address_id = ea.id
 		JOIN domains d ON ea.domain_id = d.id
@@ -132,7 +133,7 @@ func (r *ReceivedEmailRepository) GetByUserID(ctx context.Context, userID uuid.U
 	
 	var receivedEmails []*entities.ReceivedEmail
 	for rows.Next() {
-		receivedEmail, err := r.scanReceivedEmailFromRows(rows)
+		receivedEmail, err := r.scanReceivedEmailWithDetailsFromRows(rows)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -203,7 +204,7 @@ func (r *ReceivedEmailRepository) scanReceivedEmail(row pgx.Row) (*entities.Rece
 
 func (r *ReceivedEmailRepository) scanReceivedEmailFromRows(rows pgx.Rows) (*entities.ReceivedEmail, error) {
 	var e entities.ReceivedEmail
-	
+
 	err := rows.Scan(
 		&e.ID,
 		&e.EmailAddressID,
@@ -213,10 +214,32 @@ func (r *ReceivedEmailRepository) scanReceivedEmailFromRows(rows pgx.Rows) (*ent
 		&e.EncryptedBody,
 		&e.ReceivedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
+	return &e, nil
+}
+
+func (r *ReceivedEmailRepository) scanReceivedEmailWithDetailsFromRows(rows pgx.Rows) (*entities.ReceivedEmail, error) {
+	var e entities.ReceivedEmail
+
+	err := rows.Scan(
+		&e.ID,
+		&e.EmailAddressID,
+		&e.SequenceNumber,
+		&e.FromAddress,
+		&e.Subject,
+		&e.EncryptedBody,
+		&e.DomainName,
+		&e.EmailAddress,
+		&e.ReceivedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &e, nil
 }

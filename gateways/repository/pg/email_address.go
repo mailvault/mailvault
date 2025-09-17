@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
@@ -88,6 +90,26 @@ func (r *EmailAddressRepository) GetByLocalPartAndDomain(ctx context.Context, lo
 	`
 
 	return r.scanEmailAddress(r.db.QueryRow(ctx, query, localPart, domainID))
+}
+
+func (r *EmailAddressRepository) GetByAddress(ctx context.Context, address string) (*entities.EmailAddress, error) {
+	// Parse email address to extract local part and domain
+	parts := strings.Split(address, "@")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid email address format: %s", address)
+	}
+
+	localPart := strings.ToLower(parts[0])
+	domainName := strings.ToLower(parts[1])
+
+	query := `
+		SELECT ea.id, ea.domain_id, ea.local_part, ea.forward_addresses, ea.created_at, ea.updated_at
+		FROM email_addresses ea
+		JOIN domains d ON ea.domain_id = d.id
+		WHERE ea.local_part = $1 AND d.domain = $2
+	`
+
+	return r.scanEmailAddress(r.db.QueryRow(ctx, query, localPart, domainName))
 }
 
 func (r *EmailAddressRepository) Update(ctx context.Context, emailAddress *entities.EmailAddress) error {

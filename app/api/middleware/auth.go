@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,8 +15,45 @@ type AuthMiddleware struct {
 	secret []byte
 }
 
-func NewAuthMiddleware(secret string) *AuthMiddleware {
-	return &AuthMiddleware{secret: []byte(secret)}
+func NewAuthMiddleware(secret string) (*AuthMiddleware, error) {
+	// Validate JWT secret strength
+	if err := validateJWTSecret(secret); err != nil {
+		return nil, fmt.Errorf("invalid JWT secret: %w", err)
+	}
+
+	return &AuthMiddleware{secret: []byte(secret)}, nil
+}
+
+// validateJWTSecret ensures the JWT secret meets security requirements
+func validateJWTSecret(secret string) error {
+	if secret == "" {
+		return fmt.Errorf("JWT secret cannot be empty")
+	}
+
+	if len(secret) < 32 {
+		return fmt.Errorf("JWT secret must be at least 32 characters long for security")
+	}
+
+	// Check for common weak secrets
+	weakSecrets := []string{
+		"secret",
+		"password",
+		"123456",
+		"jwt-secret",
+		"your-secret-key",
+		"change-me",
+		"development",
+		"test",
+	}
+
+	lowercaseSecret := strings.ToLower(secret)
+	for _, weak := range weakSecrets {
+		if strings.Contains(lowercaseSecret, weak) {
+			return fmt.Errorf("JWT secret contains common weak patterns, please use a strong random secret")
+		}
+	}
+
+	return nil
 }
 
 // RequireAuth middleware validates JWT token and adds user info to context

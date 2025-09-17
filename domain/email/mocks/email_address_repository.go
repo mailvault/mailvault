@@ -22,6 +22,9 @@ import (
 //			DeleteFunc: func(ctx context.Context, id uuid.UUID) error {
 //				panic("mock out the Delete method")
 //			},
+//			GetByAddressFunc: func(ctx context.Context, address string) (*entities.EmailAddress, error) {
+//				panic("mock out the GetByAddress method")
+//			},
 //			GetByDomainIDFunc: func(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error) {
 //				panic("mock out the GetByDomainID method")
 //			},
@@ -46,6 +49,9 @@ type EmailAddressRepositoryMock struct {
 
 	// DeleteFunc mocks the Delete method.
 	DeleteFunc func(ctx context.Context, id uuid.UUID) error
+
+	// GetByAddressFunc mocks the GetByAddress method.
+	GetByAddressFunc func(ctx context.Context, address string) (*entities.EmailAddress, error)
 
 	// GetByDomainIDFunc mocks the GetByDomainID method.
 	GetByDomainIDFunc func(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error)
@@ -74,6 +80,13 @@ type EmailAddressRepositoryMock struct {
 			Ctx context.Context
 			// ID is the id argument value.
 			ID uuid.UUID
+		}
+		// GetByAddress holds details about calls to the GetByAddress method.
+		GetByAddress []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Address is the address argument value.
+			Address string
 		}
 		// GetByDomainID holds details about calls to the GetByDomainID method.
 		GetByDomainID []struct {
@@ -108,6 +121,7 @@ type EmailAddressRepositoryMock struct {
 	}
 	lockCreate                  sync.RWMutex
 	lockDelete                  sync.RWMutex
+	lockGetByAddress            sync.RWMutex
 	lockGetByDomainID           sync.RWMutex
 	lockGetByID                 sync.RWMutex
 	lockGetByLocalPartAndDomain sync.RWMutex
@@ -189,6 +203,46 @@ func (mock *EmailAddressRepositoryMock) DeleteCalls() []struct {
 	mock.lockDelete.RLock()
 	calls = mock.calls.Delete
 	mock.lockDelete.RUnlock()
+	return calls
+}
+
+// GetByAddress calls GetByAddressFunc.
+func (mock *EmailAddressRepositoryMock) GetByAddress(ctx context.Context, address string) (*entities.EmailAddress, error) {
+	callInfo := struct {
+		Ctx     context.Context
+		Address string
+	}{
+		Ctx:     ctx,
+		Address: address,
+	}
+	mock.lockGetByAddress.Lock()
+	mock.calls.GetByAddress = append(mock.calls.GetByAddress, callInfo)
+	mock.lockGetByAddress.Unlock()
+	if mock.GetByAddressFunc == nil {
+		var (
+			emailAddressOut *entities.EmailAddress
+			errOut          error
+		)
+		return emailAddressOut, errOut
+	}
+	return mock.GetByAddressFunc(ctx, address)
+}
+
+// GetByAddressCalls gets all the calls that were made to GetByAddress.
+// Check the length with:
+//
+//	len(mockedEmailAddressRepository.GetByAddressCalls())
+func (mock *EmailAddressRepositoryMock) GetByAddressCalls() []struct {
+	Ctx     context.Context
+	Address string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		Address string
+	}
+	mock.lockGetByAddress.RLock()
+	calls = mock.calls.GetByAddress
+	mock.lockGetByAddress.RUnlock()
 	return calls
 }
 

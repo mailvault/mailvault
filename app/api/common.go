@@ -1,9 +1,12 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/render"
 	"github.com/gofrs/uuid/v5"
@@ -105,10 +108,76 @@ type ErrorResponseBody struct {
 }
 
 func ErrorResponse(w http.ResponseWriter, r *http.Request, code int, err error) {
+	// Sanitize error message to prevent information leakage
+	sanitizedError := sanitizeError(err, code)
+
 	render.Status(r, code)
 	render.JSON(w, r, ErrorResponseBody{
-		Error: err.Error(),
+		Error: sanitizedError,
 	})
+}
+
+// SafeErrorResponse logs the real error and returns a sanitized error to the client
+func SafeErrorResponse(w http.ResponseWriter, r *http.Request, code int, err error, userMsg string) {
+	// Log the real error for debugging
+	slog.Error("API Error",
+		"path", r.URL.Path,
+		"method", r.Method,
+		"error", err.Error(),
+		"status_code", code,
+		"user_agent", r.Header.Get("User-Agent"),
+		"remote_addr", r.RemoteAddr,
+	)
+
+	// Send safe message to user
+	render.Status(r, code)
+	render.JSON(w, r, ErrorResponseBody{
+		Error: userMsg,
+	})
+}
+
+// sanitizeError prevents sensitive information from leaking in error messages
+func sanitizeError(err error, code int) string {
+	if err == nil {
+		return "unknown error"
+	}
+
+	errStr := err.Error()
+
+	// Handle specific error types safely
+	if errors.Is(err, sql.ErrNoRows) {
+		return "resource not found"
+	}
+
+	// Sanitize database errors
+	if strings.Contains(errStr, "database") ||
+	   strings.Contains(errStr, "postgres") ||
+	   strings.Contains(errStr, "connection") {
+		return "service temporarily unavailable"
+	}
+
+	// Sanitize file system errors
+	if strings.Contains(errStr, "permission denied") ||
+	   strings.Contains(errStr, "access denied") ||
+	   strings.Contains(errStr, "file not found") {
+		return "access denied"
+	}
+
+	// Sanitize validation errors - these are usually safe to show
+	if code == http.StatusBadRequest || code == http.StatusUnprocessableEntity {
+		// Allow validation errors but strip sensitive paths
+		if strings.Contains(errStr, "/") || strings.Contains(errStr, "\\") {
+			return "invalid input format"
+		}
+		return errStr
+	}
+
+	// For server errors, return generic message
+	if code >= 500 {
+		return "internal server error"
+	}
+
+	return errStr
 }
 
 // ParseJSON parses JSON from request body

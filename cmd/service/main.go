@@ -35,7 +35,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"mailvault/app/api"
@@ -45,12 +44,12 @@ import (
 	"mailvault/domain/email"
 	"mailvault/domain/user"
 	"mailvault/gateways/repository/pg"
-	"net/http"
 	"runtime"
 	"time"
 
 	_ "mailvault/docs" // swagger docs
 
+	goxhttp "github.com/guilhermebr/gox/http"
 	"github.com/guilhermebr/gox/logger"
 	"github.com/guilhermebr/gox/postgres"
 )
@@ -131,6 +130,8 @@ func main() {
 		EmailUseCase:  emailUseCase,
 		AuthSecretKey: cfg.AuthSecretKey,
 		AuthTokenTTL:  cfg.AuthTokenTTL,
+		Logger:        log,
+		HealthChecker: conn, // postgres connection implements the Ping interface
 	}
 
 	router := api.Router()
@@ -138,18 +139,30 @@ func main() {
 
 	// SERVER
 	// ------------------------------------------
-	server := http.Server{
-		Handler:           router,
-		Addr:              cfg.ApiAddress,
-		ReadHeaderTimeout: 60 * time.Second,
-	}
-	log.Info("server started",
-		slog.String("address", server.Addr),
+	log.Info("server starting",
+		slog.String("address", cfg.ApiAddress),
+		slog.String("environment", cfg.Environment),
 	)
 
-	if serverErr := server.ListenAndServe(); serverErr != nil && !errors.Is(serverErr, http.ErrServerClosed) {
-		log.Error("failed to listen and serve server",
-			slog.String("error", serverErr.Error()),
+	// Configure server with graceful shutdown using gox/http
+	serverConfig := goxhttp.Config{
+		Address:           cfg.ApiAddress,
+		ReadHeaderTimeout: 60 * time.Second,
+		ReadTimeout:       120 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ShutdownTimeout:   30 * time.Second,
+	}
+
+	httpServer := goxhttp.NewServerWithConfig("api", router, serverConfig, log)
+
+	log.Info("server address", slog.String("address", httpServer.Address()))
+
+	if err := httpServer.StartWithGracefulShutdown(); err != nil {
+		log.Error("server failed",
+			slog.String("error", err.Error()),
 		)
 	}
+
+	log.Info("server shutdown completed")
 }

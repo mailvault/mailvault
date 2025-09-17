@@ -17,6 +17,7 @@ type EmailAddressRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)
 	GetByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error)
 	GetByLocalPartAndDomain(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error)
+	GetByAddress(ctx context.Context, address string) (*entities.EmailAddress, error)
 	Update(ctx context.Context, emailAddress *entities.EmailAddress) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }

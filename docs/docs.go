@@ -846,7 +846,7 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Check if the API is running and healthy",
+                "description": "Check if the API is running and healthy, including database connectivity",
                 "produces": [
                     "application/json"
                 ],
@@ -858,10 +858,39 @@ const docTemplate = `{
                     "200": {
                         "description": "API is healthy",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/v1.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "API is unhealthy",
+                        "schema": {
+                            "$ref": "#/definitions/v1.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ready": {
+            "get": {
+                "description": "Check if the API is ready to accept traffic (focused on critical dependencies)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Readiness check",
+                "responses": {
+                    "200": {
+                        "description": "API is ready",
+                        "schema": {
+                            "$ref": "#/definitions/v1.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "API is not ready",
+                        "schema": {
+                            "$ref": "#/definitions/v1.HealthResponse"
                         }
                     }
                 }
@@ -1577,6 +1606,40 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.HealthCheck": {
+            "type": "object",
+            "properties": {
+                "duration": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "checks": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/v1.HealthCheck"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "version": {
                     "type": "string"
                 }
             }

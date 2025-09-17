@@ -325,6 +325,28 @@ definitions:
       id:
         type: string
     type: object
+  v1.HealthCheck:
+    properties:
+      duration:
+        type: string
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  v1.HealthResponse:
+    properties:
+      checks:
+        additionalProperties:
+          $ref: '#/definitions/v1.HealthCheck'
+        type: object
+      status:
+        type: string
+      timestamp:
+        type: string
+      version:
+        type: string
+    type: object
 host: :3000
 info:
   contact:
@@ -893,17 +915,37 @@ paths:
       - Emails
   /health:
     get:
-      description: Check if the API is running and healthy
+      description: Check if the API is running and healthy, including database connectivity
       produces:
       - application/json
       responses:
         "200":
           description: API is healthy
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/v1.HealthResponse'
+        "503":
+          description: API is unhealthy
+          schema:
+            $ref: '#/definitions/v1.HealthResponse'
       summary: Health check
+      tags:
+      - System
+  /ready:
+    get:
+      description: Check if the API is ready to accept traffic (focused on critical
+        dependencies)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API is ready
+          schema:
+            $ref: '#/definitions/v1.HealthResponse'
+        "503":
+          description: API is not ready
+          schema:
+            $ref: '#/definitions/v1.HealthResponse'
+      summary: Readiness check
       tags:
       - System
   /received/{receivedEmailId}:

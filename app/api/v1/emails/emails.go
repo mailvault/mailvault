@@ -23,6 +23,7 @@ type UseCase interface {
 	CreateEmailAddressFromInput(ctx context.Context, req email.CreateEmailAddressInput) (*entities.EmailAddress, error)
 	GetEmailAddressesByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error)
 	GetEmailAddressByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)
+	GetEmailAddressByAddress(ctx context.Context, address string) (*entities.EmailAddress, error)
 	UpdateEmailAddress(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error)
 	DeleteEmailAddress(ctx context.Context, id uuid.UUID) error
 	GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)

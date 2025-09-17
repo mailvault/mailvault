@@ -29,6 +29,9 @@ import (
 //			GetDomainByIDFunc: func(ctx context.Context, domainID uuid.UUID) (*entities.Domain, error) {
 //				panic("mock out the GetDomainByID method")
 //			},
+//			GetEmailAddressByAddressFunc: func(ctx context.Context, address string) (*entities.EmailAddress, error) {
+//				panic("mock out the GetEmailAddressByAddress method")
+//			},
 //			GetEmailAddressByIDFunc: func(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 //				panic("mock out the GetEmailAddressByID method")
 //			},
@@ -65,6 +68,9 @@ type UseCaseMock struct {
 
 	// GetDomainByIDFunc mocks the GetDomainByID method.
 	GetDomainByIDFunc func(ctx context.Context, domainID uuid.UUID) (*entities.Domain, error)
+
+	// GetEmailAddressByAddressFunc mocks the GetEmailAddressByAddress method.
+	GetEmailAddressByAddressFunc func(ctx context.Context, address string) (*entities.EmailAddress, error)
 
 	// GetEmailAddressByIDFunc mocks the GetEmailAddressByID method.
 	GetEmailAddressByIDFunc func(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error)
@@ -115,6 +121,13 @@ type UseCaseMock struct {
 			Ctx context.Context
 			// DomainID is the domainID argument value.
 			DomainID uuid.UUID
+		}
+		// GetEmailAddressByAddress holds details about calls to the GetEmailAddressByAddress method.
+		GetEmailAddressByAddress []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Address is the address argument value.
+			Address string
 		}
 		// GetEmailAddressByID holds details about calls to the GetEmailAddressByID method.
 		GetEmailAddressByID []struct {
@@ -177,6 +190,7 @@ type UseCaseMock struct {
 	lockDeleteEmailAddress          sync.RWMutex
 	lockDeleteReceivedEmail         sync.RWMutex
 	lockGetDomainByID               sync.RWMutex
+	lockGetEmailAddressByAddress    sync.RWMutex
 	lockGetEmailAddressByID         sync.RWMutex
 	lockGetEmailAddressesByDomainID sync.RWMutex
 	lockGetReceivedEmailByID        sync.RWMutex
@@ -344,6 +358,46 @@ func (mock *UseCaseMock) GetDomainByIDCalls() []struct {
 	mock.lockGetDomainByID.RLock()
 	calls = mock.calls.GetDomainByID
 	mock.lockGetDomainByID.RUnlock()
+	return calls
+}
+
+// GetEmailAddressByAddress calls GetEmailAddressByAddressFunc.
+func (mock *UseCaseMock) GetEmailAddressByAddress(ctx context.Context, address string) (*entities.EmailAddress, error) {
+	callInfo := struct {
+		Ctx     context.Context
+		Address string
+	}{
+		Ctx:     ctx,
+		Address: address,
+	}
+	mock.lockGetEmailAddressByAddress.Lock()
+	mock.calls.GetEmailAddressByAddress = append(mock.calls.GetEmailAddressByAddress, callInfo)
+	mock.lockGetEmailAddressByAddress.Unlock()
+	if mock.GetEmailAddressByAddressFunc == nil {
+		var (
+			emailAddressOut *entities.EmailAddress
+			errOut          error
+		)
+		return emailAddressOut, errOut
+	}
+	return mock.GetEmailAddressByAddressFunc(ctx, address)
+}
+
+// GetEmailAddressByAddressCalls gets all the calls that were made to GetEmailAddressByAddress.
+// Check the length with:
+//
+//	len(mockedUseCase.GetEmailAddressByAddressCalls())
+func (mock *UseCaseMock) GetEmailAddressByAddressCalls() []struct {
+	Ctx     context.Context
+	Address string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		Address string
+	}
+	mock.lockGetEmailAddressByAddress.RLock()
+	calls = mock.calls.GetEmailAddressByAddress
+	mock.lockGetEmailAddressByAddress.RUnlock()
 	return calls
 }
 
