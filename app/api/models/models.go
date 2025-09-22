@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // User represents a user in the system
@@ -178,4 +180,108 @@ type PaginatedResponse struct {
 		Offset int `json:"offset" example:"0"`
 		Total  int `json:"total,omitempty" example:"100"`
 	} `json:"pagination"`
+}
+
+// Domain validation types
+
+// DomainValidationResponse represents the response for domain validation requests
+// @Description Domain validation response with instructions and status
+type DomainValidationResponse struct {
+	DomainID          uuid.UUID                `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DomainName        string                   `json:"domain_name" example:"example.com"`
+	Status            string                   `json:"status" example:"pending"`
+	Instructions      ValidationInstructions   `json:"instructions"`
+	VerificationToken *string                  `json:"verification_token,omitempty" example:"abc123def456"`
+	LastAttempt       *time.Time               `json:"last_attempt,omitempty" example:"2023-01-01T00:00:00Z"`
+	NextAttempt       *time.Time               `json:"next_attempt,omitempty" example:"2023-01-01T01:00:00Z"`
+	Attempts          int                      `json:"attempts" example:"1"`
+	Error             *string                  `json:"error,omitempty" example:"DNS records not found"`
+}
+
+// DomainValidationStatusResponse represents the validation status response
+// @Description Detailed domain validation status with history
+type DomainValidationStatusResponse struct {
+	DomainID          uuid.UUID          `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DomainName        string             `json:"domain_name" example:"example.com"`
+	Status            string             `json:"status" example:"verified"`
+	VerificationToken *string            `json:"verification_token,omitempty" example:"abc123def456"`
+	LastAttempt       *time.Time         `json:"last_attempt,omitempty" example:"2023-01-01T00:00:00Z"`
+	NextAttempt       *time.Time         `json:"next_attempt,omitempty" example:"2023-01-01T01:00:00Z"`
+	Attempts          int                `json:"attempts" example:"2"`
+	Error             *string            `json:"error,omitempty" example:"TXT record validation failed"`
+	History           []ValidationRecord `json:"history"`
+	IsVerified        bool               `json:"is_verified" example:"true"`
+	CanRetry          bool               `json:"can_retry" example:"false"`
+	TXTRecord         string             `json:"txt_record" example:"mailvault-verification=abc123def456"`
+}
+
+// ValidationInstructionsResponse represents validation setup instructions
+// @Description Complete validation instructions for domain setup
+type ValidationInstructionsResponse struct {
+	DomainID            uuid.UUID              `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DomainName          string                 `json:"domain_name" example:"example.com"`
+	Status              string                 `json:"status" example:"pending"`
+	Instructions        ValidationInstructions `json:"instructions"`
+	VerificationSteps   []string               `json:"verification_steps"`
+	TroubleshootingTips []string               `json:"troubleshooting_tips"`
+	VerificationToken   *string                `json:"verification_token,omitempty" example:"abc123def456"`
+}
+
+// ValidationInstructions provides DNS setup instructions
+// @Description DNS setup instructions for domain validation
+type ValidationInstructions struct {
+	MXRecords MXRecordInstructions `json:"mx_records"`
+	TXTRecord TXTRecordInstructions `json:"txt_record"`
+}
+
+// MXRecordInstructions provides MX record setup instructions
+// @Description MX record setup instructions
+type MXRecordInstructions struct {
+	RequiredRecords []MXRecordInfo `json:"required_records"`
+	Instructions    string         `json:"instructions" example:"Add these MX records to your DNS configuration"`
+	Example         string         `json:"example,omitempty"`
+}
+
+// TXTRecordInstructions provides TXT record setup instructions
+// @Description TXT record setup instructions for domain verification
+type TXTRecordInstructions struct {
+	RecordName   string `json:"record_name" example:"example.com"`
+	RecordValue  string `json:"record_value" example:"mailvault-verification=abc123def456"`
+	Instructions string `json:"instructions" example:"Add this TXT record to verify domain ownership"`
+	Example      string `json:"example,omitempty"`
+}
+
+// MXRecordInfo represents an MX record configuration
+// @Description MX record information
+type MXRecordInfo struct {
+	Host     string `json:"host" example:"mail.mailvault.sh"`
+	Priority int    `json:"priority" example:"10"`
+}
+
+// ValidationRecord represents a validation attempt record
+// @Description Individual validation attempt record
+type ValidationRecord struct {
+	ID             uuid.UUID            `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ValidationType string               `json:"validation_type" example:"full_validation"`
+	Status         string               `json:"status" example:"success"`
+	Details        ValidationDetails    `json:"details"`
+	StartedAt      time.Time            `json:"started_at" example:"2023-01-01T00:00:00Z"`
+	CompletedAt    *time.Time           `json:"completed_at,omitempty" example:"2023-01-01T00:00:30Z"`
+	ErrorMessage   *string              `json:"error_message,omitempty" example:"DNS timeout"`
+	CreatedAt      time.Time            `json:"created_at" example:"2023-01-01T00:00:00Z"`
+}
+
+// ValidationDetails contains detailed validation results
+// @Description Detailed validation results including DNS records found
+type ValidationDetails struct {
+	ExpectedMXServers   []string       `json:"expected_mx_servers,omitempty" example:"[\"mail.mailvault.sh\", \"mail2.mailvault.sh\"]"`
+	FoundMXRecords      []MXRecordInfo `json:"found_mx_records,omitempty"`
+	MXValidationPassed  bool           `json:"mx_validation_passed,omitempty" example:"true"`
+	ExpectedTXTRecord   string         `json:"expected_txt_record,omitempty" example:"mailvault-verification=abc123def456"`
+	FoundTXTRecords     []string       `json:"found_txt_records,omitempty" example:"[\"mailvault-verification=abc123def456\"]"`
+	TXTValidationPassed bool           `json:"txt_validation_passed,omitempty" example:"true"`
+	DNSServer           string         `json:"dns_server,omitempty" example:"8.8.8.8:53"`
+	QueryTime           string         `json:"query_time,omitempty" example:"250ms"`
+	RetryCount          int            `json:"retry_count,omitempty" example:"0"`
+	ErrorDetails        string         `json:"error_details,omitempty" example:"Connection timeout"`
 }

@@ -70,28 +70,50 @@ type EmailAddressResult struct {
 
 // ReceivedEmailResult represents received email data in responses
 type ReceivedEmailResult struct {
-	ID             string `json:"id"`
-	SequenceNumber int    `json:"sequence_number"`
-	FromAddress    string `json:"from_address"`
-	Subject        string `json:"subject"`
-	EncryptedBody  string `json:"encrypted_body"`
-	DomainName     string `json:"domain_name"`
-	EmailAddress   string `json:"email_address"`
-	ReceivedAt     string `json:"received_at"`
+	ID               string                  `json:"id"`
+	SequenceNumber   int                     `json:"sequence_number"`
+	FromAddress      string                  `json:"from_address"`
+	Subject          string                  `json:"subject"`
+	EncryptedBody    string                  `json:"encrypted_body"`
+	DomainName       string                  `json:"domain_name"`
+	EmailAddress     string                  `json:"email_address"`
+	ReceivedAt       string                  `json:"received_at"`
+	SMTPVerification *SMTPVerificationResult `json:"smtp_verification,omitempty"`
+}
+
+type SMTPVerificationResult struct {
+	VerifiedAt         string  `json:"verified_at"`
+	SenderIP           string  `json:"sender_ip"`
+	SenderDomain       string  `json:"sender_domain"`
+	SPFResult          string  `json:"spf_result"`
+	SPFMechanism       string  `json:"spf_mechanism"`
+	DKIMValid          bool    `json:"dkim_valid"`
+	DKIMDomain         string  `json:"dkim_domain"`
+	DKIMSelector       string  `json:"dkim_selector"`
+	DMARCResult        string  `json:"dmarc_result"`
+	DMARCPolicy        string  `json:"dmarc_policy"`
+	DMARCAlignmentSPF  bool    `json:"dmarc_alignment_spf"`
+	DMARCAlignmentDKIM bool    `json:"dmarc_alignment_dkim"`
+	SpamScore          float64 `json:"spam_score"`
+	ContentVerdict     string  `json:"content_verdict"`
+	ReputationScore    float64 `json:"reputation_score"`
+	IsBlacklisted      bool    `json:"is_blacklisted"`
+	FinalAction        string  `json:"final_action"`
+	IsQuarantined      bool    `json:"is_quarantined"`
 }
 
 // ParsedEmailResult represents parsed email content in API responses
 type ParsedEmailResult struct {
-	ID                string                           `json:"id"`
-	SequenceNumber    int                              `json:"sequence_number"`
-	FromAddress       string                           `json:"from_address"`
-	Subject           string                           `json:"subject"`
-	DomainName        string                           `json:"domain_name"`
-	EmailAddress      string                           `json:"email_address"`
-	ReceivedAt        string                           `json:"received_at"`
-	ParsedContent     *emailrender.EmailResponse       `json:"parsed_content,omitempty"`
-	AvailableFormats  []string                         `json:"available_formats,omitempty"`
-	RenderingError    string                           `json:"rendering_error,omitempty"`
+	ID               string                     `json:"id"`
+	SequenceNumber   int                        `json:"sequence_number"`
+	FromAddress      string                     `json:"from_address"`
+	Subject          string                     `json:"subject"`
+	DomainName       string                     `json:"domain_name"`
+	EmailAddress     string                     `json:"email_address"`
+	ReceivedAt       string                     `json:"received_at"`
+	ParsedContent    *emailrender.EmailResponse `json:"parsed_content,omitempty"`
+	AvailableFormats []string                   `json:"available_formats,omitempty"`
+	RenderingError   string                     `json:"rendering_error,omitempty"`
 }
 
 // CreateEmailAddress creates a new email address for a domain
@@ -547,14 +569,39 @@ func (h *EmailsHandlers) mapReceivedEmailToResult(receivedEmail *entities.Receiv
 	}
 
 	return &ReceivedEmailResult{
-		ID:             receivedEmail.ID.String(),
-		SequenceNumber: receivedEmail.SequenceNumber,
-		FromAddress:    receivedEmail.FromAddress,
-		Subject:        subject,
-		EncryptedBody:  receivedEmail.EncryptedBody,
-		DomainName:     receivedEmail.DomainName,
-		EmailAddress:   receivedEmail.EmailAddress,
-		ReceivedAt:     receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:               receivedEmail.ID.String(),
+		SequenceNumber:   receivedEmail.SequenceNumber,
+		FromAddress:      receivedEmail.FromAddress,
+		Subject:          subject,
+		EncryptedBody:    receivedEmail.EncryptedBody,
+		DomainName:       receivedEmail.DomainName,
+		EmailAddress:     receivedEmail.EmailAddress,
+		ReceivedAt:       receivedEmail.ReceivedAt.Format("2006-01-02T15:04:05Z07:00"),
+		SMTPVerification: h.mapSMTPVerificationToResult(receivedEmail.SMTPVerification),
+	}
+}
+
+// mapSMTPVerificationToResult converts SMTP verification entity to API result
+func (h *EmailsHandlers) mapSMTPVerificationToResult(smtpVerification *entities.SMTPVerificationStat) *SMTPVerificationResult {
+	return &SMTPVerificationResult{
+		VerifiedAt:         smtpVerification.VerifiedAt.Format("2006-01-02T15:04:05Z07:00"),
+		SenderIP:           smtpVerification.SenderIP.String(),
+		SenderDomain:       smtpVerification.SenderDomain,
+		SPFResult:          smtpVerification.SPFResult,
+		SPFMechanism:       smtpVerification.SPFMechanism,
+		DKIMValid:          smtpVerification.DKIMValid,
+		DKIMDomain:         smtpVerification.DKIMDomain,
+		DKIMSelector:       smtpVerification.DKIMSelector,
+		DMARCResult:        smtpVerification.DMARCResult,
+		DMARCPolicy:        smtpVerification.DMARCPolicy,
+		DMARCAlignmentSPF:  smtpVerification.DMARCAlignmentSPF,
+		DMARCAlignmentDKIM: smtpVerification.DMARCAlignmentDKIM,
+		SpamScore:          smtpVerification.SpamScore,
+		ContentVerdict:     smtpVerification.ContentVerdict,
+		ReputationScore:    smtpVerification.ReputationScore,
+		IsBlacklisted:      smtpVerification.IsBlacklisted,
+		FinalAction:        smtpVerification.FinalAction,
+		IsQuarantined:      smtpVerification.IsQuarantined,
 	}
 }
 

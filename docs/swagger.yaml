@@ -1,4 +1,3 @@
-basePath: /api/v1
 definitions:
   app_api_v1_auth.LoginRequest:
     properties:
@@ -255,7 +254,48 @@ definitions:
         type: string
       sequence_number:
         type: integer
+      smtp_verification:
+        $ref: '#/definitions/emails.SMTPVerificationResult'
       subject:
+        type: string
+    type: object
+  emails.SMTPVerificationResult:
+    properties:
+      content_verdict:
+        type: string
+      dkim_domain:
+        type: string
+      dkim_selector:
+        type: string
+      dkim_valid:
+        type: boolean
+      dmarc_alignment_dkim:
+        type: boolean
+      dmarc_alignment_spf:
+        type: boolean
+      dmarc_policy:
+        type: string
+      dmarc_result:
+        type: string
+      final_action:
+        type: string
+      is_blacklisted:
+        type: boolean
+      is_quarantined:
+        type: boolean
+      reputation_score:
+        type: number
+      sender_domain:
+        type: string
+      sender_ip:
+        type: string
+      spam_score:
+        type: number
+      spf_mechanism:
+        type: string
+      spf_result:
+        type: string
+      verified_at:
         type: string
     type: object
   emails.UpdateEmailRequest:
@@ -265,11 +305,105 @@ definitions:
           type: string
         type: array
     type: object
+  models.DomainValidationResponse:
+    description: Domain validation response with instructions and status
+    properties:
+      attempts:
+        example: 1
+        type: integer
+      domain_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      domain_name:
+        example: example.com
+        type: string
+      error:
+        example: DNS records not found
+        type: string
+      instructions:
+        $ref: '#/definitions/models.ValidationInstructions'
+      last_attempt:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      next_attempt:
+        example: "2023-01-01T01:00:00Z"
+        type: string
+      status:
+        example: pending
+        type: string
+      verification_token:
+        example: abc123def456
+        type: string
+    type: object
+  models.DomainValidationStatusResponse:
+    description: Detailed domain validation status with history
+    properties:
+      attempts:
+        example: 2
+        type: integer
+      can_retry:
+        example: false
+        type: boolean
+      domain_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      domain_name:
+        example: example.com
+        type: string
+      error:
+        example: TXT record validation failed
+        type: string
+      history:
+        items:
+          $ref: '#/definitions/models.ValidationRecord'
+        type: array
+      is_verified:
+        example: true
+        type: boolean
+      last_attempt:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      next_attempt:
+        example: "2023-01-01T01:00:00Z"
+        type: string
+      status:
+        example: verified
+        type: string
+      txt_record:
+        example: mailvault-verification=abc123def456
+        type: string
+      verification_token:
+        example: abc123def456
+        type: string
+    type: object
   models.ErrorResponseBody:
     properties:
       error:
         example: Invalid request
         type: string
+    type: object
+  models.MXRecordInfo:
+    description: MX record information
+    properties:
+      host:
+        example: mail.mailvault.sh
+        type: string
+      priority:
+        example: 10
+        type: integer
+    type: object
+  models.MXRecordInstructions:
+    description: MX record setup instructions
+    properties:
+      example:
+        type: string
+      instructions:
+        example: Add these MX records to your DNS configuration
+        type: string
+      required_records:
+        items:
+          $ref: '#/definitions/models.MXRecordInfo'
+        type: array
     type: object
   models.PaginatedResponse:
     properties:
@@ -286,6 +420,124 @@ definitions:
             example: 100
             type: integer
         type: object
+    type: object
+  models.TXTRecordInstructions:
+    description: TXT record setup instructions for domain verification
+    properties:
+      example:
+        type: string
+      instructions:
+        example: Add this TXT record to verify domain ownership
+        type: string
+      record_name:
+        example: example.com
+        type: string
+      record_value:
+        example: mailvault-verification=abc123def456
+        type: string
+    type: object
+  models.ValidationDetails:
+    description: Detailed validation results including DNS records found
+    properties:
+      dns_server:
+        example: 8.8.8.8:53
+        type: string
+      error_details:
+        example: Connection timeout
+        type: string
+      expected_mx_servers:
+        example:
+        - '["mail.mailvault.sh"'
+        - ' "mail2.mailvault.sh"]'
+        items:
+          type: string
+        type: array
+      expected_txt_record:
+        example: mailvault-verification=abc123def456
+        type: string
+      found_mx_records:
+        items:
+          $ref: '#/definitions/models.MXRecordInfo'
+        type: array
+      found_txt_records:
+        example:
+        - '["mailvault-verification=abc123def456"]'
+        items:
+          type: string
+        type: array
+      mx_validation_passed:
+        example: true
+        type: boolean
+      query_time:
+        example: 250ms
+        type: string
+      retry_count:
+        example: 0
+        type: integer
+      txt_validation_passed:
+        example: true
+        type: boolean
+    type: object
+  models.ValidationInstructions:
+    description: DNS setup instructions for domain validation
+    properties:
+      mx_records:
+        $ref: '#/definitions/models.MXRecordInstructions'
+      txt_record:
+        $ref: '#/definitions/models.TXTRecordInstructions'
+    type: object
+  models.ValidationInstructionsResponse:
+    description: Complete validation instructions for domain setup
+    properties:
+      domain_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      domain_name:
+        example: example.com
+        type: string
+      instructions:
+        $ref: '#/definitions/models.ValidationInstructions'
+      status:
+        example: pending
+        type: string
+      troubleshooting_tips:
+        items:
+          type: string
+        type: array
+      verification_steps:
+        items:
+          type: string
+        type: array
+      verification_token:
+        example: abc123def456
+        type: string
+    type: object
+  models.ValidationRecord:
+    description: Individual validation attempt record
+    properties:
+      completed_at:
+        example: "2023-01-01T00:00:30Z"
+        type: string
+      created_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      details:
+        $ref: '#/definitions/models.ValidationDetails'
+      error_message:
+        example: DNS timeout
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      started_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      status:
+        example: success
+        type: string
+      validation_type:
+        example: full_validation
+        type: string
     type: object
   send.SendEmailRequest:
     properties:
@@ -353,33 +605,8 @@ definitions:
       version:
         type: string
     type: object
-host: :3000
 info:
-  contact:
-    email: support@mailvault.sh
-    name: MailVault Support
-    url: https://mailvault.sh/support
-  description: |-
-    A private email service API that provides secure email management with domain-based configuration, encrypted storage, and developer-friendly endpoints.
-
-    MailVault allows users to:
-    - Manage custom domains for email services
-    - Create and configure email addresses with forwarding and catch-all options
-    - Send emails via API using domain API keys
-    - Receive and store encrypted emails
-    - Access received emails through secure endpoints
-
-    ## Authentication
-    The API uses JWT tokens for user authentication. Some endpoints require API keys for domain-specific operations.
-
-    ## Rate Limiting
-    API endpoints are rate limited to prevent abuse. See individual endpoint documentation for specific limits.
-  license:
-    name: MIT
-    url: https://github.com/guilhermebr/mailvault/blob/main/LICENSE
-  termsOfService: https://mailvault.sh/terms
-  title: MailVault API
-  version: "1.0"
+  contact: {}
 paths:
   /auth/login:
     post:
@@ -878,6 +1105,164 @@ paths:
       summary: Update domain
       tags:
       - Domains
+  /domains/{id}/validate:
+    post:
+      consumes:
+      - application/json
+      description: Manually trigger domain validation for DNS records
+      parameters:
+      - description: Domain ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DomainValidationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Validate domain
+      tags:
+      - domains
+  /domains/{id}/validation/instructions:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed instructions for setting up DNS records for domain
+        validation
+      parameters:
+      - description: Domain ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ValidationInstructionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get domain validation instructions
+      tags:
+      - domains
+  /domains/{id}/validation/retry:
+    post:
+      consumes:
+      - application/json
+      description: Manually retry domain validation, resetting the status and attempting
+        validation again
+      parameters:
+      - description: Domain ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DomainValidationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Retry domain validation
+      tags:
+      - domains
+  /domains/{id}/validation/status:
+    get:
+      consumes:
+      - application/json
+      description: Get the current validation status and history for a domain
+      parameters:
+      - description: Domain ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DomainValidationStatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get domain validation status
+      tags:
+      - domains
   /emails/received:
     get:
       consumes:
@@ -1100,18 +1485,4 @@ paths:
       summary: Send email
       tags:
       - Email Sending
-schemes:
-- http
-- https
-securityDefinitions:
-  ApiKeyAuth:
-    description: Domain API key for sending emails
-    in: header
-    name: X-API-Key
-    type: apiKey
-  BearerAuth:
-    description: 'JWT token authentication. Format: "Bearer {token}"'
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

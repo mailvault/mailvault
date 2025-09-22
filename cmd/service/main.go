@@ -1,36 +1,3 @@
-// @title MailVault API
-// @version 1.0
-// @description A private email service API that provides secure email management with domain-based configuration, encrypted storage, and developer-friendly endpoints.
-// @description
-// @description MailVault allows users to:
-// @description - Manage custom domains for email services
-// @description - Create and configure email addresses with forwarding and catch-all options
-// @description - Send emails via API using domain API keys
-// @description - Receive and store encrypted emails
-// @description - Access received emails through secure endpoints
-// @description
-// @description ## Authentication
-// @description The API uses JWT tokens for user authentication. Some endpoints require API keys for domain-specific operations.
-// @description
-// @description ## Rate Limiting
-// @description API endpoints are rate limited to prevent abuse. See individual endpoint documentation for specific limits.
-// @termsOfService https://mailvault.sh/terms
-// @contact.name MailVault Support
-// @contact.url https://mailvault.sh/support
-// @contact.email support@mailvault.sh
-// @license.name MIT
-// @license.url https://github.com/guilhermebr/mailvault/blob/main/LICENSE
-// @host :3000
-// @BasePath /api/v1
-// @schemes http https
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description JWT token authentication. Format: "Bearer {token}"
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name X-API-Key
-// @description Domain API key for sending emails
 package main
 
 import (
@@ -161,7 +128,7 @@ func main() {
 		AuthSecretKey:     cfg.AuthSecretKey,
 		AuthTokenTTL:      cfg.AuthTokenTTL,
 		Logger:            log,
-		HealthChecker:     dbPool, // optimized database pool implements the Ping interface
+		HealthChecker:     dbPool,    // optimized database pool implements the Ping interface
 		MetricsMiddleware: metricsMw, // Pass metrics middleware for business metrics
 	}
 

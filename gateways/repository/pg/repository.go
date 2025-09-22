@@ -6,6 +6,7 @@ import (
 	domain "mailvault/domain/domain"
 	"mailvault/domain/email"
 	"mailvault/domain/user"
+	"mailvault/domain/validation"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -26,6 +27,7 @@ type Repository struct {
 	DomainRepo        domain.Repository
 	EmailAddressRepo  email.EmailAddressRepository
 	ReceivedEmailRepo email.ReceivedEmailRepository
+	ValidationRepo    validation.Repository
 }
 
 // NewRepository creates a new Repository instance with all sub-repositories
@@ -36,6 +38,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 		DomainRepo:        NewDomainRepository(db),
 		EmailAddressRepo:  NewEmailAddressRepository(db),
 		ReceivedEmailRepo: NewReceivedEmailRepository(db),
+		ValidationRepo:    NewValidationRepository(db),
 	}
 }
 
@@ -47,6 +50,7 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 		DomainRepo:        NewDomainRepository(tx),
 		EmailAddressRepo:  NewEmailAddressRepository(tx),
 		ReceivedEmailRepo: NewReceivedEmailRepository(tx),
+		ValidationRepo:    NewValidationRepository(tx),
 	}
 }
 

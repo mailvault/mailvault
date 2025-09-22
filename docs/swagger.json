@@ -1,26 +1,8 @@
 {
-    "schemes": [
-        "http",
-        "https"
-    ],
     "swagger": "2.0",
     "info": {
-        "description": "A private email service API that provides secure email management with domain-based configuration, encrypted storage, and developer-friendly endpoints.\n\nMailVault allows users to:\n- Manage custom domains for email services\n- Create and configure email addresses with forwarding and catch-all options\n- Send emails via API using domain API keys\n- Receive and store encrypted emails\n- Access received emails through secure endpoints\n\n## Authentication\nThe API uses JWT tokens for user authentication. Some endpoints require API keys for domain-specific operations.\n\n## Rate Limiting\nAPI endpoints are rate limited to prevent abuse. See individual endpoint documentation for specific limits.",
-        "title": "MailVault API",
-        "termsOfService": "https://mailvault.sh/terms",
-        "contact": {
-            "name": "MailVault Support",
-            "url": "https://mailvault.sh/support",
-            "email": "support@mailvault.sh"
-        },
-        "license": {
-            "name": "MIT",
-            "url": "https://github.com/guilhermebr/mailvault/blob/main/LICENSE"
-        },
-        "version": "1.0"
+        "contact": {}
     },
-    "host": ":3000",
-    "basePath": "/api/v1",
     "paths": {
         "/auth/login": {
             "post": {
@@ -780,6 +762,250 @@
                 }
             }
         },
+        "/domains/{id}/validate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually trigger domain validation for DNS records",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domains"
+                ],
+                "summary": "Validate domain",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.DomainValidationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{id}/validation/instructions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed instructions for setting up DNS records for domain validation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domains"
+                ],
+                "summary": "Get domain validation instructions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationInstructionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{id}/validation/retry": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually retry domain validation, resetting the status and attempting validation again",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domains"
+                ],
+                "summary": "Retry domain validation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.DomainValidationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{id}/validation/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the current validation status and history for a domain",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domains"
+                ],
+                "summary": "Get domain validation status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.DomainValidationStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/emails/received": {
             "get": {
                 "security": [
@@ -1500,7 +1726,69 @@
                 "sequence_number": {
                     "type": "integer"
                 },
+                "smtp_verification": {
+                    "$ref": "#/definitions/emails.SMTPVerificationResult"
+                },
                 "subject": {
+                    "type": "string"
+                }
+            }
+        },
+        "emails.SMTPVerificationResult": {
+            "type": "object",
+            "properties": {
+                "content_verdict": {
+                    "type": "string"
+                },
+                "dkim_domain": {
+                    "type": "string"
+                },
+                "dkim_selector": {
+                    "type": "string"
+                },
+                "dkim_valid": {
+                    "type": "boolean"
+                },
+                "dmarc_alignment_dkim": {
+                    "type": "boolean"
+                },
+                "dmarc_alignment_spf": {
+                    "type": "boolean"
+                },
+                "dmarc_policy": {
+                    "type": "string"
+                },
+                "dmarc_result": {
+                    "type": "string"
+                },
+                "final_action": {
+                    "type": "string"
+                },
+                "is_blacklisted": {
+                    "type": "boolean"
+                },
+                "is_quarantined": {
+                    "type": "boolean"
+                },
+                "reputation_score": {
+                    "type": "number"
+                },
+                "sender_domain": {
+                    "type": "string"
+                },
+                "sender_ip": {
+                    "type": "string"
+                },
+                "spam_score": {
+                    "type": "number"
+                },
+                "spf_mechanism": {
+                    "type": "string"
+                },
+                "spf_result": {
+                    "type": "string"
+                },
+                "verified_at": {
                     "type": "string"
                 }
             }
@@ -1516,12 +1804,142 @@
                 }
             }
         },
+        "models.DomainValidationResponse": {
+            "description": "Domain validation response with instructions and status",
+            "type": "object",
+            "properties": {
+                "attempts": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "domain_name": {
+                    "type": "string",
+                    "example": "example.com"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "DNS records not found"
+                },
+                "instructions": {
+                    "$ref": "#/definitions/models.ValidationInstructions"
+                },
+                "last_attempt": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "next_attempt": {
+                    "type": "string",
+                    "example": "2023-01-01T01:00:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "pending"
+                },
+                "verification_token": {
+                    "type": "string",
+                    "example": "abc123def456"
+                }
+            }
+        },
+        "models.DomainValidationStatusResponse": {
+            "description": "Detailed domain validation status with history",
+            "type": "object",
+            "properties": {
+                "attempts": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "can_retry": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "domain_name": {
+                    "type": "string",
+                    "example": "example.com"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "TXT record validation failed"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ValidationRecord"
+                    }
+                },
+                "is_verified": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "last_attempt": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "next_attempt": {
+                    "type": "string",
+                    "example": "2023-01-01T01:00:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "verified"
+                },
+                "txt_record": {
+                    "type": "string",
+                    "example": "mailvault-verification=abc123def456"
+                },
+                "verification_token": {
+                    "type": "string",
+                    "example": "abc123def456"
+                }
+            }
+        },
         "models.ErrorResponseBody": {
             "type": "object",
             "properties": {
                 "error": {
                     "type": "string",
                     "example": "Invalid request"
+                }
+            }
+        },
+        "models.MXRecordInfo": {
+            "description": "MX record information",
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string",
+                    "example": "mail.mailvault.sh"
+                },
+                "priority": {
+                    "type": "integer",
+                    "example": 10
+                }
+            }
+        },
+        "models.MXRecordInstructions": {
+            "description": "MX record setup instructions",
+            "type": "object",
+            "properties": {
+                "example": {
+                    "type": "string"
+                },
+                "instructions": {
+                    "type": "string",
+                    "example": "Add these MX records to your DNS configuration"
+                },
+                "required_records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MXRecordInfo"
+                    }
                 }
             }
         },
@@ -1545,6 +1963,172 @@
                             "example": 100
                         }
                     }
+                }
+            }
+        },
+        "models.TXTRecordInstructions": {
+            "description": "TXT record setup instructions for domain verification",
+            "type": "object",
+            "properties": {
+                "example": {
+                    "type": "string"
+                },
+                "instructions": {
+                    "type": "string",
+                    "example": "Add this TXT record to verify domain ownership"
+                },
+                "record_name": {
+                    "type": "string",
+                    "example": "example.com"
+                },
+                "record_value": {
+                    "type": "string",
+                    "example": "mailvault-verification=abc123def456"
+                }
+            }
+        },
+        "models.ValidationDetails": {
+            "description": "Detailed validation results including DNS records found",
+            "type": "object",
+            "properties": {
+                "dns_server": {
+                    "type": "string",
+                    "example": "8.8.8.8:53"
+                },
+                "error_details": {
+                    "type": "string",
+                    "example": "Connection timeout"
+                },
+                "expected_mx_servers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"mail.mailvault.sh\"",
+                        " \"mail2.mailvault.sh\"]"
+                    ]
+                },
+                "expected_txt_record": {
+                    "type": "string",
+                    "example": "mailvault-verification=abc123def456"
+                },
+                "found_mx_records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MXRecordInfo"
+                    }
+                },
+                "found_txt_records": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"mailvault-verification=abc123def456\"]"
+                    ]
+                },
+                "mx_validation_passed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "query_time": {
+                    "type": "string",
+                    "example": "250ms"
+                },
+                "retry_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "txt_validation_passed": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.ValidationInstructions": {
+            "description": "DNS setup instructions for domain validation",
+            "type": "object",
+            "properties": {
+                "mx_records": {
+                    "$ref": "#/definitions/models.MXRecordInstructions"
+                },
+                "txt_record": {
+                    "$ref": "#/definitions/models.TXTRecordInstructions"
+                }
+            }
+        },
+        "models.ValidationInstructionsResponse": {
+            "description": "Complete validation instructions for domain setup",
+            "type": "object",
+            "properties": {
+                "domain_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "domain_name": {
+                    "type": "string",
+                    "example": "example.com"
+                },
+                "instructions": {
+                    "$ref": "#/definitions/models.ValidationInstructions"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "pending"
+                },
+                "troubleshooting_tips": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "verification_steps": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "verification_token": {
+                    "type": "string",
+                    "example": "abc123def456"
+                }
+            }
+        },
+        "models.ValidationRecord": {
+            "description": "Individual validation attempt record",
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:30Z"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "details": {
+                    "$ref": "#/definitions/models.ValidationDetails"
+                },
+                "error_message": {
+                    "type": "string",
+                    "example": "DNS timeout"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "started_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "validation_type": {
+                    "type": "string",
+                    "example": "full_validation"
                 }
             }
         },
@@ -1647,20 +2231,6 @@
                     "type": "string"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "ApiKeyAuth": {
-            "description": "Domain API key for sending emails",
-            "type": "apiKey",
-            "name": "X-API-Key",
-            "in": "header"
-        },
-        "BearerAuth": {
-            "description": "JWT token authentication. Format: \"Bearer {token}\"",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         }
     }
 }
