@@ -39,7 +39,6 @@ type CreateDomainInput struct {
 
 type UpdateDomainInput struct {
 	PublicKey         *string                 `json:"public_key,omitempty"`
-	Verified          *bool                   `json:"verified,omitempty"`
 	WebhookConfig     *entities.WebhookConfig `json:"webhook_config,omitempty"`
 	StorageEnabled    *bool                   `json:"storage_enabled,omitempty"`
 	AutoCreateAddress *bool                   `json:"auto_create_address,omitempty"`
@@ -119,6 +118,12 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 		return nil, fmt.Errorf("failed to generate API key: %w", err)
 	}
 
+	// Generate verification token immediately
+	verificationToken, err := generateVerificationToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate verification token: %w", err)
+	}
+
 	domain := &entities.Domain{
 		ID:                  uuid.Must(uuid.NewV4()),
 		UserID:              req.UserID,
@@ -126,10 +131,11 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 		PublicKey:           req.PublicKey, // Use user-provided public key
 		EncryptedPrivateKey: nil,           // No server-side private key storage
 		APIKey:              apiKey,
-		Verified:            false,
 		WebhookConfig:       req.WebhookConfig,
 		StorageEnabled:      storageEnabled,
 		AutoCreateAddress:   autoCreateAddress,
+		VerificationStatus:  entities.VerificationStatusPending,
+		VerificationToken:   verificationToken,
 		CreatedAt:           time.Now().UTC(),
 		UpdatedAt:           time.Now().UTC(),
 	}
@@ -211,9 +217,6 @@ func (uc *UseCase) UpdateDomain(ctx context.Context, id uuid.UUID, req UpdateDom
 	if req.PublicKey != nil {
 		domain.PublicKey = *req.PublicKey
 	}
-	if req.Verified != nil {
-		domain.Verified = *req.Verified
-	}
 	if req.WebhookConfig != nil {
 		// Validate webhook config if provided
 		if !req.WebhookConfig.IsValid() {
@@ -274,6 +277,15 @@ func generateAPIKey() (string, error) {
 		return "", err
 	}
 	return "pm_" + hex.EncodeToString(bytes), nil
+}
+
+// generateVerificationToken generates a random verification token
+func generateVerificationToken() (string, error) {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 // isValidDomain validates domain format

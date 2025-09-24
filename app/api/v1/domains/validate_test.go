@@ -310,8 +310,8 @@ func TestGetValidationStatus_Success(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if status.Status != "verified" {
-		t.Errorf("Expected status 'verified', got '%s'", status.Status)
+	if status.Status != string(validation.VerificationStatusVerified) {
+		t.Errorf("Expected status '%s', got '%s'", validation.VerificationStatusVerified, status.Status)
 	}
 
 	if status.Attempts != 2 {

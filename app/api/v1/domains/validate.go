@@ -312,9 +312,9 @@ func (h *DomainsHandlers) RetryValidation(w http.ResponseWriter, r *http.Request
 		},
 		VerificationToken: domain.VerificationToken,
 		LastAttempt:       domain.LastVerificationAttempt,
-		NextAttempt:       nil, // Reset next attempt
+		NextAttempt:       domain.NextVerificationAttempt,
 		Attempts:          domain.VerificationAttempts,
-		Error:             nil, // Clear previous error
+		Error:             domain.VerificationError,
 	}
 
 	api.SuccessResponse(w, r, validationInfo)

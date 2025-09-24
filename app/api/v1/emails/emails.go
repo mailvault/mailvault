@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"mailvault/app/api"
 	"mailvault/domain/email"
@@ -29,7 +30,7 @@ type UseCase interface {
 	GetReceivedEmails(ctx context.Context, emailID uuid.UUID, limit, offset int) ([]*entities.ReceivedEmail, error)
 	GetReceivedEmailByID(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) (*entities.ReceivedEmail, error)
 	DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid.UUID, userID uuid.UUID) error
-	GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
+	GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error)
 	GetDomainByID(ctx context.Context, domainID uuid.UUID) (*entities.Domain, error)
 }
 
@@ -424,7 +425,7 @@ func (h *EmailsHandlers) DeleteReceivedEmail(w http.ResponseWriter, r *http.Requ
 
 // ListReceivedEmailsForUser lists all received emails for a user across all domains
 // @Summary List user's received emails
-// @Description Get a list of all received emails for the authenticated user across all domains
+// @Description Get a list of all received emails for the authenticated user across all domains with advanced filtering
 // @Tags Emails
 // @Accept json
 // @Produce json
@@ -432,6 +433,16 @@ func (h *EmailsHandlers) DeleteReceivedEmail(w http.ResponseWriter, r *http.Requ
 // @Param limit query int false "Maximum number of emails to return" default(50)
 // @Param offset query int false "Number of emails to skip" default(0)
 // @Param domain query string false "Filter by domain"
+// @Param sort_by query string false "Sort field: received_at, sequence_number, from_address, subject" default(received_at)
+// @Param sort_order query string false "Sort order: asc, desc" default(desc)
+// @Param email_address query string false "Filter by recipient email address"
+// @Param from_address query string false "Filter by sender email address"
+// @Param date_from query string false "Filter from date (YYYY-MM-DD)"
+// @Param date_to query string false "Filter to date (YYYY-MM-DD)"
+// @Param spam_min query number false "Minimum spam score (0-1)"
+// @Param spam_max query number false "Maximum spam score (0-1)"
+// @Param security_status query string false "Security status: clean, suspicious, quarantined, high_risk"
+// @Param search query string false "Full-text search in subject and from address"
 // @Success 200 {object} models.PaginatedResponse "List of received emails"
 // @Failure 400 {object} models.ErrorResponseBody "Bad request"
 // @Failure 401 {object} models.ErrorResponseBody "Unauthorized"
@@ -445,10 +456,35 @@ func (h *EmailsHandlers) ListReceivedEmailsForUser(w http.ResponseWriter, r *htt
 
 	// Parse query parameters
 	pagination := api.GetPaginationParams(r)
-	domain := r.URL.Query().Get("domain")
 
-	// Get received emails
-	emails, total, err := h.emailUseCase.GetReceivedEmailsByUser(r.Context(), userID, pagination.Limit, pagination.Offset, domain)
+	// Build filter from query parameters
+	filter := email.GetReceivedEmailsFilter{
+		Domain:         r.URL.Query().Get("domain"),
+		SortBy:         r.URL.Query().Get("sort_by"),
+		SortOrder:      r.URL.Query().Get("sort_order"),
+		EmailAddress:   r.URL.Query().Get("email_address"),
+		FromAddress:    r.URL.Query().Get("from_address"),
+		DateFrom:       r.URL.Query().Get("date_from"),
+		DateTo:         r.URL.Query().Get("date_to"),
+		SecurityStatus: r.URL.Query().Get("security_status"),
+		Search:         r.URL.Query().Get("search"),
+	}
+
+	// Parse spam score filters
+	if spamMinStr := r.URL.Query().Get("spam_min"); spamMinStr != "" {
+		if spamMin, err := strconv.ParseFloat(spamMinStr, 64); err == nil {
+			filter.SpamMin = spamMin
+		}
+	}
+
+	if spamMaxStr := r.URL.Query().Get("spam_max"); spamMaxStr != "" {
+		if spamMax, err := strconv.ParseFloat(spamMaxStr, 64); err == nil {
+			filter.SpamMax = spamMax
+		}
+	}
+
+	// Get received emails with filter
+	emails, total, err := h.emailUseCase.GetReceivedEmailsByUser(r.Context(), userID, pagination.Limit, pagination.Offset, filter)
 	if err != nil {
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
@@ -583,6 +619,9 @@ func (h *EmailsHandlers) mapReceivedEmailToResult(receivedEmail *entities.Receiv
 
 // mapSMTPVerificationToResult converts SMTP verification entity to API result
 func (h *EmailsHandlers) mapSMTPVerificationToResult(smtpVerification *entities.SMTPVerificationStat) *SMTPVerificationResult {
+	if smtpVerification == nil {
+		return nil
+	}
 	return &SMTPVerificationResult{
 		VerifiedAt:         smtpVerification.VerifiedAt.Format("2006-01-02T15:04:05Z07:00"),
 		SenderIP:           smtpVerification.SenderIP.String(),

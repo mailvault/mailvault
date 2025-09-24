@@ -34,9 +34,9 @@ func createEmailTestUserAndDomain(t *testing.T, pool *pgxpool.Pool) (uuid.UUID, 
 
 	domainID := uuid.Must(uuid.NewV4())
 	_, err = pool.Exec(context.Background(), `
-		INSERT INTO domains (id, user_id, domain, public_key, api_key, verified, storage_enabled, created_at, updated_at)
+		INSERT INTO domains (id, user_id, domain, public_key, api_key, verification_status, storage_enabled, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`, domainID, userID, "addr.com", "pub", "pm_email_api_key", false, true, now, now)
+	`, domainID, userID, "addr.com", "pub", "pm_email_api_key", "pending", true, now, now)
 	require.NoError(t, err)
 
 	return userID, domainID

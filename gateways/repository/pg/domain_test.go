@@ -47,7 +47,7 @@ func TestDomainRepository_CRUD(t *testing.T) {
 		Domain:           "myexample.com",
 		PublicKey:        "pubkey",
 		APIKey:           "pm_domain_api_key",
-		Verified:         false,
+		VerificationStatus: entities.VerificationStatusPending,
 		StorageEnabled:   true,
 		AutoCreateAddress: false,
 		CreatedAt:        time.Now().UTC(),
@@ -61,7 +61,7 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	got, err := repo.GetByID(ctx, d.ID)
 	require.NoError(t, err)
 	assert.Equal(t, d.Domain, got.Domain)
-	assert.False(t, got.Verified)
+	assert.Equal(t, entities.VerificationStatusPending, got.VerificationStatus)
 	assert.False(t, got.AutoCreateAddress)
 
 	// GetByDomain
@@ -80,7 +80,7 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	require.NotEmpty(t, list)
 
 	// Update
-	d.Verified = true
+	d.VerificationStatus = entities.VerificationStatusVerified
 	d.StorageEnabled = false
 	d.AutoCreateAddress = true
 	d.UpdatedAt = time.Now().UTC()
@@ -89,7 +89,7 @@ func TestDomainRepository_CRUD(t *testing.T) {
 
 	got4, err := repo.GetByID(ctx, d.ID)
 	require.NoError(t, err)
-	assert.True(t, got4.Verified)
+	assert.Equal(t, entities.VerificationStatusVerified, got4.VerificationStatus)
 	assert.False(t, got4.StorageEnabled)
 	assert.True(t, got4.AutoCreateAddress)
 	require.NotNil(t, got4.WebhookConfig)

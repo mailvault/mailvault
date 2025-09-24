@@ -9,6 +9,7 @@ import (
 
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
+	"mailvault/internal/utils"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"
@@ -93,14 +94,14 @@ func (r *EmailAddressRepository) GetByLocalPartAndDomain(ctx context.Context, lo
 }
 
 func (r *EmailAddressRepository) GetByAddress(ctx context.Context, address string) (*entities.EmailAddress, error) {
-	// Parse email address to extract local part and domain
-	parts := strings.Split(address, "@")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid email address format: %s", address)
+	// Parse email address to extract local part and domain using safe parsing
+	localPart, domainName, err := utils.ParseEmailAddress(address)
+	if err != nil {
+		return nil, fmt.Errorf("invalid email address format '%s': %w", address, err)
 	}
 
-	localPart := strings.ToLower(parts[0])
-	domainName := strings.ToLower(parts[1])
+	localPart = strings.ToLower(localPart)
+	domainName = strings.ToLower(domainName)
 
 	query := `
 		SELECT ea.id, ea.domain_id, ea.local_part, ea.forward_addresses, ea.created_at, ea.updated_at

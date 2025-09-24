@@ -69,14 +69,25 @@ definitions:
         type: string
       id:
         type: string
+      last_verification_attempt:
+        type: string
+      next_verification_attempt:
+        type: string
       public_key:
         type: string
       storage_enabled:
         type: boolean
       updated_at:
         type: string
-      verified:
-        type: boolean
+      verification_attempts:
+        type: integer
+      verification_error:
+        type: string
+      verification_status:
+        description: Verification fields
+        type: string
+      verification_token:
+        type: string
       webhook_config:
         $ref: '#/definitions/domains.WebhookConfigResult'
     type: object
@@ -87,8 +98,6 @@ definitions:
       public_key:
         type: string
       storage_enabled:
-        type: boolean
-      verified:
         type: boolean
       webhook_config:
         $ref: '#/definitions/domains.WebhookConfigRequest'
@@ -1268,7 +1277,7 @@ paths:
       consumes:
       - application/json
       description: Get a list of all received emails for the authenticated user across
-        all domains
+        all domains with advanced filtering
       parameters:
       - default: 50
         description: Maximum number of emails to return
@@ -1283,6 +1292,48 @@ paths:
       - description: Filter by domain
         in: query
         name: domain
+        type: string
+      - default: received_at
+        description: 'Sort field: received_at, sequence_number, from_address, subject'
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: 'Sort order: asc, desc'
+        in: query
+        name: sort_order
+        type: string
+      - description: Filter by recipient email address
+        in: query
+        name: email_address
+        type: string
+      - description: Filter by sender email address
+        in: query
+        name: from_address
+        type: string
+      - description: Filter from date (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: Filter to date (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      - description: Minimum spam score (0-1)
+        in: query
+        name: spam_min
+        type: number
+      - description: Maximum spam score (0-1)
+        in: query
+        name: spam_max
+        type: number
+      - description: 'Security status: clean, suspicious, quarantined, high_risk'
+        in: query
+        name: security_status
+        type: string
+      - description: Full-text search in subject and from address
+        in: query
+        name: search
         type: string
       produces:
       - application/json

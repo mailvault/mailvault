@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"mailvault/internal/utils"
 )
 
 // Config holds all verification configuration
@@ -160,15 +162,13 @@ func (pm *PolicyManager) evaluateCondition(condition PolicyCondition, emailCtx E
 	
 	switch condition.Field {
 	case "from_domain":
-		parts := strings.Split(emailCtx.From, "@")
-		if len(parts) == 2 {
-			fieldValue = parts[1]
+		if domain, err := utils.ExtractDomain(emailCtx.From); err == nil {
+			fieldValue = domain
 		}
 	case "to_domain":
 		if len(emailCtx.To) > 0 {
-			parts := strings.Split(emailCtx.To[0], "@")
-			if len(parts) == 2 {
-				fieldValue = parts[1]
+			if domain, err := utils.ExtractDomain(emailCtx.To[0]); err == nil {
+				fieldValue = domain
 			}
 		}
 	case "sender_ip":

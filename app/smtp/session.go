@@ -12,6 +12,7 @@ import (
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
 	"mailvault/internal/encryption"
+	"mailvault/internal/utils"
 
 	"github.com/emersion/go-smtp"
 	"github.com/gofrs/uuid/v5"
@@ -75,11 +76,10 @@ func (s *Session) Data(r io.Reader) error {
 		processStart := time.Now()
 		err := s.processEmail(recipient, body)
 
-		// Extract domain for metrics
-		parts := strings.Split(recipient, "@")
-		domain := "unknown"
-		if len(parts) == 2 {
-			domain = parts[1]
+		// Extract domain for metrics using safe parsing
+		domain, domainErr := utils.ExtractDomain(recipient)
+		if domainErr != nil {
+			domain = "unknown"
 		}
 
 		if err != nil {
@@ -113,14 +113,12 @@ func (s *Session) Data(r io.Reader) error {
 
 // processEmail handles incoming email for a specific recipient
 func (s *Session) processEmail(recipient string, body []byte) error {
-	// Extract domain from recipient email
-	parts := strings.Split(recipient, "@")
-	if len(parts) != 2 {
+	// Extract domain from recipient email using safe parsing
+	localPart, domainName, err := utils.ParseEmailAddress(recipient)
+	if err != nil {
+		s.logger.Error("Invalid recipient address format", "recipient", recipient, "error", err)
 		return &smtp.SMTPError{Code: 550, Message: "Invalid recipient address"}
 	}
-
-	localPart := parts[0]
-	domainName := parts[1]
 
 	// Get domain configuration
 	domain, err := s.backend.domainUseCase.GetDomainByName(context.Background(), domainName)
@@ -130,8 +128,8 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 	}
 
 	// Check if domain is verified
-	if !domain.Verified {
-		s.logger.Warn("Email rejected: domain not verified", "domain", domainName)
+	if !domain.IsVerified() {
+		s.logger.Warn("Email rejected: domain not verified", "domain", domainName, "status", string(domain.VerificationStatus))
 		return &smtp.SMTPError{Code: 550, Message: "Domain not verified"}
 	}
 

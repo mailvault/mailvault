@@ -119,6 +119,10 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 			r.Put("/{id}", domainsHandlers.UpdateDomain)
 			r.Delete("/{id}", domainsHandlers.DeleteDomain)
 
+			// Domain validation endpoints
+			r.Post("/{id}/validate", domainsHandlers.ValidateDomain)
+			r.Post("/{id}/validation/retry", domainsHandlers.RetryValidation)
+
 			// Email addresses for domains
 			r.Route("/{domainId}/emails", func(r chi.Router) {
 				r.Post("/", emailsHandlers.CreateEmailAddress)

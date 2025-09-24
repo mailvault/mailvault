@@ -53,14 +53,16 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 		return fmt.Errorf("failed to get domain: %w", err)
 	}
 
-	if domain.VerificationToken == nil {
+	uc.logger.Info("Domain information", "domain", domain)
+
+	if domain.VerificationToken == "" {
 		return fmt.Errorf("domain has no verification token")
 	}
 
 	// Update domain status to validating
 	err = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusValidating, nil)
 	if err != nil {
-		uc.logger.Error( "Failed to update domain status to validating", "domain_id", domainID, "error", err)
+		uc.logger.Error("Failed to update domain status to validating", "domain_id", domainID, "error", err)
 	}
 
 	// Create full validation record
@@ -79,7 +81,7 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 	}
 
 	// Perform DNS validation
-	result, err := uc.dnsService.ValidateFullDomain(ctx, domain.Domain, *domain.VerificationToken, uc.config)
+	result, err := uc.dnsService.ValidateFullDomain(ctx, domain.Domain, domain.VerificationToken, uc.config)
 	if err != nil {
 		// Update validation record with error
 		validationRecord.Status = ValidationRecordStatusError
@@ -113,7 +115,7 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 		validationRecord.Status = ValidationRecordStatusSuccess
 		err = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusVerified, nil)
 		if err != nil {
-			uc.logger.Error( "Failed to update domain status to verified", "domain_id", domainID, "error", err)
+			uc.logger.Error("Failed to update domain status to verified", "domain_id", domainID, "error", err)
 		}
 	} else {
 		validationRecord.Status = ValidationRecordStatusFailed
@@ -125,10 +127,10 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 
 	err = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
 	if err != nil {
-		uc.logger.Error( "Failed to update validation record", "domain_id", domainID, "error", err)
+		uc.logger.Error("Failed to update validation record", "domain_id", domainID, "error", err)
 	}
 
-	uc.logger.Info( "Domain validation completed",
+	uc.logger.Info("Domain validation completed",
 		"domain_id", domainID,
 		"domain_name", domain.Domain,
 		"overall_valid", result.OverallValid,
@@ -142,7 +144,7 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 
 // ValidateMXRecords validates only the MX records for a domain
 func (uc *UseCase) ValidateMXRecords(ctx context.Context, domainID uuid.UUID) error {
-	uc.logger.Info( "Starting MX record validation", "domain_id", domainID)
+	uc.logger.Info("Starting MX record validation", "domain_id", domainID)
 
 	// Get domain information
 	domain, err := uc.domainRepo.GetByID(ctx, domainID)
@@ -200,10 +202,10 @@ func (uc *UseCase) ValidateMXRecords(ctx context.Context, domainID uuid.UUID) er
 
 	err = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
 	if err != nil {
-		uc.logger.Error( "Failed to update validation record", "domain_id", domainID, "error", err)
+		uc.logger.Error("Failed to update validation record", "domain_id", domainID, "error", err)
 	}
 
-	uc.logger.Info( "MX record validation completed",
+	uc.logger.Info("MX record validation completed",
 		"domain_id", domainID,
 		"domain_name", domain.Domain,
 		"valid", result.Valid,
@@ -216,7 +218,7 @@ func (uc *UseCase) ValidateMXRecords(ctx context.Context, domainID uuid.UUID) er
 
 // ValidateTXTRecord validates only the TXT record for a domain
 func (uc *UseCase) ValidateTXTRecord(ctx context.Context, domainID uuid.UUID) error {
-	uc.logger.Info( "Starting TXT record validation", "domain_id", domainID)
+	uc.logger.Info("Starting TXT record validation", "domain_id", domainID)
 
 	// Get domain information
 	domain, err := uc.domainRepo.GetByID(ctx, domainID)
@@ -224,7 +226,7 @@ func (uc *UseCase) ValidateTXTRecord(ctx context.Context, domainID uuid.UUID) er
 		return fmt.Errorf("failed to get domain: %w", err)
 	}
 
-	if domain.VerificationToken == nil {
+	if domain.VerificationToken == "" {
 		return fmt.Errorf("domain has no verification token")
 	}
 
@@ -244,7 +246,7 @@ func (uc *UseCase) ValidateTXTRecord(ctx context.Context, domainID uuid.UUID) er
 	}
 
 	// Create expected TXT record
-	expectedTXTRecord := fmt.Sprintf("%s=%s", uc.config.TXTRecordPrefix, *domain.VerificationToken)
+	expectedTXTRecord := fmt.Sprintf("%s=%s", uc.config.TXTRecordPrefix, domain.VerificationToken)
 
 	// Perform TXT validation
 	result, err := uc.dnsService.ValidateTXTRecord(ctx, domain.Domain, expectedTXTRecord)
@@ -281,10 +283,10 @@ func (uc *UseCase) ValidateTXTRecord(ctx context.Context, domainID uuid.UUID) er
 
 	err = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
 	if err != nil {
-		uc.logger.Error( "Failed to update validation record", "domain_id", domainID, "error", err)
+		uc.logger.Error("Failed to update validation record", "domain_id", domainID, "error", err)
 	}
 
-	uc.logger.Info( "TXT record validation completed",
+	uc.logger.Info("TXT record validation completed",
 		"domain_id", domainID,
 		"domain_name", domain.Domain,
 		"valid", result.Valid,
@@ -327,7 +329,7 @@ func (uc *UseCase) UpdateValidationStatus(ctx context.Context, domainID uuid.UUI
 		return fmt.Errorf("failed to update domain verification attempt: %w", err)
 	}
 
-	uc.logger.Info( "Updated domain validation status",
+	uc.logger.Info("Updated domain validation status",
 		"domain_id", domainID,
 		"status", status,
 		"attempts", attempts,
@@ -350,11 +352,11 @@ func (uc *UseCase) GetDomainValidationInfo(ctx context.Context, domainID uuid.UU
 		UserID:                  domain.UserID,
 		Domain:                  domain.Domain,
 		VerificationStatus:      domain.VerificationStatus,
-		VerificationToken:       domain.VerificationToken,
+		VerificationToken:       &domain.VerificationToken,
 		VerificationAttempts:    domain.VerificationAttempts,
-		LastVerificationAttempt: domain.LastVerificationAttempt,
-		NextVerificationAttempt: domain.NextVerificationAttempt,
-		VerificationError:       domain.VerificationError,
+		LastVerificationAttempt: &domain.LastVerificationAttempt,
+		NextVerificationAttempt: &domain.NextVerificationAttempt,
+		VerificationError:       &domain.VerificationError,
 		CreatedAt:               domain.CreatedAt,
 		UpdatedAt:               domain.UpdatedAt,
 	}, nil
@@ -399,11 +401,10 @@ func (uc *UseCase) CleanupOldValidationRecords(ctx context.Context, olderThan ti
 		return 0, fmt.Errorf("failed to cleanup old validation records: %w", err)
 	}
 
-	uc.logger.Info( "Cleaned up old validation records",
+	uc.logger.Info("Cleaned up old validation records",
 		"deleted_count", deletedCount,
 		"older_than", olderThan,
 	)
 
 	return deletedCount, nil
 }
-

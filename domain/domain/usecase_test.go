@@ -59,10 +59,12 @@ func TestCreateDomain(t *testing.T) {
 		assert.Equal(t, userID, result.UserID)
 		assert.Equal(t, domain, result.Domain)
 		assert.Equal(t, publicKey, result.PublicKey)
-		assert.False(t, result.Verified)
+		assert.Equal(t, entities.VerificationStatusPending, result.VerificationStatus)
 		assert.True(t, result.StorageEnabled) // Default is true
 		assert.Contains(t, result.APIKey, "pm_")
 		assert.NotEmpty(t, result.ID)
+		assert.NotEmpty(t, result.VerificationToken) // Verification token should be generated immediately
+		assert.Len(t, result.VerificationToken, 32)    // Should be 32 hex characters
 
 		// Verify calls
 		assert.Len(t, mockRepo.GetByDomainCalls(), 1)
@@ -357,14 +359,13 @@ func TestUpdateDomain(t *testing.T) {
 			Domain:         "example.com",
 			PublicKey:      "old-key",
 			APIKey:         "pm_test_api_key",
-			Verified:       false,
+			VerificationStatus: entities.VerificationStatusPending,
 			StorageEnabled: true,
 			CreatedAt:      time.Now().UTC(),
 			UpdatedAt:      time.Now().UTC(),
 		}
 
 		newPublicKey := "new-public-key"
-		verified := true
 
 		mockRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
 			return existingDomain, nil
@@ -375,12 +376,10 @@ func TestUpdateDomain(t *testing.T) {
 
 		result, err := uc.UpdateDomain(ctx, domainID, UpdateDomainInput{
 			PublicKey: &newPublicKey,
-			Verified:  &verified,
 		})
 
 		assert.NoError(t, err)
 		assert.Equal(t, newPublicKey, result.PublicKey)
-		assert.True(t, result.Verified)
 
 		// Verify calls
 		assert.Len(t, mockRepo.GetByIDCalls(), 1)
@@ -639,7 +638,7 @@ func TestUpdateDomainAutoCreateAddress(t *testing.T) {
 			Domain:           "example.com",
 			PublicKey:        "test-key",
 			APIKey:           "pm_test_api_key",
-			Verified:         true,
+			VerificationStatus: entities.VerificationStatusVerified,
 			StorageEnabled:   true,
 			AutoCreateAddress: false, // Initially disabled
 			CreatedAt:        time.Now().UTC(),

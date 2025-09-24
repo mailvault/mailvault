@@ -1,28 +1,3 @@
-// @title MailVault Worker Service
-// @version 1.0
-// @description MailVault domain validation worker service that processes domain validation jobs, checks DNS records, and updates domain verification status.
-// @description
-// @description The worker service:
-// @description - Processes domain validation jobs from the queue
-// @description - Validates MX and TXT records via DNS
-// @description - Updates domain verification status
-// @description - Provides metrics and monitoring endpoints
-// @description
-// @description ## Features
-// @description - Concurrent worker processing with configurable pool size
-// @description - Priority-based job queue management
-// @description - Exponential backoff retry logic
-// @description - DNS validation with configurable timeouts
-// @description - Comprehensive logging and metrics
-// @termsOfService https://mailvault.sh/terms
-// @contact.name MailVault Support
-// @contact.url https://mailvault.sh/support
-// @contact.email support@mailvault.sh
-// @license.name MIT
-// @license.url https://github.com/guilhermebr/mailvault/blob/main/LICENSE
-// @host :8081
-// @BasePath /
-// @schemes http https
 package main
 
 import (
@@ -56,7 +31,7 @@ func main() {
 	defer cancel()
 
 	var cfg Config
-	if err := cfg.Load("WORKER"); err != nil {
+	if err := cfg.Load(""); err != nil {
 		panic(fmt.Errorf("loading config: %w", err))
 	}
 

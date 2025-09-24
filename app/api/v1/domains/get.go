@@ -1,6 +1,7 @@
 package domains
 
 import (
+	"log/slog"
 	"mailvault/app/api"
 	"net/http"
 
@@ -20,12 +21,14 @@ import (
 func (h *DomainsHandlers) GetDomains(w http.ResponseWriter, r *http.Request) {
 	userID, err := api.GetUserIDFromContext(r)
 	if err != nil {
+		slog.Error("failed to get user id from context", "error", err)
 		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
 	domains, err := h.domainUseCase.GetDomainsByUserID(r.Context(), userID)
 	if err != nil {
+		slog.Error("failed to get domains by user id", "error", err)
 		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}

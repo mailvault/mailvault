@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
+	"time"
 
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
@@ -136,6 +138,187 @@ func (r *ReceivedEmailRepository) GetByUserID(ctx context.Context, userID uuid.U
 
 	// Add ordering and pagination
 	baseQuery += ` ORDER BY re.sequence_number DESC LIMIT $` + fmt.Sprintf("%d", argCount+1) + ` OFFSET $` + fmt.Sprintf("%d", argCount+2)
+	args = append(args, limit, offset)
+
+	// Get total count first
+	var total int
+	row := r.db.QueryRow(ctx, countQuery, args[:len(args)-2]...)
+	if err := row.Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// Get the emails
+	rows, err := r.db.Query(ctx, baseQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var receivedEmails []*entities.ReceivedEmail
+	for rows.Next() {
+		receivedEmail, err := r.scanReceivedEmailWithDetailsAndSMTPStatsFromRows(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		receivedEmails = append(receivedEmails, receivedEmail)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return receivedEmails, total, nil
+}
+
+func (r *ReceivedEmailRepository) GetByUserIDWithFilter(ctx context.Context, userID uuid.UUID, limit, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error) {
+	// Build the query with enhanced filtering and SMTP verification stats
+	baseQuery := `
+		SELECT re.id, re.email_address_id, re.sequence_number, re.from_address, re.subject, re.encrypted_body,
+		       d.domain as domain_name, CONCAT(ea.local_part, '@', d.domain) as email_address, re.received_at,
+		       svs.is_quarantined, svs.final_action, svs.spam_score, svs.content_verdict,
+		       svs.spf_result, svs.spf_mechanism, svs.dkim_valid, svs.dkim_domain, svs.dkim_selector,
+		       svs.dmarc_result, svs.dmarc_policy, svs.dmarc_alignment_spf, svs.dmarc_alignment_dkim,
+		       svs.reputation_score, svs.is_blacklisted, svs.sender_ip, svs.sender_domain, svs.verified_at
+		FROM received_emails re
+		JOIN email_addresses ea ON re.email_address_id = ea.id
+		JOIN domains d ON ea.domain_id = d.id
+		LEFT JOIN smtp_verification_stats svs ON (
+		    svs.domain_id = d.id
+		    AND svs.email_address_id = ea.id
+		    AND svs.from_address = re.from_address
+		    AND ABS(EXTRACT(EPOCH FROM (svs.verified_at - re.received_at))) < 300
+		)
+		WHERE d.user_id = $1
+	`
+	countQuery := `
+		SELECT COUNT(*)
+		FROM received_emails re
+		JOIN email_addresses ea ON re.email_address_id = ea.id
+		JOIN domains d ON ea.domain_id = d.id
+		LEFT JOIN smtp_verification_stats svs ON (
+		    svs.domain_id = d.id
+		    AND svs.email_address_id = ea.id
+		    AND svs.from_address = re.from_address
+		    AND ABS(EXTRACT(EPOCH FROM (svs.verified_at - re.received_at))) < 300
+		)
+		WHERE d.user_id = $1
+	`
+
+	args := []interface{}{userID}
+	argCount := 1
+
+	// Build dynamic WHERE conditions
+	whereConditions := []string{}
+
+	// Domain filter
+	if filter.Domain != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("d.domain = $%d", argCount+1))
+		args = append(args, filter.Domain)
+		argCount++
+	}
+
+	// Email address filter (recipient)
+	if filter.EmailAddress != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("CONCAT(ea.local_part, '@', d.domain) = $%d", argCount+1))
+		args = append(args, filter.EmailAddress)
+		argCount++
+	}
+
+	// From address filter (sender)
+	if filter.FromAddress != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("re.from_address ILIKE $%d", argCount+1))
+		args = append(args, "%"+filter.FromAddress+"%")
+		argCount++
+	}
+
+	// Date range filters
+	if filter.DateFrom != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("re.received_at >= $%d", argCount+1))
+		dateFrom, err := time.Parse("2006-01-02", filter.DateFrom)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid date_from format: %w", err)
+		}
+		args = append(args, dateFrom)
+		argCount++
+	}
+
+	if filter.DateTo != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("re.received_at <= $%d", argCount+1))
+		dateTo, err := time.Parse("2006-01-02", filter.DateTo)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid date_to format: %w", err)
+		}
+		// Add one day to include the entire day
+		dateTo = dateTo.Add(24 * time.Hour)
+		args = append(args, dateTo)
+		argCount++
+	}
+
+	// Spam score range filters
+	if filter.SpamMin > 0 {
+		whereConditions = append(whereConditions, fmt.Sprintf("svs.spam_score >= $%d", argCount+1))
+		args = append(args, filter.SpamMin)
+		argCount++
+	}
+
+	if filter.SpamMax > 0 && filter.SpamMax < 1 {
+		whereConditions = append(whereConditions, fmt.Sprintf("svs.spam_score <= $%d", argCount+1))
+		args = append(args, filter.SpamMax)
+		argCount++
+	}
+
+	// Security status filter
+	if filter.SecurityStatus != "" {
+		switch filter.SecurityStatus {
+		case "clean":
+			whereConditions = append(whereConditions, "(svs.spam_score IS NULL OR svs.spam_score < 0.3) AND (svs.is_quarantined IS FALSE OR svs.is_quarantined IS NULL)")
+		case "suspicious":
+			whereConditions = append(whereConditions, "svs.spam_score >= 0.3 AND svs.spam_score < 0.7 AND (svs.is_quarantined IS FALSE OR svs.is_quarantined IS NULL)")
+		case "high_risk":
+			whereConditions = append(whereConditions, "svs.spam_score >= 0.7 AND (svs.is_quarantined IS FALSE OR svs.is_quarantined IS NULL)")
+		case "quarantined":
+			whereConditions = append(whereConditions, "svs.is_quarantined = true")
+		}
+	}
+
+	// Full-text search in subject and from address
+	if filter.Search != "" {
+		searchTerm := "%" + strings.ToLower(filter.Search) + "%"
+		whereConditions = append(whereConditions, fmt.Sprintf("(LOWER(re.from_address) LIKE $%d OR LOWER(re.subject) LIKE $%d)", argCount+1, argCount+1))
+		args = append(args, searchTerm)
+		argCount++
+	}
+
+	// Apply WHERE conditions
+	if len(whereConditions) > 0 {
+		additionalWhere := " AND " + strings.Join(whereConditions, " AND ")
+		baseQuery += additionalWhere
+		countQuery += additionalWhere
+	}
+
+	// Build ORDER BY clause
+	var orderClause string
+	switch filter.SortBy {
+	case "received_at":
+		orderClause = "re.received_at"
+	case "sequence_number":
+		orderClause = "re.sequence_number"
+	case "from_address":
+		orderClause = "re.from_address"
+	case "subject":
+		orderClause = "re.subject"
+	default:
+		orderClause = "re.received_at" // default fallback
+	}
+
+	if filter.SortOrder == "asc" {
+		orderClause += " ASC"
+	} else {
+		orderClause += " DESC"
+	}
+
+	// Add ordering and pagination
+	baseQuery += fmt.Sprintf(" ORDER BY %s LIMIT $%d OFFSET $%d", orderClause, argCount+1, argCount+2)
 	args = append(args, limit, offset)
 
 	// Get total count first

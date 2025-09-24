@@ -9,6 +9,7 @@ import (
 
 	"mailvault/domain/entities"
 	"mailvault/app/smtp/verification"
+	"mailvault/internal/utils"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -45,6 +46,20 @@ type ProcessIncomingEmailInput struct {
 	DomainID            uuid.UUID                       `json:"domain_id"`
 	VerificationResults *verification.VerificationResult `json:"verification_results,omitempty"`
 	IsQuarantined       bool                            `json:"is_quarantined"`
+}
+
+type GetReceivedEmailsFilter struct {
+	SortBy         string  // "received_at", "sequence_number", "from_address", "subject"
+	SortOrder      string  // "asc", "desc"
+	EmailAddress   string  // Filter by recipient email address
+	FromAddress    string  // Filter by sender email address
+	DateFrom       string  // ISO date format (YYYY-MM-DD)
+	DateTo         string  // ISO date format (YYYY-MM-DD)
+	SpamMin        float64 // Minimum spam score (0-1)
+	SpamMax        float64 // Maximum spam score (0-1)
+	SecurityStatus string  // "clean", "suspicious", "quarantined", "high_risk"
+	Search         string  // Full-text search in subject and from address
+	Domain         string  // Filter by domain (existing functionality)
 }
 
 func (uc *UseCase) CreateEmailAddress(ctx context.Context, emailAddress *entities.EmailAddress) error {
@@ -173,14 +188,14 @@ func (uc *UseCase) UpdateEmailAddress(ctx context.Context, id uuid.UUID, req Upd
 }
 
 func (uc *UseCase) GetEmailAddressByAddress(ctx context.Context, fullAddress string) (*entities.EmailAddress, error) {
-	// Parse email address
-	parts := strings.Split(fullAddress, "@")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid email address format: %s", fullAddress)
+	// Parse email address using safe parsing
+	localPart, domainName, err := utils.ParseEmailAddress(fullAddress)
+	if err != nil {
+		return nil, fmt.Errorf("invalid email address format '%s': %w", fullAddress, err)
 	}
 
-	localPart := strings.ToLower(parts[0])
-	domainName := strings.ToLower(parts[1])
+	localPart = strings.ToLower(localPart)
+	domainName = strings.ToLower(domainName)
 
 	// Get domain
 	domain, err := uc.domainRepo.GetByDomain(ctx, domainName)
@@ -353,7 +368,7 @@ func (uc *UseCase) DeleteReceivedEmail(ctx context.Context, receivedEmailID uuid
 	return nil
 }
 
-func (uc *UseCase) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+func (uc *UseCase) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit, offset int, filter GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error) {
 	if userID == uuid.Nil {
 		return nil, 0, fmt.Errorf("user ID is required")
 	}
@@ -365,8 +380,48 @@ func (uc *UseCase) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID
 		limit = 1000 // Maximum limit
 	}
 
-	// Get all emails for the user
-	emails, total, err := uc.receivedEmailRepo.GetByUserID(ctx, userID, limit, offset, domain)
+	// Set default sort if not specified
+	if filter.SortBy == "" {
+		filter.SortBy = "received_at"
+	}
+	if filter.SortOrder == "" {
+		filter.SortOrder = "desc"
+	}
+
+	// Validate sort options
+	validSortFields := map[string]bool{
+		"received_at":     true,
+		"sequence_number": true,
+		"from_address":    true,
+		"subject":         true,
+	}
+	if !validSortFields[filter.SortBy] {
+		return nil, 0, fmt.Errorf("invalid sort field: %s", filter.SortBy)
+	}
+
+	validSortOrders := map[string]bool{
+		"asc":  true,
+		"desc": true,
+	}
+	if !validSortOrders[filter.SortOrder] {
+		return nil, 0, fmt.Errorf("invalid sort order: %s", filter.SortOrder)
+	}
+
+	// Validate security status if provided
+	if filter.SecurityStatus != "" {
+		validSecurityStatus := map[string]bool{
+			"clean":       true,
+			"suspicious":  true,
+			"quarantined": true,
+			"high_risk":   true,
+		}
+		if !validSecurityStatus[filter.SecurityStatus] {
+			return nil, 0, fmt.Errorf("invalid security status: %s", filter.SecurityStatus)
+		}
+	}
+
+	// Get all emails for the user with filters
+	emails, total, err := uc.receivedEmailRepo.GetByUserIDWithFilter(ctx, userID, limit, offset, filter)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get received emails: %w", err)
 	}

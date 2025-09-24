@@ -6,6 +6,7 @@ package mocks
 import (
 	"context"
 	"github.com/gofrs/uuid/v5"
+	"mailvault/domain/email"
 	"mailvault/domain/entities"
 	"sync"
 )
@@ -34,6 +35,9 @@ import (
 //			GetByUserIDFunc: func(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
 //				panic("mock out the GetByUserID method")
 //			},
+//			GetByUserIDWithFilterFunc: func(ctx context.Context, userID uuid.UUID, limit int, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error) {
+//				panic("mock out the GetByUserIDWithFilter method")
+//			},
 //		}
 //
 //		// use mockedReceivedEmailRepository in code that requires email.ReceivedEmailRepository
@@ -58,6 +62,9 @@ type ReceivedEmailRepositoryMock struct {
 
 	// GetByUserIDFunc mocks the GetByUserID method.
 	GetByUserIDFunc func(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
+
+	// GetByUserIDWithFilterFunc mocks the GetByUserIDWithFilter method.
+	GetByUserIDWithFilterFunc func(ctx context.Context, userID uuid.UUID, limit int, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -113,13 +120,27 @@ type ReceivedEmailRepositoryMock struct {
 			// Domain is the domain argument value.
 			Domain string
 		}
+		// GetByUserIDWithFilter holds details about calls to the GetByUserIDWithFilter method.
+		GetByUserIDWithFilter []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID uuid.UUID
+			// Limit is the limit argument value.
+			Limit int
+			// Offset is the offset argument value.
+			Offset int
+			// Filter is the filter argument value.
+			Filter email.GetReceivedEmailsFilter
+		}
 	}
-	lockCount               sync.RWMutex
-	lockCreate              sync.RWMutex
-	lockDelete              sync.RWMutex
-	lockGetByEmailAddressID sync.RWMutex
-	lockGetByID             sync.RWMutex
-	lockGetByUserID         sync.RWMutex
+	lockCount                 sync.RWMutex
+	lockCreate                sync.RWMutex
+	lockDelete                sync.RWMutex
+	lockGetByEmailAddressID   sync.RWMutex
+	lockGetByID               sync.RWMutex
+	lockGetByUserID           sync.RWMutex
+	lockGetByUserIDWithFilter sync.RWMutex
 }
 
 // Count calls CountFunc.
@@ -378,5 +399,58 @@ func (mock *ReceivedEmailRepositoryMock) GetByUserIDCalls() []struct {
 	mock.lockGetByUserID.RLock()
 	calls = mock.calls.GetByUserID
 	mock.lockGetByUserID.RUnlock()
+	return calls
+}
+
+// GetByUserIDWithFilter calls GetByUserIDWithFilterFunc.
+func (mock *ReceivedEmailRepositoryMock) GetByUserIDWithFilter(ctx context.Context, userID uuid.UUID, limit int, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error) {
+	callInfo := struct {
+		Ctx    context.Context
+		UserID uuid.UUID
+		Limit  int
+		Offset int
+		Filter email.GetReceivedEmailsFilter
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+		Filter: filter,
+	}
+	mock.lockGetByUserIDWithFilter.Lock()
+	mock.calls.GetByUserIDWithFilter = append(mock.calls.GetByUserIDWithFilter, callInfo)
+	mock.lockGetByUserIDWithFilter.Unlock()
+	if mock.GetByUserIDWithFilterFunc == nil {
+		var (
+			receivedEmailsOut []*entities.ReceivedEmail
+			nOut              int
+			errOut            error
+		)
+		return receivedEmailsOut, nOut, errOut
+	}
+	return mock.GetByUserIDWithFilterFunc(ctx, userID, limit, offset, filter)
+}
+
+// GetByUserIDWithFilterCalls gets all the calls that were made to GetByUserIDWithFilter.
+// Check the length with:
+//
+//	len(mockedReceivedEmailRepository.GetByUserIDWithFilterCalls())
+func (mock *ReceivedEmailRepositoryMock) GetByUserIDWithFilterCalls() []struct {
+	Ctx    context.Context
+	UserID uuid.UUID
+	Limit  int
+	Offset int
+	Filter email.GetReceivedEmailsFilter
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID uuid.UUID
+		Limit  int
+		Offset int
+		Filter email.GetReceivedEmailsFilter
+	}
+	mock.lockGetByUserIDWithFilter.RLock()
+	calls = mock.calls.GetByUserIDWithFilter
+	mock.lockGetByUserIDWithFilter.RUnlock()
 	return calls
 }

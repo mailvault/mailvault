@@ -1,7 +1,7 @@
 package verification
 
 import (
-	"strings"
+	"mailvault/internal/utils"
 
 	"github.com/emersion/go-msgauth/authres"
 )
@@ -108,9 +108,9 @@ func mapDMARCStatusToAuthRes(s DMARCStatus) authres.ResultValue {
 }
 
 func extractDomainFromAddress(addr string) string {
-	parts := strings.Split(addr, "@")
-	if len(parts) == 2 {
-		return parts[1]
+	domain, err := utils.ExtractDomain(addr)
+	if err != nil {
+		return ""
 	}
-	return ""
+	return domain
 }

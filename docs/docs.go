@@ -1024,7 +1024,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a list of all received emails for the authenticated user across all domains",
+                "description": "Get a list of all received emails for the authenticated user across all domains with advanced filtering",
                 "consumes": [
                     "application/json"
                 ],
@@ -1054,6 +1054,68 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by domain",
                         "name": "domain",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "received_at",
+                        "description": "Sort field: received_at, sequence_number, from_address, subject",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order: asc, desc",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by recipient email address",
+                        "name": "email_address",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by sender email address",
+                        "name": "from_address",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter from date (YYYY-MM-DD)",
+                        "name": "date_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter to date (YYYY-MM-DD)",
+                        "name": "date_to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum spam score (0-1)",
+                        "name": "spam_min",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum spam score (0-1)",
+                        "name": "spam_max",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Security status: clean, suspicious, quarantined, high_risk",
+                        "name": "security_status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Full-text search in subject and from address",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -1458,6 +1520,12 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "last_verification_attempt": {
+                    "type": "string"
+                },
+                "next_verification_attempt": {
+                    "type": "string"
+                },
                 "public_key": {
                     "type": "string"
                 },
@@ -1467,8 +1535,18 @@ const docTemplate = `{
                 "updated_at": {
                     "type": "string"
                 },
-                "verified": {
-                    "type": "boolean"
+                "verification_attempts": {
+                    "type": "integer"
+                },
+                "verification_error": {
+                    "type": "string"
+                },
+                "verification_status": {
+                    "description": "Verification fields",
+                    "type": "string"
+                },
+                "verification_token": {
+                    "type": "string"
                 },
                 "webhook_config": {
                     "$ref": "#/definitions/domains.WebhookConfigResult"
@@ -1485,9 +1563,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "storage_enabled": {
-                    "type": "boolean"
-                },
-                "verified": {
                     "type": "boolean"
                 },
                 "webhook_config": {

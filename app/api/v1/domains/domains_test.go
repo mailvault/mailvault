@@ -39,7 +39,7 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 			Domain:         domainName,
 			PublicKey:      publicKey,
 			APIKey:         "pm_test_key",
-			Verified:       false,
+			VerificationStatus: entities.VerificationStatusPending,
 			StorageEnabled: true,
 			CreatedAt:      time.Now().UTC(),
 			UpdatedAt:      time.Now().UTC(),
@@ -190,7 +190,7 @@ func TestDomainsHandlers_GetDomains(t *testing.T) {
 				Domain:         "domain1.com",
 				PublicKey:      "key1",
 				APIKey:         "pm_key1",
-				Verified:       true,
+				VerificationStatus: entities.VerificationStatusVerified,
 				StorageEnabled: true,
 				CreatedAt:      time.Now().UTC(),
 				UpdatedAt:      time.Now().UTC(),
@@ -201,7 +201,7 @@ func TestDomainsHandlers_GetDomains(t *testing.T) {
 				Domain:         "domain2.com",
 				PublicKey:      "key2",
 				APIKey:         "pm_key2",
-				Verified:       false,
+				VerificationStatus: entities.VerificationStatusPending,
 				StorageEnabled: false,
 				CreatedAt:      time.Now().UTC(),
 				UpdatedAt:      time.Now().UTC(),
@@ -291,7 +291,7 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 			Domain:         "test.com",
 			PublicKey:      "test-key",
 			APIKey:         "pm_test_key",
-			Verified:       true,
+			VerificationStatus: entities.VerificationStatusVerified,
 			StorageEnabled: true,
 			CreatedAt:      time.Now().UTC(),
 			UpdatedAt:      time.Now().UTC(),
@@ -404,7 +404,7 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 	t.Run("successful update", func(t *testing.T) {
 		reqBody := UpdateDomainRequest{
 			PublicKey: stringPtr("updated-key"),
-			Verified:  boolPtr(true),
+			VerificationStatus: entities.VerificationStatusVerified,
 		}
 
 		existingDomain := &entities.Domain{
@@ -418,7 +418,7 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 			UserID:    userID,
 			Domain:    "test.com",
 			PublicKey: "updated-key",
-			Verified:  true,
+			VerificationStatus: entities.VerificationStatusVerified,
 			UpdatedAt: time.Now().UTC(),
 		}
 
@@ -450,7 +450,7 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err)
 		assert.Equal(t, "updated-key", result.PublicKey)
-		assert.True(t, result.Verified)
+		assert.Equal(t, entities.VerificationStatusVerified, result.VerificationStatus)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -522,7 +522,7 @@ func TestDomainsHandlers_mapDomainToResult(t *testing.T) {
 			Domain:         "test.com",
 			PublicKey:      "test-key",
 			APIKey:         "pm_test_key",
-			Verified:       true,
+			VerificationStatus: entities.VerificationStatusVerified,
 			StorageEnabled: false,
 			CreatedAt:      time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
 			UpdatedAt:      time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
@@ -534,7 +534,7 @@ func TestDomainsHandlers_mapDomainToResult(t *testing.T) {
 		assert.Equal(t, domain.Domain, result.Domain)
 		assert.Equal(t, domain.PublicKey, result.PublicKey)
 		assert.Equal(t, domain.APIKey, result.APIKey)
-		assert.Equal(t, domain.Verified, result.Verified)
+		assert.Equal(t, domain.VerificationStatus, result.VerificationStatus)
 		assert.Equal(t, domain.StorageEnabled, result.StorageEnabled)
 		assert.Equal(t, "2024-01-01T12:00:00Z", result.CreatedAt)
 		assert.Equal(t, "2024-01-02T12:00:00Z", result.UpdatedAt)

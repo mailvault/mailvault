@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"mailvault/app/smtp/verification"
 	"mailvault/domain/entities"
+	"mailvault/internal/utils"
 	"github.com/gofrs/uuid/v5"
 )
 
@@ -227,11 +227,11 @@ func (uc *UseCase) CleanupOldStats(ctx context.Context, retentionPeriod time.Dur
 
 // extractDomainFromEmail extracts the domain part from an email address
 func extractDomainFromEmail(email string) string {
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
+	domain, err := utils.ExtractDomain(email)
+	if err != nil {
 		return ""
 	}
-	return parts[1]
+	return domain
 }
 
 // determineContentVerdict determines verdict based on spam score

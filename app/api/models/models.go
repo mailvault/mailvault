@@ -187,15 +187,15 @@ type PaginatedResponse struct {
 // DomainValidationResponse represents the response for domain validation requests
 // @Description Domain validation response with instructions and status
 type DomainValidationResponse struct {
-	DomainID          uuid.UUID                `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	DomainName        string                   `json:"domain_name" example:"example.com"`
-	Status            string                   `json:"status" example:"pending"`
-	Instructions      ValidationInstructions   `json:"instructions"`
-	VerificationToken *string                  `json:"verification_token,omitempty" example:"abc123def456"`
-	LastAttempt       *time.Time               `json:"last_attempt,omitempty" example:"2023-01-01T00:00:00Z"`
-	NextAttempt       *time.Time               `json:"next_attempt,omitempty" example:"2023-01-01T01:00:00Z"`
-	Attempts          int                      `json:"attempts" example:"1"`
-	Error             *string                  `json:"error,omitempty" example:"DNS records not found"`
+	DomainID          uuid.UUID              `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DomainName        string                 `json:"domain_name" example:"example.com"`
+	Status            string                 `json:"status" example:"pending"`
+	Instructions      ValidationInstructions `json:"instructions"`
+	VerificationToken string                 `json:"verification_token,omitempty" example:"abc123def456"`
+	LastAttempt       time.Time              `json:"last_attempt,omitempty" example:"2023-01-01T00:00:00Z"`
+	NextAttempt       time.Time              `json:"next_attempt,omitempty" example:"2023-01-01T01:00:00Z"`
+	Attempts          int                    `json:"attempts" example:"1"`
+	Error             string                 `json:"error,omitempty" example:"DNS records not found"`
 }
 
 // DomainValidationStatusResponse represents the validation status response
@@ -204,11 +204,11 @@ type DomainValidationStatusResponse struct {
 	DomainID          uuid.UUID          `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
 	DomainName        string             `json:"domain_name" example:"example.com"`
 	Status            string             `json:"status" example:"verified"`
-	VerificationToken *string            `json:"verification_token,omitempty" example:"abc123def456"`
-	LastAttempt       *time.Time         `json:"last_attempt,omitempty" example:"2023-01-01T00:00:00Z"`
-	NextAttempt       *time.Time         `json:"next_attempt,omitempty" example:"2023-01-01T01:00:00Z"`
+	VerificationToken string             `json:"verification_token,omitempty" example:"abc123def456"`
+	LastAttempt       time.Time          `json:"last_attempt,omitempty" example:"2023-01-01T00:00:00Z"`
+	NextAttempt       time.Time          `json:"next_attempt,omitempty" example:"2023-01-01T01:00:00Z"`
 	Attempts          int                `json:"attempts" example:"2"`
-	Error             *string            `json:"error,omitempty" example:"TXT record validation failed"`
+	Error             string             `json:"error,omitempty" example:"TXT record validation failed"`
 	History           []ValidationRecord `json:"history"`
 	IsVerified        bool               `json:"is_verified" example:"true"`
 	CanRetry          bool               `json:"can_retry" example:"false"`
@@ -224,13 +224,13 @@ type ValidationInstructionsResponse struct {
 	Instructions        ValidationInstructions `json:"instructions"`
 	VerificationSteps   []string               `json:"verification_steps"`
 	TroubleshootingTips []string               `json:"troubleshooting_tips"`
-	VerificationToken   *string                `json:"verification_token,omitempty" example:"abc123def456"`
+	VerificationToken   string                 `json:"verification_token,omitempty" example:"abc123def456"`
 }
 
 // ValidationInstructions provides DNS setup instructions
 // @Description DNS setup instructions for domain validation
 type ValidationInstructions struct {
-	MXRecords MXRecordInstructions `json:"mx_records"`
+	MXRecords MXRecordInstructions  `json:"mx_records"`
 	TXTRecord TXTRecordInstructions `json:"txt_record"`
 }
 
@@ -261,14 +261,14 @@ type MXRecordInfo struct {
 // ValidationRecord represents a validation attempt record
 // @Description Individual validation attempt record
 type ValidationRecord struct {
-	ID             uuid.UUID            `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	ValidationType string               `json:"validation_type" example:"full_validation"`
-	Status         string               `json:"status" example:"success"`
-	Details        ValidationDetails    `json:"details"`
-	StartedAt      time.Time            `json:"started_at" example:"2023-01-01T00:00:00Z"`
-	CompletedAt    *time.Time           `json:"completed_at,omitempty" example:"2023-01-01T00:00:30Z"`
-	ErrorMessage   *string              `json:"error_message,omitempty" example:"DNS timeout"`
-	CreatedAt      time.Time            `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	ID             uuid.UUID         `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ValidationType string            `json:"validation_type" example:"full_validation"`
+	Status         string            `json:"status" example:"success"`
+	Details        ValidationDetails `json:"details"`
+	StartedAt      time.Time         `json:"started_at" example:"2023-01-01T00:00:00Z"`
+	CompletedAt    time.Time         `json:"completed_at,omitempty" example:"2023-01-01T00:00:30Z"`
+	ErrorMessage   string            `json:"error_message,omitempty" example:"DNS timeout"`
+	CreatedAt      time.Time         `json:"created_at" example:"2023-01-01T00:00:00Z"`
 }
 
 // ValidationDetails contains detailed validation results

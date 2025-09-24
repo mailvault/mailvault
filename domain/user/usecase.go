@@ -47,6 +47,8 @@ func (uc *UseCase) CreateUser(ctx context.Context, req CreateUserInput) (*entiti
 		Email:          req.Email,
 		AuthProvider:   req.AuthProvider,
 		AuthProviderID: req.AuthProviderID,
+		AccountType:    entities.AccountTypeUser,
+		UserPlan:       entities.UserPlanFree,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}

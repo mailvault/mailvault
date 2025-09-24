@@ -43,16 +43,22 @@ type WebhookConfigRequest struct {
 
 // DomainResult represents domain data in responses
 type DomainResult struct {
-	ID               string               `json:"id"`
-	Domain           string               `json:"domain"`
-	PublicKey        string               `json:"public_key"`
-	APIKey           string               `json:"api_key"`
-	Verified         bool                 `json:"verified"`
-	WebhookConfig    *WebhookConfigResult `json:"webhook_config,omitempty"`
-	StorageEnabled   bool                 `json:"storage_enabled"`
-	AutoCreateAddress bool                `json:"auto_create_address"`
-	CreatedAt        string               `json:"created_at"`
-	UpdatedAt        string               `json:"updated_at"`
+	ID                string               `json:"id"`
+	Domain            string               `json:"domain"`
+	PublicKey         string               `json:"public_key"`
+	APIKey            string               `json:"api_key"`
+	WebhookConfig     *WebhookConfigResult `json:"webhook_config,omitempty"`
+	StorageEnabled    bool                 `json:"storage_enabled"`
+	AutoCreateAddress bool                 `json:"auto_create_address"`
+	// Verification fields
+	VerificationStatus      string `json:"verification_status"`
+	VerificationToken       string `json:"verification_token,omitempty"`
+	LastVerificationAttempt string `json:"last_verification_attempt,omitempty"`
+	VerificationError       string `json:"verification_error,omitempty"`
+	VerificationAttempts    int    `json:"verification_attempts"`
+	NextVerificationAttempt string `json:"next_verification_attempt,omitempty"`
+	CreatedAt               string `json:"created_at"`
+	UpdatedAt               string `json:"updated_at"`
 }
 
 // WebhookConfigResult represents webhook configuration in responses
@@ -66,15 +72,29 @@ type WebhookConfigResult struct {
 // mapDomainToResult converts domain entity to API result
 func (h *DomainsHandlers) mapDomainToResult(domain *entities.Domain) *DomainResult {
 	result := &DomainResult{
-		ID:               domain.ID.String(),
-		Domain:           domain.Domain,
-		PublicKey:        domain.PublicKey,
-		APIKey:           domain.APIKey,
-		Verified:         domain.Verified,
-		StorageEnabled:   domain.StorageEnabled,
+		ID:                domain.ID.String(),
+		Domain:            domain.Domain,
+		PublicKey:         domain.PublicKey,
+		APIKey:            domain.APIKey,
+		StorageEnabled:    domain.StorageEnabled,
 		AutoCreateAddress: domain.AutoCreateAddress,
-		CreatedAt:        domain.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:        domain.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		// Verification fields
+		VerificationStatus:   string(domain.VerificationStatus),
+		VerificationToken:    domain.VerificationToken,
+		VerificationError:    domain.VerificationError,
+		VerificationAttempts: domain.VerificationAttempts,
+		CreatedAt:            domain.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:            domain.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	// Format verification attempt timestamps
+	if !domain.LastVerificationAttempt.IsZero() {
+		formatted := domain.LastVerificationAttempt.Format("2006-01-02T15:04:05Z07:00")
+		result.LastVerificationAttempt = formatted
+	}
+	if !domain.NextVerificationAttempt.IsZero() {
+		formatted := domain.NextVerificationAttempt.Format("2006-01-02T15:04:05Z07:00")
+		result.NextVerificationAttempt = formatted
 	}
 
 	if domain.WebhookConfig != nil {

@@ -20,6 +20,7 @@ endef
 build: generate
 	$(call goBuild,service,"service")
 	$(call goBuild,smtpd,"smtpd")
+	$(call goBuild,worker,"worker")
 
 # ###########
 # Setup

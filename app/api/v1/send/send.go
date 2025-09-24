@@ -11,6 +11,7 @@ import (
 
 	"mailvault/app/api"
 	"mailvault/domain/entities"
+	"mailvault/internal/utils"
 
 	"github.com/go-chi/render"
 )
@@ -126,12 +127,10 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 
 // isFromAddressValid checks if the from address belongs to the domain
 func (h *SendHandlers) isFromAddressValid(fromAddress, domainName string) bool {
-	parts := strings.Split(fromAddress, "@")
-	if len(parts) != 2 {
+	emailDomain, err := utils.ExtractDomain(fromAddress)
+	if err != nil {
 		return false
 	}
-
-	emailDomain := strings.ToLower(parts[1])
 	return emailDomain == strings.ToLower(domainName)
 }
 

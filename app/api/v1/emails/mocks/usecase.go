@@ -44,7 +44,7 @@ import (
 //			GetReceivedEmailsFunc: func(ctx context.Context, emailID uuid.UUID, limit int, offset int) ([]*entities.ReceivedEmail, error) {
 //				panic("mock out the GetReceivedEmails method")
 //			},
-//			GetReceivedEmailsByUserFunc: func(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+//			GetReceivedEmailsByUserFunc: func(ctx context.Context, userID uuid.UUID, limit int, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error) {
 //				panic("mock out the GetReceivedEmailsByUser method")
 //			},
 //			UpdateEmailAddressFunc: func(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error) {
@@ -85,7 +85,7 @@ type UseCaseMock struct {
 	GetReceivedEmailsFunc func(ctx context.Context, emailID uuid.UUID, limit int, offset int) ([]*entities.ReceivedEmail, error)
 
 	// GetReceivedEmailsByUserFunc mocks the GetReceivedEmailsByUser method.
-	GetReceivedEmailsByUserFunc func(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error)
+	GetReceivedEmailsByUserFunc func(ctx context.Context, userID uuid.UUID, limit int, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error)
 
 	// UpdateEmailAddressFunc mocks the UpdateEmailAddress method.
 	UpdateEmailAddressFunc func(ctx context.Context, id uuid.UUID, req email.UpdateEmailAddressInput) (*entities.EmailAddress, error)
@@ -173,8 +173,8 @@ type UseCaseMock struct {
 			Limit int
 			// Offset is the offset argument value.
 			Offset int
-			// Domain is the domain argument value.
-			Domain string
+			// Filter is the filter argument value.
+			Filter email.GetReceivedEmailsFilter
 		}
 		// UpdateEmailAddress holds details about calls to the UpdateEmailAddress method.
 		UpdateEmailAddress []struct {
@@ -574,19 +574,19 @@ func (mock *UseCaseMock) GetReceivedEmailsCalls() []struct {
 }
 
 // GetReceivedEmailsByUser calls GetReceivedEmailsByUserFunc.
-func (mock *UseCaseMock) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit int, offset int, domain string) ([]*entities.ReceivedEmail, int, error) {
+func (mock *UseCaseMock) GetReceivedEmailsByUser(ctx context.Context, userID uuid.UUID, limit int, offset int, filter email.GetReceivedEmailsFilter) ([]*entities.ReceivedEmail, int, error) {
 	callInfo := struct {
 		Ctx    context.Context
 		UserID uuid.UUID
 		Limit  int
 		Offset int
-		Domain string
+		Filter email.GetReceivedEmailsFilter
 	}{
 		Ctx:    ctx,
 		UserID: userID,
 		Limit:  limit,
 		Offset: offset,
-		Domain: domain,
+		Filter: filter,
 	}
 	mock.lockGetReceivedEmailsByUser.Lock()
 	mock.calls.GetReceivedEmailsByUser = append(mock.calls.GetReceivedEmailsByUser, callInfo)
@@ -599,7 +599,7 @@ func (mock *UseCaseMock) GetReceivedEmailsByUser(ctx context.Context, userID uui
 		)
 		return receivedEmailsOut, nOut, errOut
 	}
-	return mock.GetReceivedEmailsByUserFunc(ctx, userID, limit, offset, domain)
+	return mock.GetReceivedEmailsByUserFunc(ctx, userID, limit, offset, filter)
 }
 
 // GetReceivedEmailsByUserCalls gets all the calls that were made to GetReceivedEmailsByUser.
@@ -611,14 +611,14 @@ func (mock *UseCaseMock) GetReceivedEmailsByUserCalls() []struct {
 	UserID uuid.UUID
 	Limit  int
 	Offset int
-	Domain string
+	Filter email.GetReceivedEmailsFilter
 } {
 	var calls []struct {
 		Ctx    context.Context
 		UserID uuid.UUID
 		Limit  int
 		Offset int
-		Domain string
+		Filter email.GetReceivedEmailsFilter
 	}
 	mock.lockGetReceivedEmailsByUser.RLock()
 	calls = mock.calls.GetReceivedEmailsByUser
