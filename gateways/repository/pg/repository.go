@@ -5,6 +5,7 @@ import (
 
 	domain "mailvault/domain/domain"
 	"mailvault/domain/email"
+	"mailvault/domain/email_sending"
 	"mailvault/domain/user"
 	"mailvault/domain/validation"
 
@@ -27,6 +28,7 @@ type Repository struct {
 	DomainRepo        domain.Repository
 	EmailAddressRepo  email.EmailAddressRepository
 	ReceivedEmailRepo email.ReceivedEmailRepository
+	SentEmailRepo     email_sending.Repository
 	ValidationRepo    validation.Repository
 }
 
@@ -38,6 +40,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 		DomainRepo:        NewDomainRepository(db),
 		EmailAddressRepo:  NewEmailAddressRepository(db),
 		ReceivedEmailRepo: NewReceivedEmailRepository(db),
+		SentEmailRepo:     NewSentEmailRepository(db),
 		ValidationRepo:    NewValidationRepository(db),
 	}
 }
@@ -50,6 +53,7 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 		DomainRepo:        NewDomainRepository(tx),
 		EmailAddressRepo:  NewEmailAddressRepository(tx),
 		ReceivedEmailRepo: NewReceivedEmailRepository(tx),
+		SentEmailRepo:     NewSentEmailRepository(tx),
 		ValidationRepo:    NewValidationRepository(tx),
 	}
 }
