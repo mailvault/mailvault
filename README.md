@@ -2,12 +2,13 @@
 
 ![MailVault Logo](./mailvault_go.png)
 
-**Open-source email infrastructure for developers.**
+**Open-source email infrastructure for developers with multi-provider support.**
 
-MailVault is a developer-focused email service providing private, encrypted email infrastructure where users point their own domains to create secure email addresses. This complete email platform includes REST APIs, CLI client, and SMTP server, designed for easy integration by developers.
+MailVault is a developer-focused email service providing private, encrypted email infrastructure where users point their own domains to create secure email addresses. This complete email platform includes REST APIs, CLI client, SMTP server, and multi-provider email delivery with automatic failover, designed for easy integration by developers.
 
 ## Features
 
+### Core Email Infrastructure
 - **Domain Management**: Point your own domains to create branded email addresses
 - **End-to-End Encryption**: All received emails are encrypted with domain public keys
 - **Webhook Integration**: Real-time notifications for received emails with configurable webhook settings
@@ -17,6 +18,15 @@ MailVault is a developer-focused email service providing private, encrypted emai
 - **SMTP Server**: Full SMTP server for receiving and processing emails
 - **Flexible Storage**: Store emails in database or process them via webhooks only
 - **Authentication**: Supabase Auth integration with JWT tokens
+
+### Multi-Provider Email Delivery 🆕
+- **Multiple Email Providers**: Support for Resend, SendGrid, AWS SES, Postmark, and Mailgun
+- **Automatic Failover**: Seamless switching between providers when one fails
+- **Load Balancing**: Intelligent routing based on provider health and priority
+- **Health Monitoring**: Real-time provider health checks with automatic recovery
+- **Rate Limiting**: Per-provider rate limiting to prevent quota exhaustion
+- **Delivery Tracking**: Webhook-based delivery status updates from all providers
+- **Smart Routing**: Priority-based routing with configurable retry logic
 
 ## Quick Start
 
@@ -48,6 +58,19 @@ API_ADDRESS=:8080
 # SMTP Server Configuration
 SMTP_ADDR=:25
 SMTP_DOMAIN=mail.yourdomain.com
+
+# Email Providers (configure as needed)
+RESEND_API_KEY=re_your_api_key_here
+SENDGRID_API_KEY=SG.your_api_key_here
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+POSTMARK_API_KEY=your_postmark_api_key
+MAILGUN_API_KEY=your_mailgun_api_key
+MAILGUN_DOMAIN=your_mailgun_domain
+
+# Webhook Security
+WEBHOOK_SECRET_KEY=your_webhook_secret_for_hmac_verification
 ```
 
 ### 3. Build and Run
@@ -199,6 +222,23 @@ MailVault provides a comprehensive command-line interface:
 ### Email Sending
 - `POST /api/v1/send` - Send email via API (API key auth)
 
+### Provider Management
+- `GET /api/v1/domains/{domainId}/providers` - List email providers for domain
+- `POST /api/v1/domains/{domainId}/providers` - Create new email provider
+- `GET /api/v1/domains/{domainId}/providers/{providerId}` - Get provider details
+- `PATCH /api/v1/domains/{domainId}/providers/{providerId}` - Update provider configuration
+- `DELETE /api/v1/domains/{domainId}/providers/{providerId}` - Delete provider
+- `POST /api/v1/domains/{domainId}/providers/{providerId}/test` - Test provider configuration
+- `GET /api/v1/domains/{domainId}/providers/{providerId}/health` - Get provider health status
+- `GET /api/v1/domains/{domainId}/providers/{providerId}/stats` - Get provider statistics
+
+### Webhooks
+- `POST /api/v1/webhooks/resend` - Resend delivery status webhooks
+- `POST /api/v1/webhooks/sendgrid` - SendGrid delivery status webhooks
+- `POST /api/v1/webhooks/aws-ses` - AWS SES delivery status webhooks
+- `POST /api/v1/webhooks/postmark` - Postmark delivery status webhooks
+- `POST /api/v1/webhooks/mailgun` - Mailgun delivery status webhooks
+
 ### System
 - `GET /health` - Health check
 
@@ -276,6 +316,7 @@ make gosec
 - **CLI Framework**: Cobra
 - **SMTP**: github.com/emersion/go-smtp
 - **Authentication**: Supabase Auth integration
+- **Email Providers**: Official Go SDKs for Resend, SendGrid, AWS SES, Postmark, Mailgun
 - **Documentation**: OpenAPI/Swagger
 - **Testing**: Standard Go testing with testify
 
@@ -284,6 +325,23 @@ make gosec
 - **MailVault Go SDK**: External SDK for API communication
 - **gox libraries**: Logging and PostgreSQL utilities
 - **Supabase**: Authentication provider
+- **Provider SDKs**: Official Go SDKs for email service providers
+
+## Documentation
+
+### Getting Started
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in under 10 minutes
+- **[Migration Guide](docs/MIGRATION.md)** - Migrate from single-provider to multi-provider system
+
+### Multi-Provider System
+- **[Email Providers Guide](docs/EMAIL_PROVIDERS.md)** - Complete guide to configuring and managing email providers
+- **[Provider API Reference](docs/PROVIDER_API.md)** - Complete API documentation for provider management
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and debugging techniques
+
+### Technical Documentation
+- **[Monitoring Guide](docs/MONITORING.md)** - System monitoring and observability
+- **[Database Optimization](docs/DATABASE_OPTIMIZATION.md)** - Database performance optimization
+- **[OpenAPI/Swagger](docs/swagger.yaml)** - Complete API specification
 
 ## Security
 

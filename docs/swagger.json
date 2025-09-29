@@ -589,6 +589,128 @@
                 }
             }
         },
+        "/domains/{domainId}/providers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all email providers configured for a specific domain owned by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "List email providers for a domain",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of providers",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/providers.EmailProviderResult"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - domain not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Domain not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/providers/healthy": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all healthy and enabled email providers for a specific domain, suitable for email sending",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "List healthy email providers for a domain",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of healthy providers",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/providers.EmailProviderResult"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - domain not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Domain not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/domains/{id}": {
             "get": {
                 "security": [
@@ -1151,6 +1273,361 @@
                         "description": "API is unhealthy",
                         "schema": {
                             "$ref": "#/definitions/v1.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/providers": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new email provider configuration to a domain with specified settings and credentials",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Create a new email provider",
+                "parameters": [
+                    {
+                        "description": "Provider creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/providers.CreateProviderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Provider created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/providers.EmailProviderResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - domain not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/providers/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information about a specific email provider",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Get email provider details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provider details",
+                        "schema": {
+                            "$ref": "#/definitions/providers.EmailProviderResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - provider not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Provider not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update configuration and settings for an existing email provider",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Update email provider",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Provider update details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/providers.UpdateProviderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provider updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/providers.EmailProviderResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - provider not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Provider not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete an email provider from a domain. This will stop using this provider for email sending.",
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Delete email provider",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Provider deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - provider not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Provider not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - cannot delete default provider when other providers exist",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/providers/{id}/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get performance and usage statistics for a specific email provider",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Get email provider statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provider statistics",
+                        "schema": {
+                            "$ref": "#/definitions/providers.EmailProviderStatsResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - provider not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Provider not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/providers/{id}/test": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Test if an email provider is properly configured and can connect to its service",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Test email provider connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Test completed",
+                        "schema": {
+                            "$ref": "#/definitions/providers.TestProviderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - provider not owned by user",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Provider not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -2204,6 +2681,311 @@
                 "validation_type": {
                     "type": "string",
                     "example": "full_validation"
+                }
+            }
+        },
+        "providers.CreateProviderRequest": {
+            "type": "object",
+            "required": [
+                "config",
+                "domain_id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/providers.EmailProviderConfigRequest"
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "failover_delay": {
+                    "type": "integer",
+                    "maximum": 7200,
+                    "minimum": 1
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "max_retries": {
+                    "type": "integer",
+                    "maximum": 10,
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "priority": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "rate_limit": {
+                    "type": "integer",
+                    "maximum": 10000,
+                    "minimum": 1
+                },
+                "retry_delay": {
+                    "type": "integer",
+                    "maximum": 3600,
+                    "minimum": 1
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "resend",
+                        "sendgrid",
+                        "aws_ses",
+                        "postmark",
+                        "mailgun"
+                    ]
+                }
+            }
+        },
+        "providers.EmailProviderConfigRequest": {
+            "type": "object",
+            "required": [
+                "api_key"
+            ],
+            "properties": {
+                "api_key": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 1
+                },
+                "domain": {
+                    "type": "string",
+                    "maxLength": 253,
+                    "minLength": 1
+                },
+                "region": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "settings": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "providers.EmailProviderConfigResult": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "description": "Masked for security",
+                    "type": "string"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "settings": {
+                    "description": "Sensitive values masked",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "providers.EmailProviderResult": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/providers.EmailProviderConfigResult"
+                },
+                "consecutive_failures": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "description": "Timestamps",
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "error_count": {
+                    "type": "integer"
+                },
+                "failover_delay": {
+                    "type": "integer"
+                },
+                "health_status": {
+                    "description": "Health monitoring",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "last_error": {
+                    "description": "Error tracking",
+                    "type": "string"
+                },
+                "last_failure": {
+                    "type": "string"
+                },
+                "last_health_check": {
+                    "type": "string"
+                },
+                "last_success": {
+                    "type": "string"
+                },
+                "max_retries": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "next_retry_at": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "rate_limit": {
+                    "description": "Rate limiting and retry settings",
+                    "type": "integer"
+                },
+                "retry_delay": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "providers.EmailProviderStatsResult": {
+            "type": "object",
+            "properties": {
+                "avg_response_time": {
+                    "description": "Performance metrics",
+                    "type": "number"
+                },
+                "bounce_rate": {
+                    "type": "number"
+                },
+                "cost_per_email": {
+                    "type": "number"
+                },
+                "delivery_rate": {
+                    "type": "number"
+                },
+                "estimated_cost": {
+                    "description": "Cost estimates (optional)",
+                    "type": "number"
+                },
+                "health_score": {
+                    "type": "number"
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "description": "Time period",
+                    "type": "string"
+                },
+                "provider_id": {
+                    "type": "string"
+                },
+                "provider_name": {
+                    "type": "string"
+                },
+                "provider_type": {
+                    "type": "string"
+                },
+                "success_rate": {
+                    "description": "Success metrics",
+                    "type": "number"
+                },
+                "total_bounced": {
+                    "type": "integer"
+                },
+                "total_delivered": {
+                    "type": "integer"
+                },
+                "total_failed": {
+                    "type": "integer"
+                },
+                "total_sent": {
+                    "description": "Email volume",
+                    "type": "integer"
+                }
+            }
+        },
+        "providers.TestProviderResponse": {
+            "type": "object",
+            "properties": {
+                "error_code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "providers.UpdateProviderRequest": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/providers.EmailProviderConfigRequest"
+                },
+                "failover_delay": {
+                    "type": "integer",
+                    "maximum": 7200,
+                    "minimum": 1
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "max_retries": {
+                    "type": "integer",
+                    "maximum": 10,
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "priority": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "rate_limit": {
+                    "type": "integer",
+                    "maximum": 10000,
+                    "minimum": 1
+                },
+                "retry_delay": {
+                    "type": "integer",
+                    "maximum": 3600,
+                    "minimum": 1
                 }
             }
         },

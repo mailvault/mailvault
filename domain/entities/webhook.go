@@ -2,6 +2,9 @@ package entities
 
 import (
 	"encoding/json"
+	"time"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 type WebhookConfig struct {
@@ -26,4 +29,20 @@ func WebhookConfigFromJSON(data []byte) (*WebhookConfig, error) {
 		return nil, err
 	}
 	return &config, nil
+}
+
+// WebhookEvent represents a webhook event received from email providers
+type WebhookEvent struct {
+	ID               uuid.UUID              `json:"id"`
+	SentEmailID      uuid.UUID              `json:"sent_email_id"`
+	ProviderID       uuid.UUID              `json:"provider_id"`
+	EventType        string                 `json:"event_type"`
+	Status           string                 `json:"status"`
+	Recipient        string                 `json:"recipient"`
+	Reason           string                 `json:"reason,omitempty"`
+	Description      string                 `json:"description,omitempty"`
+	ProviderData     map[string]interface{} `json:"provider_data,omitempty"`
+	WebhookTimestamp time.Time              `json:"webhook_timestamp"`
+	ProcessedAt      time.Time              `json:"processed_at"`
+	CreatedAt        time.Time              `json:"created_at"`
 }

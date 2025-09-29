@@ -9,8 +9,10 @@ import (
 	"mailvault/app/api/v1/auth"
 	"mailvault/app/api/v1/domains"
 	"mailvault/app/api/v1/emails"
+	"mailvault/app/api/v1/providers"
 	"mailvault/app/api/v1/send"
 	"mailvault/app/api/v1/users"
+	"mailvault/app/api/v1/webhooks"
 	"mailvault/domain/smtp_stats"
 	"net/http"
 	"time"
@@ -28,6 +30,9 @@ type ApiHandlers struct {
 	AuthUseCase      auth.UseCase
 	DomainUseCase    domains.UseCase
 	EmailUseCase     emails.UseCase
+	ProviderUseCase  providers.UseCase
+	EmailProviderUC  admin.ProviderUseCase // Direct access to email provider domain use case for admin
+	WebhookUseCase   webhooks.ProviderWebhookUseCase // For processing provider webhooks
 	SMTPStatsUseCase *smtp_stats.UseCase
 	UserAdminUseCase *userDomain.UseCase
 	AuthSecretKey    string
@@ -63,6 +68,7 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	usersHandlers := users.NewUsersHandlers(h.UserUseCase)
 	domainsHandlers := domains.NewDomainsHandlers(h.DomainUseCase)
 	emailsHandlers := emails.NewEmailsHandlers(h.EmailUseCase)
+	providersHandlers := providers.NewProvidersHandlers(h.ProviderUseCase)
 	sendHandlers := send.NewSendHandlers(h.DomainUseCase)
 
 	// Initialize middleware
@@ -83,6 +89,7 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	adminHandlers := admin.NewAdminHandler(
 		h.SMTPStatsUseCase,
 		h.UserAdminUseCase,
+		h.EmailProviderUC,
 		adminAuthMw,
 		h.Logger,
 	)
@@ -132,6 +139,12 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 				r.Delete("/{emailId}", emailsHandlers.DeleteEmailAddress)
 				r.Get("/{emailId}/received", emailsHandlers.GetReceivedEmails)
 			})
+
+			// Email providers for domains
+			r.Route("/{domainId}/providers", func(r chi.Router) {
+				r.Get("/", providersHandlers.GetProviders)
+				r.Get("/healthy", providersHandlers.GetHealthyProviders)
+			})
 		})
 
 		// Email endpoints for CLI access
@@ -150,12 +163,34 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 			r.Delete("/{receivedEmailId}", emailsHandlers.DeleteReceivedEmail)
 		})
 
+		// Provider management endpoints
+		r.Route("/providers", func(r chi.Router) {
+			r.Use(authMiddleware.RequireAuth)
+			r.Use(rateLimitMw.UserRateLimit())
+			r.Post("/", providersHandlers.CreateProvider)
+			r.Get("/{id}", providersHandlers.GetProvider)
+			r.Put("/{id}", providersHandlers.UpdateProvider)
+			r.Delete("/{id}", providersHandlers.DeleteProvider)
+			r.Post("/{id}/test", providersHandlers.TestProvider)
+			r.Get("/{id}/stats", providersHandlers.GetProviderStats)
+		})
+
 		// Public email sending endpoint with dedicated rate limiting
 		r.Group(func(r chi.Router) {
 			r.Use(rateLimitMw.EmailSendRateLimit())
 			r.Post("/send", sendHandlers.SendEmail)
 		})
 	})
+	// Provider webhook endpoints (public, no auth required)
+	r.Route("/webhooks/providers", func(r chi.Router) {
+		// These endpoints are called by external providers, no authentication
+		r.Post("/resend", h.handleProviderWebhook("resend"))
+		r.Post("/sendgrid", h.handleProviderWebhook("sendgrid"))
+		r.Post("/aws-ses", h.handleProviderWebhook("aws-ses"))
+		r.Post("/postmark", h.handleProviderWebhook("postmark"))
+		r.Post("/mailgun", h.handleProviderWebhook("mailgun"))
+	})
+
 	// Admin endpoints
 	r.Mount("/admin/v1", adminHandlers.Routes())
 }
@@ -335,5 +370,30 @@ func (h *ApiHandlers) Readiness(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.Logger.Error("failed to encode readiness response", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
+}
+
+// handleProviderWebhook creates a handler for provider-specific webhooks
+func (h *ApiHandlers) handleProviderWebhook(providerType string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Initialize the webhook handler
+		webhookHandler := webhooks.NewProviderWebhookHandler(h.WebhookUseCase, h.Logger)
+
+		// Route to the appropriate provider handler based on provider type
+		switch providerType {
+		case "resend":
+			webhookHandler.HandleResendWebhook(w, r)
+		case "sendgrid":
+			webhookHandler.HandleSendGridWebhook(w, r)
+		case "aws-ses":
+			webhookHandler.HandleAWSSESWebhook(w, r)
+		case "postmark":
+			webhookHandler.HandlePostmarkWebhook(w, r)
+		case "mailgun":
+			webhookHandler.HandleMailgunWebhook(w, r)
+		default:
+			h.Logger.Warn("unsupported provider webhook", "provider", providerType)
+			http.Error(w, "unsupported provider", http.StatusBadRequest)
+		}
 	}
 }

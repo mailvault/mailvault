@@ -89,3 +89,20 @@ func (d *Domain) GetTXTRecord() string {
 func (d *Domain) NeedsVerification() bool {
 	return !d.IsVerified() && (d.VerificationStatus == VerificationStatusPending || d.CanRetryVerification())
 }
+
+// Email Provider Methods
+
+// CanSendEmails returns true if the domain can send emails (verified)
+func (d *Domain) CanSendEmails() bool {
+	return d.IsVerified()
+}
+
+// GetSendingDomain returns the domain name for email sending
+func (d *Domain) GetSendingDomain() string {
+	return d.Domain
+}
+
+// IsEmailSendingEnabled returns true if the domain allows email sending
+func (d *Domain) IsEmailSendingEnabled() bool {
+	return d.CanSendEmails()
+}

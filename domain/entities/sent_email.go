@@ -100,6 +100,12 @@ type SentEmail struct {
 	SMTPResponse  *string `json:"smtp_response,omitempty" db:"smtp_response"`
 	SMTPMessageID *string `json:"smtp_message_id,omitempty" db:"smtp_message_id"`
 
+	// Email provider tracking
+	ProviderID           *uuid.UUID `json:"provider_id,omitempty" db:"provider_id"`
+	ProviderName         *string    `json:"provider_name,omitempty" db:"provider_name"`
+	ProviderAttemptCount int        `json:"provider_attempt_count" db:"provider_attempt_count"`
+	LastProviderError    *string    `json:"last_provider_error,omitempty" db:"last_provider_error"`
+
 	// Webhook and event data
 	WebhookData      map[string]interface{} `json:"webhook_data,omitempty" db:"webhook_data"`
 	WebhookDelivered bool                   `json:"webhook_delivered" db:"webhook_delivered"`
@@ -167,6 +173,7 @@ func (se *SentEmail) MarkAsSent(smtpMessageID *string, smtpResponse *string) {
 	se.SMTPResponse = smtpResponse
 	// Clear any previous error
 	se.ErrorMessage = nil
+	se.LastProviderError = nil
 }
 
 // MarkAsDelivered updates the status to delivered and sets delivered timestamp
@@ -301,4 +308,85 @@ func (se *SentEmail) MarkWebhookDelivered() {
 // IncrementWebhookAttempts increments the webhook delivery attempts
 func (se *SentEmail) IncrementWebhookAttempts() {
 	se.WebhookAttempts++
+}
+
+// Email Provider Methods
+
+// SetProvider sets the email provider for this email
+func (se *SentEmail) SetProvider(providerID uuid.UUID, providerName string) {
+	se.ProviderID = &providerID
+	se.ProviderName = &providerName
+}
+
+// ClearProvider clears the current provider assignment
+func (se *SentEmail) ClearProvider() {
+	se.ProviderID = nil
+	se.ProviderName = nil
+}
+
+// GetProviderID returns the provider ID if set
+func (se *SentEmail) GetProviderID() uuid.UUID {
+	if se.ProviderID != nil {
+		return *se.ProviderID
+	}
+	return uuid.Nil
+}
+
+// GetProviderName returns the provider name if set
+func (se *SentEmail) GetProviderName() string {
+	if se.ProviderName != nil {
+		return *se.ProviderName
+	}
+	return ""
+}
+
+// HasProvider returns true if a provider is assigned
+func (se *SentEmail) HasProvider() bool {
+	return se.ProviderID != nil
+}
+
+// IncrementProviderAttempts increments the number of provider attempts
+func (se *SentEmail) IncrementProviderAttempts() {
+	se.ProviderAttemptCount++
+}
+
+// SetProviderError sets the last provider error
+func (se *SentEmail) SetProviderError(errorMessage string) {
+	se.LastProviderError = &errorMessage
+}
+
+// ClearProviderError clears the last provider error
+func (se *SentEmail) ClearProviderError() {
+	se.LastProviderError = nil
+}
+
+// GetProviderError returns the last provider error if any
+func (se *SentEmail) GetProviderError() string {
+	if se.LastProviderError != nil {
+		return *se.LastProviderError
+	}
+	return ""
+}
+
+// HasProviderError returns true if there's a provider error
+func (se *SentEmail) HasProviderError() bool {
+	return se.LastProviderError != nil
+}
+
+// CanTryNextProvider returns true if more providers can be tried
+func (se *SentEmail) CanTryNextProvider(maxProviders int) bool {
+	return se.ProviderAttemptCount < maxProviders && se.Status == EmailSendStatusFailed
+}
+
+// GetProviderDisplayInfo returns formatted provider information for display
+func (se *SentEmail) GetProviderDisplayInfo() string {
+	if !se.HasProvider() {
+		return "No provider"
+	}
+
+	providerName := se.GetProviderName()
+	if se.ProviderAttemptCount > 1 {
+		return fmt.Sprintf("%s (attempt %d)", providerName, se.ProviderAttemptCount)
+	}
+	return providerName
 }

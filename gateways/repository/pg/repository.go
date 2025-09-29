@@ -5,6 +5,7 @@ import (
 
 	domain "mailvault/domain/domain"
 	"mailvault/domain/email"
+	"mailvault/domain/email_provider"
 	"mailvault/domain/email_sending"
 	"mailvault/domain/user"
 	"mailvault/domain/validation"
@@ -23,38 +24,44 @@ type DBTX interface {
 
 // Repository aggregates all repositories and provides transaction support
 type Repository struct {
-	db                *pgxpool.Pool
-	UserRepo          user.Repository
-	DomainRepo        domain.Repository
-	EmailAddressRepo  email.EmailAddressRepository
-	ReceivedEmailRepo email.ReceivedEmailRepository
-	SentEmailRepo     email_sending.Repository
-	ValidationRepo    validation.Repository
+	db                    *pgxpool.Pool
+	UserRepo              user.Repository
+	DomainRepo            domain.Repository
+	EmailAddressRepo      email.EmailAddressRepository
+	ReceivedEmailRepo     email.ReceivedEmailRepository
+	SentEmailRepo         email_sending.Repository
+	ValidationRepo        validation.Repository
+	EmailProviderRepo     email_provider.Repository
+	EmailProviderLogRepo  email_provider.LogRepository
 }
 
 // NewRepository creates a new Repository instance with all sub-repositories
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{
-		db:                db,
-		UserRepo:          NewUserRepository(db),
-		DomainRepo:        NewDomainRepository(db),
-		EmailAddressRepo:  NewEmailAddressRepository(db),
-		ReceivedEmailRepo: NewReceivedEmailRepository(db),
-		SentEmailRepo:     NewSentEmailRepository(db),
-		ValidationRepo:    NewValidationRepository(db),
+		db:                   db,
+		UserRepo:             NewUserRepository(db),
+		DomainRepo:           NewDomainRepository(db),
+		EmailAddressRepo:     NewEmailAddressRepository(db),
+		ReceivedEmailRepo:    NewReceivedEmailRepository(db),
+		SentEmailRepo:        NewSentEmailRepository(db),
+		ValidationRepo:       NewValidationRepository(db),
+		EmailProviderRepo:    NewEmailProviderRepository(db),
+		EmailProviderLogRepo: NewEmailProviderLogRepository(db),
 	}
 }
 
 // WithTx creates repository instances that use the provided transaction
 func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 	return &Repository{
-		db:                r.db,
-		UserRepo:          NewUserRepository(tx),
-		DomainRepo:        NewDomainRepository(tx),
-		EmailAddressRepo:  NewEmailAddressRepository(tx),
-		ReceivedEmailRepo: NewReceivedEmailRepository(tx),
-		SentEmailRepo:     NewSentEmailRepository(tx),
-		ValidationRepo:    NewValidationRepository(tx),
+		db:                   r.db,
+		UserRepo:             NewUserRepository(tx),
+		DomainRepo:           NewDomainRepository(tx),
+		EmailAddressRepo:     NewEmailAddressRepository(tx),
+		ReceivedEmailRepo:    NewReceivedEmailRepository(tx),
+		SentEmailRepo:        NewSentEmailRepository(tx),
+		ValidationRepo:       NewValidationRepository(tx),
+		EmailProviderRepo:    NewEmailProviderRepository(tx),
+		EmailProviderLogRepo: NewEmailProviderLogRepository(tx),
 	}
 }
 
