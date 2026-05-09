@@ -13,6 +13,9 @@ import (
 	"github.com/guilhermebr/gox/logger"
 )
 
+// mockValidateDomainFunc is a function field type for overriding in tests
+type mockValidateDomainFunc func(ctx context.Context, domainID uuid.UUID) (*validation.FullValidationResult, error)
+
 // Mock validation use case for testing
 type mockValidationUseCase struct {
 	validateResult            *validation.FullValidationResult
@@ -21,9 +24,14 @@ type mockValidationUseCase struct {
 	getPendingValidationsCall int
 	validateDomainCalls       []uuid.UUID
 	mutex                     sync.Mutex
+	// overrideFunc allows tests to override ValidateDomain behavior
+	overrideFunc              mockValidateDomainFunc
 }
 
 func (m *mockValidationUseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) (*validation.FullValidationResult, error) {
+	if m.overrideFunc != nil {
+		return m.overrideFunc(ctx, domainID)
+	}
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.validateDomainCalls = append(m.validateDomainCalls, domainID)
@@ -438,10 +446,9 @@ func TestWorkerManager_StopWhileProcessing(t *testing.T) {
 	}
 
 	// Add artificial delay to simulate slow processing
-	originalValidate := useCase.ValidateDomain
-	useCase.ValidateDomain = func(ctx context.Context, domainID uuid.UUID) (*validation.FullValidationResult, error) {
+	useCase.overrideFunc = func(ctx context.Context, domainID uuid.UUID) (*validation.FullValidationResult, error) {
 		time.Sleep(100 * time.Millisecond)
-		return originalValidate(ctx, domainID)
+		return useCase.validateResult, nil
 	}
 
 	config := ManagerConfig{

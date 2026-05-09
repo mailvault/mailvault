@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 
+	"mailvault/domain/billing"
 	domain "mailvault/domain/domain"
 	"mailvault/domain/email"
 	"mailvault/domain/email_provider"
@@ -24,15 +25,16 @@ type DBTX interface {
 
 // Repository aggregates all repositories and provides transaction support
 type Repository struct {
-	db                    *pgxpool.Pool
-	UserRepo              user.Repository
-	DomainRepo            domain.Repository
-	EmailAddressRepo      email.EmailAddressRepository
-	ReceivedEmailRepo     email.ReceivedEmailRepository
-	SentEmailRepo         email_sending.Repository
-	ValidationRepo        validation.Repository
-	EmailProviderRepo     email_provider.Repository
-	EmailProviderLogRepo  email_provider.LogRepository
+	db                   *pgxpool.Pool
+	UserRepo             user.Repository
+	DomainRepo           domain.Repository
+	EmailAddressRepo     email.EmailAddressRepository
+	ReceivedEmailRepo    email.ReceivedEmailRepository
+	SentEmailRepo        email_sending.Repository
+	ValidationRepo       validation.Repository
+	EmailProviderRepo    email_provider.Repository
+	EmailProviderLogRepo email_provider.LogRepository
+	BillingRepo          billing.Repository
 }
 
 // NewRepository creates a new Repository instance with all sub-repositories
@@ -47,6 +49,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 		ValidationRepo:       NewValidationRepository(db),
 		EmailProviderRepo:    NewEmailProviderRepository(db),
 		EmailProviderLogRepo: NewEmailProviderLogRepository(db),
+		BillingRepo:          NewBillingRepository(db),
 	}
 }
 
@@ -62,6 +65,7 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 		ValidationRepo:       NewValidationRepository(tx),
 		EmailProviderRepo:    NewEmailProviderRepository(tx),
 		EmailProviderLogRepo: NewEmailProviderLogRepository(tx),
+		BillingRepo:          NewBillingRepository(tx),
 	}
 }
 

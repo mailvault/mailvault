@@ -44,19 +44,19 @@ func NewUseCase(
 }
 
 // ValidateDomain performs complete domain validation (MX + TXT records)
-func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error {
+func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) (*FullValidationResult, error) {
 	uc.logger.Info("Starting domain validation", "domain_id", domainID)
 
 	// Get domain information
 	domain, err := uc.domainRepo.GetByID(ctx, domainID)
 	if err != nil {
-		return fmt.Errorf("failed to get domain: %w", err)
+		return nil, fmt.Errorf("failed to get domain: %w", err)
 	}
 
 	uc.logger.Info("Domain information", "domain", domain)
 
 	if domain.VerificationToken == "" {
-		return fmt.Errorf("domain has no verification token")
+		return nil, fmt.Errorf("domain has no verification token")
 	}
 
 	// Update domain status to validating
@@ -77,11 +77,11 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 
 	err = uc.validationRepo.CreateValidationRecord(ctx, validationRecord)
 	if err != nil {
-		return fmt.Errorf("failed to create validation record: %w", err)
+		return nil, fmt.Errorf("failed to create validation record: %w", err)
 	}
 
 	// Perform DNS validation
-	result, err := uc.dnsService.ValidateFullDomain(ctx, domain.Domain, domain.VerificationToken, uc.config)
+	result, err := uc.dnsService.ValidateFullDomain(ctx, domain.Domain, domain.VerificationToken, &uc.config)
 	if err != nil {
 		// Update validation record with error
 		validationRecord.Status = ValidationRecordStatusError
@@ -94,7 +94,7 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 
 		errorMsg := fmt.Sprintf("DNS validation failed: %v", err)
 		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
-		return fmt.Errorf("DNS validation failed: %w", err)
+		return nil, fmt.Errorf("DNS validation failed: %w", err)
 	}
 
 	// Update validation record with results
@@ -139,7 +139,7 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) error
 		"duration", result.TotalTime,
 	)
 
-	return nil
+	return result, nil
 }
 
 // ValidateMXRecords validates only the MX records for a domain
@@ -391,7 +391,8 @@ func (uc *UseCase) RetryDomainValidation(ctx context.Context, domainID uuid.UUID
 	}
 
 	// Perform validation
-	return uc.ValidateDomain(ctx, domainID)
+	_, err = uc.ValidateDomain(ctx, domainID)
+	return err
 }
 
 // CleanupOldValidationRecords removes old validation records
@@ -407,4 +408,114 @@ func (uc *UseCase) CleanupOldValidationRecords(ctx context.Context, olderThan ti
 	)
 
 	return deletedCount, nil
+}
+
+// ValidationStatus represents the current validation status of a domain
+type ValidationStatus struct {
+	DomainID    uuid.UUID           `json:"domain_id"`
+	Domain      string              `json:"domain"`
+	Status      VerificationStatus  `json:"status"`
+	Attempts    int                 `json:"attempts"`
+	LastAttempt *time.Time          `json:"last_attempt,omitempty"`
+	NextAttempt *time.Time          `json:"next_attempt,omitempty"`
+	Records     []*ValidationRecord `json:"records,omitempty"`
+	Error       *string             `json:"error,omitempty"`
+	SuccessRate float64             `json:"success_rate,omitempty"`
+	AverageTime time.Duration       `json:"average_time,omitempty"`
+}
+
+// ValidationInstructions provides instructions for domain validation
+type ValidationInstructions struct {
+	Domain            string   `json:"domain"`
+	VerificationToken string   `json:"verification_token"`
+	MXRecords         []string `json:"mx_records"`
+	TXTRecord         string   `json:"txt_record"`
+	Instructions      string   `json:"instructions,omitempty"`
+	Steps             []string `json:"steps,omitempty"`
+}
+
+// GetValidationStatus returns the current validation status for a domain
+func (uc *UseCase) GetValidationStatus(ctx context.Context, domainID uuid.UUID) (*ValidationStatus, error) {
+	domain, err := uc.domainRepo.GetByID(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	records, err := uc.validationRepo.GetValidationRecordsByDomainID(ctx, domainID)
+	if err != nil {
+		uc.logger.Warn("Failed to get validation records", "domain_id", domainID, "error", err)
+		records = []*ValidationRecord{}
+	}
+
+	status := &ValidationStatus{
+		DomainID: domain.ID,
+		Domain:   domain.Domain,
+		Status:   domain.VerificationStatus,
+		Attempts: domain.VerificationAttempts,
+		Records:  records,
+	}
+
+	if domain.VerificationError != "" {
+		status.Error = &domain.VerificationError
+	}
+
+	return status, nil
+}
+
+// GetValidationInstructions returns the DNS setup instructions for a domain
+func (uc *UseCase) GetValidationInstructions(ctx context.Context, domainID uuid.UUID) (*ValidationInstructions, error) {
+	domain, err := uc.domainRepo.GetByID(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	txtRecord := ""
+	if domain.VerificationToken != "" {
+		txtRecord = uc.config.TXTRecordPrefix + "=" + domain.VerificationToken
+	}
+
+	return &ValidationInstructions{
+		Domain:            domain.Domain,
+		VerificationToken: domain.VerificationToken,
+		MXRecords:         uc.config.ExpectedMXServers,
+		TXTRecord:         txtRecord,
+	}, nil
+}
+
+// RetryValidation retries validation for a domain and returns the result
+func (uc *UseCase) RetryValidation(ctx context.Context, domainID uuid.UUID) (*FullValidationResult, error) {
+	// Reset verification status to pending
+	if err := uc.UpdateValidationStatus(ctx, domainID, VerificationStatusPending, nil); err != nil {
+		return nil, fmt.Errorf("failed to reset domain validation status: %w", err)
+	}
+
+	// Get domain info
+	domain, err := uc.domainRepo.GetByID(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	// Perform validation
+	result, err := uc.dnsService.ValidateFullDomain(ctx, domain.Domain, domain.VerificationToken, &uc.config)
+	if err != nil {
+		errorMsg := err.Error()
+		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
+		return nil, fmt.Errorf("DNS validation failed: %w", err)
+	}
+
+	if result.OverallValid {
+		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusVerified, nil)
+	} else {
+		errorMsg := fmt.Sprintf("Validation failed - MX: %t, TXT: %t",
+			result.MXValidation != nil && result.MXValidation.Valid,
+			result.TXTValidation != nil && result.TXTValidation.Valid)
+		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
+	}
+
+	return result, nil
+}
+
+// GetPendingValidations returns domains with pending validation status
+func (uc *UseCase) GetPendingValidations(ctx context.Context, limit int) ([]*DomainValidationInfo, error) {
+	return uc.validationRepo.GetDomainsPendingVerification(ctx, limit)
 }

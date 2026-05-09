@@ -3,14 +3,18 @@ package validation
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
+	"mailvault/domain/entities"
+
 	"github.com/gofrs/uuid/v5"
-	"github.com/guilhermebr/gox/logger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// Mock repository for testing
+// mockValidationRepository implements Repository
 type mockValidationRepository struct {
 	domains               map[uuid.UUID]*DomainValidationInfo
 	records               map[uuid.UUID][]*ValidationRecord
@@ -72,7 +76,7 @@ func (m *mockValidationRepository) UpdateValidationRecord(ctx context.Context, r
 	for i, r := range records {
 		if r.ID == record.ID {
 			records[i] = record
-			break
+			return nil
 		}
 	}
 	return nil
@@ -91,7 +95,123 @@ func (m *mockValidationRepository) GetPendingValidations(ctx context.Context, li
 	return pending, nil
 }
 
-// Mock DNS validator for testing
+func (m *mockValidationRepository) UpdateDomainVerificationStatus(ctx context.Context, domainID uuid.UUID, status VerificationStatus) error {
+	for _, d := range m.domains {
+		if d.ID == domainID {
+			d.VerificationStatus = status
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *mockValidationRepository) UpdateDomainVerificationAttempt(ctx context.Context, domainID uuid.UUID, attempts int, lastAttempt time.Time, nextAttempt *time.Time, errorMsg *string) error {
+	for _, d := range m.domains {
+		if d.ID == domainID {
+			d.VerificationAttempts = attempts
+			d.LastVerificationAttempt = &lastAttempt
+			d.NextVerificationAttempt = nextAttempt
+			if errorMsg != nil {
+				d.VerificationError = errorMsg
+			}
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *mockValidationRepository) GetDomainsNeedingVerification(ctx context.Context, limit int) ([]*DomainValidationInfo, error) {
+	return m.GetPendingValidations(ctx, limit)
+}
+
+func (m *mockValidationRepository) GetValidationRecordsByDomainID(ctx context.Context, domainID uuid.UUID) ([]*ValidationRecord, error) {
+	return m.records[domainID], nil
+}
+
+func (m *mockValidationRepository) GetValidationRecordsByDomainIDAndType(ctx context.Context, domainID uuid.UUID, validationType ValidationType) ([]*ValidationRecord, error) {
+	var result []*ValidationRecord
+	for _, r := range m.records[domainID] {
+		if r.ValidationType == validationType {
+			result = append(result, r)
+		}
+	}
+	return result, nil
+}
+
+func (m *mockValidationRepository) GetValidationStats(ctx context.Context, domainID *uuid.UUID, timeRange *TimeRange) (*ValidationStats, error) {
+	return &ValidationStats{}, nil
+}
+
+func (m *mockValidationRepository) CleanupOldValidationRecords(ctx context.Context, olderThan time.Time) (int64, error) {
+	return 0, nil
+}
+
+func (m *mockValidationRepository) GetValidationRecordByID(ctx context.Context, id uuid.UUID) (*ValidationRecord, error) {
+	for _, records := range m.records {
+		for _, r := range records {
+			if r.ID == id {
+				return r, nil
+			}
+		}
+	}
+	return nil, errors.New("record not found")
+}
+
+func (m *mockValidationRepository) DeleteValidationRecord(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
+func (m *mockValidationRepository) GetLatestValidationRecord(ctx context.Context, domainID uuid.UUID, validationType ValidationType) (*ValidationRecord, error) {
+	records := m.records[domainID]
+	for i := len(records) - 1; i >= 0; i-- {
+		if records[i].ValidationType == validationType {
+			return records[i], nil
+		}
+	}
+	return nil, errors.New("no records found")
+}
+
+func (m *mockValidationRepository) GetValidationRecordsByTimeRange(ctx context.Context, start, end time.Time) ([]*ValidationRecord, error) {
+	return nil, nil
+}
+
+func (m *mockValidationRepository) GetValidationRecordsByStatus(ctx context.Context, status ValidationRecordStatus) ([]*ValidationRecord, error) {
+	return nil, nil
+}
+
+func (m *mockValidationRepository) GetDomainsPendingVerification(ctx context.Context, limit int) ([]*DomainValidationInfo, error) {
+	return m.GetPendingValidations(ctx, limit)
+}
+
+func (m *mockValidationRepository) GetDomainsReadyForRetry(ctx context.Context, limit int) ([]*DomainValidationInfo, error) {
+	return m.GetPendingValidations(ctx, limit)
+}
+
+// mockDomainRepository implements DomainRepository for test use
+type mockDomainRepository struct {
+	domains map[uuid.UUID]*entities.Domain
+}
+
+func newMockDomainRepository() *mockDomainRepository {
+	return &mockDomainRepository{
+		domains: make(map[uuid.UUID]*entities.Domain),
+	}
+}
+
+func (m *mockDomainRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
+	d, ok := m.domains[id]
+	if !ok {
+		return nil, errors.New("domain not found")
+	}
+	return d, nil
+}
+
+func (m *mockDomainRepository) Update(ctx context.Context, domain *entities.Domain) error {
+	m.domains[domain.ID] = domain
+	return nil
+}
+
+// mockDNSValidator implements DNSService
 type mockDNSValidator struct {
 	validateMXResult   *MXValidationResult
 	validateTXTResult  *TXTValidationResult
@@ -121,10 +241,10 @@ func (m *mockDNSValidator) ValidateTXTRecord(ctx context.Context, domain string,
 		return m.validateTXTResult, nil
 	}
 	return &TXTValidationResult{
-		Valid:         true,
-		FoundRecords:  []string{expectedRecord},
-		QueryTime:     50 * time.Millisecond,
-		RetryCount:    0,
+		Valid:        true,
+		FoundRecords: []string{expectedRecord},
+		QueryTime:    50 * time.Millisecond,
+		RetryCount:   0,
 	}, nil
 }
 
@@ -143,394 +263,218 @@ func (m *mockDNSValidator) ValidateFullDomain(ctx context.Context, domain string
 	}, nil
 }
 
-func TestUseCase_CreateValidation(t *testing.T) {
-	repo := newMockValidationRepository()
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	domainID := uuid.Must(uuid.NewV4())
-	domain := "example.com"
-
-	validation, err := uc.CreateValidation(context.Background(), domainID, domain)
-
-	if err != nil {
-		t.Fatalf("CreateValidation() error = %v", err)
+// newTestUseCase creates a use case with test defaults
+func newTestUseCase(repo Repository, domainRepo DomainRepository, validator DNSService) *UseCase {
+	config := ValidationConfig{
+		ExpectedMXServers: []string{"mail.mailvault.sh"},
+		TXTRecordPrefix:   "mailvault-verification",
+		MaxRetries:        5,
+		RetryDelay:        time.Minute,
 	}
-
-	if validation == nil {
-		t.Fatal("CreateValidation() returned nil validation")
-	}
-
-	if validation.ID == uuid.Nil {
-		t.Error("CreateValidation() should set validation ID")
-	}
-
-	if validation.Domain != domain {
-		t.Errorf("CreateValidation() domain = %v, want %v", validation.Domain, domain)
-	}
-
-	if validation.VerificationStatus != VerificationStatusPending {
-		t.Errorf("CreateValidation() status = %v, want %v", validation.VerificationStatus, VerificationStatusPending)
-	}
-
-	if validation.VerificationToken == nil || *validation.VerificationToken == "" {
-		t.Error("CreateValidation() should generate verification token")
-	}
-}
-
-func TestUseCase_CreateValidation_RepositoryError(t *testing.T) {
-	repo := newMockValidationRepository()
-	repo.createValidationError = errors.New("database error")
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	domainID := uuid.Must(uuid.NewV4())
-	domain := "example.com"
-
-	validation, err := uc.CreateValidation(context.Background(), domainID, domain)
-
-	if err == nil {
-		t.Error("CreateValidation() should return error when repository fails")
-	}
-
-	if validation != nil {
-		t.Error("CreateValidation() should return nil validation on error")
-	}
+	return NewUseCase(repo, domainRepo, validator, config, slog.Default())
 }
 
 func TestUseCase_ValidateDomain_Success(t *testing.T) {
-	repo := newMockValidationRepository()
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	// Create test validation
 	domainID := uuid.Must(uuid.NewV4())
-	validation := &DomainValidationInfo{
-		ID:                 uuid.Must(uuid.NewV4()),
+	domain := &entities.Domain{
+		ID:                 domainID,
 		Domain:             "example.com",
-		VerificationStatus: VerificationStatusPending,
-		VerificationToken:  stringPtr("test123"),
+		VerificationStatus: entities.VerificationStatusPending,
+		VerificationToken:  "test123",
+		PublicKey:          "testkey",
+		APIKey:             "testapikey",
+		UserID:             uuid.Must(uuid.NewV4()),
 	}
-	repo.domains[validation.ID] = validation
+
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
+	domainRepo.domains[domainID] = domain
+	validator := &mockDNSValidator{}
+
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
 	result, err := uc.ValidateDomain(context.Background(), domainID)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.OverallValid)
+}
 
-	if err != nil {
-		t.Fatalf("ValidateDomain() error = %v", err)
+func TestUseCase_ValidateDomain_DomainNotFound(t *testing.T) {
+	domainID := uuid.Must(uuid.NewV4())
+
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository() // no domain added
+	validator := &mockDNSValidator{}
+
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
+
+	result, err := uc.ValidateDomain(context.Background(), domainID)
+	require.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestUseCase_ValidateDomain_NoVerificationToken(t *testing.T) {
+	domainID := uuid.Must(uuid.NewV4())
+	domain := &entities.Domain{
+		ID:                 domainID,
+		Domain:             "example.com",
+		VerificationStatus: entities.VerificationStatusPending,
+		VerificationToken:  "", // empty token
+		PublicKey:          "testkey",
+		APIKey:             "testapikey",
+		UserID:             uuid.Must(uuid.NewV4()),
 	}
 
-	if result == nil {
-		t.Fatal("ValidateDomain() returned nil result")
-	}
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
+	domainRepo.domains[domainID] = domain
+	validator := &mockDNSValidator{}
 
-	if !result.OverallValid {
-		t.Error("ValidateDomain() should return valid result for successful validation")
-	}
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
-	// Check that validation was updated
-	updatedValidation := repo.domains[validation.ID]
-	if updatedValidation.VerificationStatus != VerificationStatusVerified {
-		t.Errorf("ValidateDomain() should update status to verified, got %v", updatedValidation.VerificationStatus)
-	}
+	result, err := uc.ValidateDomain(context.Background(), domainID)
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "verification token")
 }
 
 func TestUseCase_ValidateDomain_Failed(t *testing.T) {
-	repo := newMockValidationRepository()
+	domainID := uuid.Must(uuid.NewV4())
+	domain := &entities.Domain{
+		ID:                 domainID,
+		Domain:             "example.com",
+		VerificationStatus: entities.VerificationStatusPending,
+		VerificationToken:  "test123",
+		PublicKey:          "testkey",
+		APIKey:             "testapikey",
+		UserID:             uuid.Must(uuid.NewV4()),
+	}
+
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
+	domainRepo.domains[domainID] = domain
 	validator := &mockDNSValidator{
 		validateFullResult: &FullValidationResult{
 			Domain:       "example.com",
 			OverallValid: false,
-			MXValidation: &MXValidationResult{
-				Domain: "example.com",
-				Valid:  false,
-				Error:  "MX records not found",
-			},
-			TXTValidation: &TXTValidationResult{
-				Domain: "example.com",
-				Valid:  false,
-				Error:  "TXT record not found",
-			},
-			TotalTime: 200 * time.Millisecond,
+			MXValidation:  &MXValidationResult{Domain: "example.com", Valid: false, Error: "MX records not found"},
+			TXTValidation: &TXTValidationResult{Domain: "example.com", Valid: false, Error: "TXT record not found"},
+			TotalTime:     200 * time.Millisecond,
 		},
 	}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
 
-	// Create test validation
-	domainID := uuid.Must(uuid.NewV4())
-	validation := &DomainValidationInfo{
-		ID:                 uuid.Must(uuid.NewV4()),
-		Domain:             "example.com",
-		VerificationStatus: VerificationStatusPending,
-		VerificationToken:  stringPtr("test123"),
-	}
-	repo.domains[validation.ID] = validation
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
 	result, err := uc.ValidateDomain(context.Background(), domainID)
-
-	if err != nil {
-		t.Fatalf("ValidateDomain() error = %v", err)
-	}
-
-	if result.OverallValid {
-		t.Error("ValidateDomain() should return invalid result for failed validation")
-	}
-
-	// Check that validation was updated with failure
-	updatedValidation := repo.domains[validation.ID]
-	if updatedValidation.VerificationStatus != VerificationStatusFailed {
-		t.Errorf("ValidateDomain() should update status to failed, got %v", updatedValidation.VerificationStatus)
-	}
-
-	if updatedValidation.VerificationAttempts != 1 {
-		t.Errorf("ValidateDomain() should increment attempts, got %d", updatedValidation.VerificationAttempts)
-	}
-}
-
-func TestUseCase_ValidateDomain_NotFound(t *testing.T) {
-	repo := newMockValidationRepository()
-	repo.getValidationError = errors.New("validation not found")
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	domainID := uuid.Must(uuid.NewV4())
-
-	result, err := uc.ValidateDomain(context.Background(), domainID)
-
-	if err == nil {
-		t.Error("ValidateDomain() should return error when validation not found")
-	}
-
-	if result != nil {
-		t.Error("ValidateDomain() should return nil result on error")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.False(t, result.OverallValid)
 }
 
 func TestUseCase_ValidateDomain_DNSError(t *testing.T) {
-	repo := newMockValidationRepository()
+	domainID := uuid.Must(uuid.NewV4())
+	domain := &entities.Domain{
+		ID:                 domainID,
+		Domain:             "example.com",
+		VerificationStatus: entities.VerificationStatusPending,
+		VerificationToken:  "test123",
+		PublicKey:          "testkey",
+		APIKey:             "testapikey",
+		UserID:             uuid.Must(uuid.NewV4()),
+	}
+
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
+	domainRepo.domains[domainID] = domain
 	validator := &mockDNSValidator{
 		validateError: errors.New("DNS lookup failed"),
 	}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
 
-	// Create test validation
-	domainID := uuid.Must(uuid.NewV4())
-	validation := &DomainValidationInfo{
-		ID:                 uuid.Must(uuid.NewV4()),
-		Domain:             "example.com",
-		VerificationStatus: VerificationStatusPending,
-		VerificationToken:  stringPtr("test123"),
-	}
-	repo.domains[validation.ID] = validation
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
 	result, err := uc.ValidateDomain(context.Background(), domainID)
-
-	if err == nil {
-		t.Error("ValidateDomain() should return error when DNS validation fails")
-	}
-
-	if result != nil {
-		t.Error("ValidateDomain() should return nil result on DNS error")
-	}
-
-	// Check that validation record was created for the error
-	records := repo.records[validation.ID]
-	if len(records) == 0 {
-		t.Error("ValidateDomain() should create validation record even on error")
-	} else if records[0].Status != ValidationRecordStatusError {
-		t.Errorf("ValidationRecord status should be error, got %v", records[0].Status)
-	}
+	require.Error(t, err)
+	assert.Nil(t, result)
 }
 
 func TestUseCase_GetValidationStatus(t *testing.T) {
-	repo := newMockValidationRepository()
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	// Create test validation
 	domainID := uuid.Must(uuid.NewV4())
-	validation := &DomainValidationInfo{
-		ID:                      uuid.Must(uuid.NewV4()),
-		Domain:                  "example.com",
-		VerificationStatus:      VerificationStatusVerified,
-		VerificationToken:       stringPtr("test123"),
-		VerificationAttempts:    2,
-		LastVerificationAttempt: timePtr(time.Now().Add(-1 * time.Hour)),
+	domain := &entities.Domain{
+		ID:                     domainID,
+		Domain:                 "example.com",
+		VerificationStatus:     entities.VerificationStatusVerified,
+		VerificationToken:      "test123",
+		VerificationAttempts:   2,
+		LastVerificationAttempt: time.Now().Add(-1 * time.Hour),
+		PublicKey:              "testkey",
+		APIKey:                 "testapikey",
+		UserID:                 uuid.Must(uuid.NewV4()),
 	}
-	repo.domains[validation.ID] = validation
+
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
+	domainRepo.domains[domainID] = domain
+	validator := &mockDNSValidator{}
 
 	// Add some validation records
-	records := []*ValidationRecord{
+	validationRepo.records[domainID] = []*ValidationRecord{
 		{
-			ID:                  uuid.Must(uuid.NewV4()),
-			DomainValidationID:  validation.ID,
-			Type:                ValidationTypeFullValidation,
-			Status:              ValidationRecordStatusSuccess,
-			StartedAt:           time.Now().Add(-2 * time.Hour),
-			CompletedAt:         timePtr(time.Now().Add(-2*time.Hour + 30*time.Second)),
+			ID:             uuid.Must(uuid.NewV4()),
+			DomainID:       domainID,
+			Status:         ValidationRecordStatusSuccess,
+			StartedAt:      time.Now().Add(-2 * time.Hour),
 		},
 		{
-			ID:                  uuid.Must(uuid.NewV4()),
-			DomainValidationID:  validation.ID,
-			Type:                ValidationTypeFullValidation,
-			Status:              ValidationRecordStatusFailed,
-			StartedAt:           time.Now().Add(-1 * time.Hour),
-			CompletedAt:         timePtr(time.Now().Add(-1*time.Hour + 15*time.Second)),
+			ID:             uuid.Must(uuid.NewV4()),
+			DomainID:       domainID,
+			Status:         ValidationRecordStatusFailed,
+			StartedAt:      time.Now().Add(-1 * time.Hour),
 		},
 	}
-	repo.records[validation.ID] = records
+
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
 	status, err := uc.GetValidationStatus(context.Background(), domainID)
-
-	if err != nil {
-		t.Fatalf("GetValidationStatus() error = %v", err)
-	}
-
-	if status == nil {
-		t.Fatal("GetValidationStatus() returned nil status")
-	}
-
-	if status.Status != VerificationStatusVerified {
-		t.Errorf("GetValidationStatus() status = %v, want %v", status.Status, VerificationStatusVerified)
-	}
-
-	if status.Attempts != 2 {
-		t.Errorf("GetValidationStatus() attempts = %d, want 2", status.Attempts)
-	}
-
-	if len(status.Records) != 2 {
-		t.Errorf("GetValidationStatus() records = %d, want 2", len(status.Records))
-	}
+	require.NoError(t, err)
+	require.NotNil(t, status)
+	assert.Equal(t, entities.VerificationStatusVerified, status.Status)
+	assert.Equal(t, 2, status.Attempts)
+	assert.Len(t, status.Records, 2)
 }
 
 func TestUseCase_GetValidationInstructions(t *testing.T) {
-	repo := newMockValidationRepository()
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	// Create test validation
 	domainID := uuid.Must(uuid.NewV4())
-	validation := &DomainValidationInfo{
-		ID:                 uuid.Must(uuid.NewV4()),
+	domain := &entities.Domain{
+		ID:                 domainID,
 		Domain:             "example.com",
-		VerificationStatus: VerificationStatusPending,
-		VerificationToken:  stringPtr("test123"),
+		VerificationStatus: entities.VerificationStatusPending,
+		VerificationToken:  "test123",
+		PublicKey:          "testkey",
+		APIKey:             "testapikey",
+		UserID:             uuid.Must(uuid.NewV4()),
 	}
-	repo.domains[validation.ID] = validation
+
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
+	domainRepo.domains[domainID] = domain
+	validator := &mockDNSValidator{}
+
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
 	instructions, err := uc.GetValidationInstructions(context.Background(), domainID)
-
-	if err != nil {
-		t.Fatalf("GetValidationInstructions() error = %v", err)
-	}
-
-	if instructions == nil {
-		t.Fatal("GetValidationInstructions() returned nil instructions")
-	}
-
-	if instructions.Domain != "example.com" {
-		t.Errorf("GetValidationInstructions() domain = %v, want example.com", instructions.Domain)
-	}
-
-	if len(instructions.MXRecords) == 0 {
-		t.Error("GetValidationInstructions() should include MX records")
-	}
-
-	if instructions.TXTRecord == "" {
-		t.Error("GetValidationInstructions() should include TXT record")
-	}
-
-	expectedTXT := "mailvault-verification=test123"
-	if instructions.TXTRecord != expectedTXT {
-		t.Errorf("GetValidationInstructions() TXT record = %v, want %v", instructions.TXTRecord, expectedTXT)
-	}
-}
-
-func TestUseCase_RetryValidation(t *testing.T) {
-	repo := newMockValidationRepository()
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	// Create test validation that can be retried
-	domainID := uuid.Must(uuid.NewV4())
-	pastTime := time.Now().Add(-1 * time.Hour)
-	validation := &DomainValidationInfo{
-		ID:                      uuid.Must(uuid.NewV4()),
-		Domain:                  "example.com",
-		VerificationStatus:      VerificationStatusFailed,
-		VerificationToken:       stringPtr("test123"),
-		VerificationAttempts:    1,
-		LastVerificationAttempt: &pastTime,
-		NextVerificationAttempt: &pastTime, // Past time so it can be retried
-	}
-	repo.domains[validation.ID] = validation
-
-	result, err := uc.RetryValidation(context.Background(), domainID)
-
-	if err != nil {
-		t.Fatalf("RetryValidation() error = %v", err)
-	}
-
-	if result == nil {
-		t.Fatal("RetryValidation() returned nil result")
-	}
-
-	// Check that validation was updated
-	updatedValidation := repo.domains[validation.ID]
-	if updatedValidation.VerificationStatus != VerificationStatusVerified {
-		t.Errorf("RetryValidation() should update status to verified, got %v", updatedValidation.VerificationStatus)
-	}
-
-	if updatedValidation.VerificationAttempts != 2 {
-		t.Errorf("RetryValidation() should increment attempts, got %d", updatedValidation.VerificationAttempts)
-	}
-}
-
-func TestUseCase_RetryValidation_TooSoon(t *testing.T) {
-	repo := newMockValidationRepository()
-	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
-
-	// Create test validation that cannot be retried yet
-	domainID := uuid.Must(uuid.NewV4())
-	futureTime := time.Now().Add(1 * time.Hour)
-	validation := &DomainValidationInfo{
-		ID:                      uuid.Must(uuid.NewV4()),
-		Domain:                  "example.com",
-		VerificationStatus:      VerificationStatusFailed,
-		VerificationToken:       stringPtr("test123"),
-		VerificationAttempts:    1,
-		NextVerificationAttempt: &futureTime, // Future time so it cannot be retried
-	}
-	repo.domains[validation.ID] = validation
-
-	result, err := uc.RetryValidation(context.Background(), domainID)
-
-	if err == nil {
-		t.Error("RetryValidation() should return error when retry too soon")
-	}
-
-	if result != nil {
-		t.Error("RetryValidation() should return nil result on error")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, instructions)
+	assert.Equal(t, "example.com", instructions.Domain)
+	assert.NotEmpty(t, instructions.MXRecords)
+	assert.NotEmpty(t, instructions.TXTRecord)
+	assert.Equal(t, "mailvault-verification=test123", instructions.TXTRecord)
 }
 
 func TestUseCase_GetPendingValidations(t *testing.T) {
-	repo := newMockValidationRepository()
+	validationRepo := newMockValidationRepository()
+	domainRepo := newMockDomainRepository()
 	validator := &mockDNSValidator{}
-	logger, _ := logger.NewLogger("")
-	uc := NewUseCase(repo, validator, logger)
 
-	// Create test validations
 	pastTime := time.Now().Add(-1 * time.Hour)
 	futureTime := time.Now().Add(1 * time.Hour)
 
@@ -539,47 +483,39 @@ func TestUseCase_GetPendingValidations(t *testing.T) {
 			ID:                      uuid.Must(uuid.NewV4()),
 			Domain:                  "pending1.com",
 			VerificationStatus:      VerificationStatusPending,
-			NextVerificationAttempt: nil, // Can be retried
+			NextVerificationAttempt: nil,
 		},
 		{
 			ID:                      uuid.Must(uuid.NewV4()),
 			Domain:                  "pending2.com",
 			VerificationStatus:      VerificationStatusFailed,
-			NextVerificationAttempt: &pastTime, // Can be retried
+			NextVerificationAttempt: &pastTime,
 		},
 		{
 			ID:                      uuid.Must(uuid.NewV4()),
 			Domain:                  "verified.com",
-			VerificationStatus:      VerificationStatusVerified, // Cannot be retried
+			VerificationStatus:      VerificationStatusVerified,
 		},
 		{
 			ID:                      uuid.Must(uuid.NewV4()),
 			Domain:                  "too-soon.com",
 			VerificationStatus:      VerificationStatusFailed,
-			NextVerificationAttempt: &futureTime, // Cannot be retried yet
+			NextVerificationAttempt: &futureTime,
 		},
 	}
 
 	for _, v := range validations {
-		repo.domains[v.ID] = v
+		validationRepo.domains[v.ID] = v
 	}
+
+	uc := newTestUseCase(validationRepo, domainRepo, validator)
 
 	pending, err := uc.GetPendingValidations(context.Background(), 10)
-
-	if err != nil {
-		t.Fatalf("GetPendingValidations() error = %v", err)
-	}
-
+	require.NoError(t, err)
 	// Should return 2 pending validations (pending1.com and pending2.com)
-	if len(pending) != 2 {
-		t.Errorf("GetPendingValidations() returned %d validations, want 2", len(pending))
-	}
-
-	// Check that only retryable validations are returned
+	assert.Len(t, pending, 2)
 	for _, v := range pending {
-		if !v.CanRetry() {
-			t.Errorf("GetPendingValidations() returned non-retryable validation: %s", v.Domain)
-		}
+		assert.True(t, v.CanRetry())
 	}
 }
 

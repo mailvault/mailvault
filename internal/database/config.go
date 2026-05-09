@@ -73,7 +73,7 @@ func DefaultConfig() Config {
 // ConnectionString returns the optimized PostgreSQL connection string
 func (c *Config) ConnectionString() string {
 	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s&pool_min_conns=%d&pool_max_conns=%d&pool_max_conn_lifetime=%s&pool_max_conn_idle_time=%s&pool_health_check_period=%s&connect_timeout=%s&default_query_exec_mode=cache_statement",
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s&pool_min_conns=%d&pool_max_conns=%d&pool_max_conn_lifetime=%s&pool_max_conn_idle_time=%s&pool_health_check_period=%s&connect_timeout=%g&default_query_exec_mode=cache_statement",
 		c.User, c.Password, c.Host, c.Port, c.Name,
 		c.SSLMode, c.PoolMinSize, c.PoolMaxSize,
 		c.MaxConnLifetime, c.MaxConnIdleTime, c.HealthCheckPeriod, c.ConnectTimeout.Seconds(),

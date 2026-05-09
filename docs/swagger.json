@@ -4,6 +4,98 @@
         "contact": {}
     },
     "paths": {
+        "/auth/confirm": {
+            "post": {
+                "description": "Confirm user email with verification token or OTP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Confirm email",
+                "parameters": [
+                    {
+                        "description": "Confirmation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.ConfirmEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email confirmed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/auth.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/confirm-token": {
+            "post": {
+                "description": "Confirm user email using Supabase access token from callback URL fragment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Confirm email with access token",
+                "parameters": [
+                    {
+                        "description": "Access token from Supabase",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.ConfirmEmailWithTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email confirmed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/auth.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Authenticate user with email and password",
@@ -24,7 +116,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_api_v1_auth.LoginRequest"
+                            "$ref": "#/definitions/mailvault_app_api_v1_auth.LoginRequest"
                         }
                     }
                 ],
@@ -139,6 +231,296 @@
                 }
             }
         },
+        "/auth/resend-confirmation": {
+            "post": {
+                "description": "Resend confirmation email to user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Resend confirmation email",
+                "parameters": [
+                    {
+                        "description": "Email address",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.ResendConfirmationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Confirmation email sent",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Initiate a Stripe Checkout session for upgrading to a paid plan",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Create Stripe checkout session",
+                "parameters": [
+                    {
+                        "description": "Checkout request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.CheckoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Stripe session URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/portal": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a Stripe Customer Portal session to manage subscription, payment methods, and invoices",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Create Stripe billing portal session",
+                "parameters": [
+                    {
+                        "description": "Portal request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/billing.PortalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Stripe portal URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "No subscription found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/subscription": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the authenticated user's active subscription and plan details",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Get user subscription",
+                "responses": {
+                    "200": {
+                        "description": "Current subscription",
+                        "schema": {
+                            "$ref": "#/definitions/billing.SubscriptionResult"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "No active subscription",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/usage": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the authenticated user's resource usage for the current billing period",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Get usage stats",
+                "responses": {
+                    "200": {
+                        "description": "Current period usage",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/billing.UsageResult"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/webhook": {
+            "post": {
+                "description": "Handle Stripe webhook events for subscription lifecycle management",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Stripe webhook handler",
+                "responses": {
+                    "200": {
+                        "description": "Webhook processed"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/domains": {
             "get": {
                 "security": [
@@ -223,6 +605,12 @@
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "402": {
+                        "description": "Plan limit exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/domains.planLimitExceededResponse"
                         }
                     }
                 }
@@ -704,6 +1092,741 @@
                     },
                     "404": {
                         "description": "Domain not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "List all webhook configurations for a domain",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "List webhook configurations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/webhook_configs.WebhookConfigResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new webhook configuration for a domain",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Create webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Webhook configuration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.CreateWebhookConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.WebhookConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/from-template": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a webhook configuration from a template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Create webhook from template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Template configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.CreateFromTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.WebhookConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific webhook configuration",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Get webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.WebhookConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a webhook configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Update webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated webhook configuration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.UpdateWebhookConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/webhook_configs.WebhookConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a webhook configuration",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Delete webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}/audit": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get audit log for a webhook configuration",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Get webhook audit log",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entities.WebhookConfigurationAudit"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}/disable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Disable a webhook configuration",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Disable webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}/enable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Enable a webhook configuration",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Enable webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}/health": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Perform a health check on the webhook endpoint",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Check webhook health",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.WebhookHealthCheck"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}/metrics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get performance metrics for a webhook configuration",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Get webhook metrics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/webhook_config.WebhookMetrics"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/domains/{domainId}/webhooks/{webhookId}/test": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a test event to the webhook endpoint",
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "Test webhook configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Webhook Configuration ID",
+                        "name": "webhookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/webhook_config.TestWebhookResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponseBody"
                         }
@@ -1273,6 +2396,35 @@
                         "description": "API is unhealthy",
                         "schema": {
                             "$ref": "#/definitions/v1.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/plans": {
+            "get": {
+                "description": "Retrieve all available billing plans ordered by tier",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "List billing plans",
+                "responses": {
+                    "200": {
+                        "description": "Available plans",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/billing.PlanResult"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
                         }
                     }
                 }
@@ -1879,24 +3031,43 @@
                     }
                 }
             }
+        },
+        "/webhook-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "List all available webhook templates",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook-configs"
+                ],
+                "summary": "List webhook templates",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entities.WebhookConfigurationTemplate"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponseBody"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "app_api_v1_auth.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
         "auth.AuthResponse": {
             "type": "object",
             "properties": {
@@ -1905,6 +3076,32 @@
                 },
                 "user": {
                     "$ref": "#/definitions/auth.UserResult"
+                }
+            }
+        },
+        "auth.ConfirmEmailRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.ConfirmEmailWithTokenRequest": {
+            "type": "object",
+            "required": [
+                "access_token"
+            ],
+            "properties": {
+                "access_token": {
+                    "type": "string"
                 }
             }
         },
@@ -1924,6 +3121,17 @@
                 }
             }
         },
+        "auth.ResendConfirmationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.UserResult": {
             "type": "object",
             "properties": {
@@ -1938,6 +3146,127 @@
                 },
                 "id": {
                     "type": "string"
+                }
+            }
+        },
+        "billing.CheckoutRequest": {
+            "type": "object",
+            "properties": {
+                "cancel_url": {
+                    "type": "string"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "success_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "billing.PlanResult": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "domain_limit": {
+                    "type": "integer"
+                },
+                "email_limit": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "interval": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price_cents": {
+                    "type": "integer"
+                },
+                "send_limit_daily": {
+                    "type": "integer"
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "storage_limit_mb": {
+                    "type": "integer"
+                }
+            }
+        },
+        "billing.PortalRequest": {
+            "type": "object",
+            "properties": {
+                "return_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "billing.SubscriptionResult": {
+            "type": "object",
+            "properties": {
+                "cancel_at_period_end": {
+                    "type": "boolean"
+                },
+                "canceled_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "current_period_end": {
+                    "type": "string"
+                },
+                "current_period_start": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "plan": {
+                    "$ref": "#/definitions/billing.PlanResult"
+                },
+                "plan_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "trial_end": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "billing.UsageResult": {
+            "type": "object",
+            "properties": {
+                "metric": {
+                    "type": "string"
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
                 }
             }
         },
@@ -2031,16 +3360,13 @@
                 "storage_enabled": {
                     "type": "boolean"
                 },
-                "webhook_config": {
-                    "$ref": "#/definitions/domains.WebhookConfigRequest"
+                "verification_status": {
+                    "$ref": "#/definitions/entities.VerificationStatus"
                 }
             }
         },
         "domains.WebhookConfigRequest": {
             "type": "object",
-            "required": [
-                "url"
-            ],
             "properties": {
                 "enabled": {
                     "type": "boolean"
@@ -2052,13 +3378,10 @@
                     }
                 },
                 "secret": {
-                    "type": "string",
-                    "maxLength": 256,
-                    "minLength": 16
+                    "type": "string"
                 },
                 "url": {
-                    "type": "string",
-                    "maxLength": 2048
+                    "type": "string"
                 }
             }
         },
@@ -2078,6 +3401,26 @@
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domains.planLimitExceededResponse": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "integer"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "upgrade_url": {
                     "type": "string"
                 }
             }
@@ -2182,6 +3525,9 @@
                         "type": "string"
                     }
                 },
+                "forwarding_enabled": {
+                    "type": "boolean"
+                },
                 "local_part": {
                     "type": "string"
                 }
@@ -2201,6 +3547,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "forwarding_enabled": {
+                    "type": "boolean"
                 },
                 "full_address": {
                     "type": "string"
@@ -2353,6 +3702,197 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "forwarding_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "entities.CircuitBreakerState": {
+            "type": "string",
+            "enum": [
+                "closed",
+                "open",
+                "half_open"
+            ],
+            "x-enum-varnames": [
+                "CircuitBreakerStateClosed",
+                "CircuitBreakerStateOpen",
+                "CircuitBreakerStateHalfOpen"
+            ]
+        },
+        "entities.VerificationStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "validating",
+                "verified",
+                "failed",
+                "expired"
+            ],
+            "x-enum-varnames": [
+                "VerificationStatusPending",
+                "VerificationStatusValidating",
+                "VerificationStatusVerified",
+                "VerificationStatusFailed",
+                "VerificationStatusExpired"
+            ]
+        },
+        "entities.WebhookAuthType": {
+            "type": "string",
+            "enum": [
+                "none",
+                "basic",
+                "bearer",
+                "hmac_sha256"
+            ],
+            "x-enum-varnames": [
+                "WebhookAuthTypeNone",
+                "WebhookAuthTypeBasic",
+                "WebhookAuthTypeBearer",
+                "WebhookAuthTypeHMACSHA256"
+            ]
+        },
+        "entities.WebhookConfigurationAudit": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "change_reason": {
+                    "type": "string"
+                },
+                "changed_by_user_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "new_values": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "old_values": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "user_agent": {
+                    "type": "string"
+                },
+                "webhook_config_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.WebhookConfigurationTemplate": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "default_auth_type": {
+                    "$ref": "#/definitions/entities.WebhookAuthType"
+                },
+                "default_headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "default_method": {
+                    "type": "string"
+                },
+                "default_timeout_seconds": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "documentation_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "provider_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "usage_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entities.WebhookHealthCheck": {
+            "type": "object",
+            "properties": {
+                "check_type": {
+                    "type": "string"
+                },
+                "checked_at": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "response_status_code": {
+                    "type": "integer"
+                },
+                "response_time_ms": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/entities.WebhookHealthStatus"
+                },
+                "webhook_config_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.WebhookHealthStatus": {
+            "type": "string",
+            "enum": [
+                "unknown",
+                "healthy",
+                "degraded",
+                "unhealthy"
+            ],
+            "x-enum-varnames": [
+                "WebhookHealthStatusUnknown",
+                "WebhookHealthStatusHealthy",
+                "WebhookHealthStatusDegraded",
+                "WebhookHealthStatusUnhealthy"
+            ]
+        },
+        "mailvault_app_api_v1_auth.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         },
@@ -2940,6 +4480,10 @@
                 "message": {
                     "type": "string"
                 },
+                "response_time": {
+                    "description": "milliseconds",
+                    "type": "integer"
+                },
                 "success": {
                     "type": "boolean"
                 }
@@ -3086,6 +4630,413 @@
                 },
                 "version": {
                     "type": "string"
+                }
+            }
+        },
+        "webhook_config.TestWebhookResult": {
+            "type": "object",
+            "properties": {
+                "errorMessage": {
+                    "type": "string"
+                },
+                "responseBody": {
+                    "type": "string"
+                },
+                "responseTimeMs": {
+                    "description": "Response time in milliseconds",
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "statusCode": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "webhook_config.WebhookMetrics": {
+            "type": "object",
+            "properties": {
+                "averageResponseTime": {
+                    "type": "integer"
+                },
+                "circuitBreakerState": {
+                    "$ref": "#/definitions/entities.CircuitBreakerState"
+                },
+                "consecutiveFailures": {
+                    "type": "integer"
+                },
+                "failureCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "healthStatus": {
+                    "$ref": "#/definitions/entities.WebhookHealthStatus"
+                },
+                "lastFailure": {
+                    "type": "string"
+                },
+                "lastSuccess": {
+                    "type": "string"
+                },
+                "successCount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "successRate": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "totalDeliveries": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "webhook_configs.CreateFromTemplateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "template_id",
+                "url"
+            ],
+            "properties": {
+                "auth_secret": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "event_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "template_id": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string",
+                    "maxLength": 2048
+                }
+            }
+        },
+        "webhook_configs.CreateWebhookConfigRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "url"
+            ],
+            "properties": {
+                "auth_secret": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "auth_type": {
+                    "enum": [
+                        "none",
+                        "basic",
+                        "bearer",
+                        "hmac_sha256"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.WebhookAuthType"
+                        }
+                    ]
+                },
+                "auth_username": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "circuit_breaker_enabled": {
+                    "type": "boolean"
+                },
+                "circuit_breaker_threshold": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "circuit_breaker_timeout_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "custom_headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "event_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "initial_retry_delay_seconds": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_retries": {
+                    "type": "integer",
+                    "maximum": 10,
+                    "minimum": 0
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "POST",
+                        "PUT",
+                        "PATCH"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "rate_limit_per_hour": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "rate_limit_per_minute": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "retry_backoff_multiplier": {
+                    "type": "number",
+                    "maximum": 5,
+                    "minimum": 1
+                },
+                "timeout_seconds": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 1
+                },
+                "url": {
+                    "type": "string",
+                    "maxLength": 2048
+                }
+            }
+        },
+        "webhook_configs.UpdateWebhookConfigRequest": {
+            "type": "object",
+            "properties": {
+                "auth_secret": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "auth_type": {
+                    "enum": [
+                        "none",
+                        "basic",
+                        "bearer",
+                        "hmac_sha256"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.WebhookAuthType"
+                        }
+                    ]
+                },
+                "auth_username": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "circuit_breaker_enabled": {
+                    "type": "boolean"
+                },
+                "circuit_breaker_threshold": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "circuit_breaker_timeout_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "custom_headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "event_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "initial_retry_delay_seconds": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_retries": {
+                    "type": "integer",
+                    "maximum": 10,
+                    "minimum": 0
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "POST",
+                        "PUT",
+                        "PATCH"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "rate_limit_per_hour": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "rate_limit_per_minute": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "retry_backoff_multiplier": {
+                    "type": "number",
+                    "maximum": 5,
+                    "minimum": 1
+                },
+                "timeout_seconds": {
+                    "type": "integer",
+                    "maximum": 300,
+                    "minimum": 1
+                },
+                "url": {
+                    "type": "string",
+                    "maxLength": 2048
+                }
+            }
+        },
+        "webhook_configs.WebhookConfigResponse": {
+            "type": "object",
+            "properties": {
+                "auth_type": {
+                    "$ref": "#/definitions/entities.WebhookAuthType"
+                },
+                "auth_username": {
+                    "type": "string"
+                },
+                "average_response_time_ms": {
+                    "type": "integer"
+                },
+                "circuit_breaker_enabled": {
+                    "type": "boolean"
+                },
+                "circuit_breaker_opened_at": {
+                    "type": "string"
+                },
+                "circuit_breaker_state": {
+                    "$ref": "#/definitions/entities.CircuitBreakerState"
+                },
+                "circuit_breaker_threshold": {
+                    "type": "integer"
+                },
+                "circuit_breaker_timeout_seconds": {
+                    "type": "integer"
+                },
+                "consecutive_failures": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "custom_headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "event_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "health_status": {
+                    "$ref": "#/definitions/entities.WebhookHealthStatus"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "initial_retry_delay_seconds": {
+                    "type": "integer"
+                },
+                "last_failure_at": {
+                    "type": "string"
+                },
+                "last_health_check_at": {
+                    "type": "string"
+                },
+                "last_success_at": {
+                    "type": "string"
+                },
+                "last_used_at": {
+                    "type": "string"
+                },
+                "max_retries": {
+                    "type": "integer"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rate_limit_per_hour": {
+                    "type": "integer"
+                },
+                "rate_limit_per_minute": {
+                    "type": "integer"
+                },
+                "retry_backoff_multiplier": {
+                    "type": "number"
+                },
+                "success_rate": {
+                    "type": "number"
+                },
+                "timeout_seconds": {
+                    "type": "integer"
+                },
+                "total_failure_count": {
+                    "type": "integer"
+                },
+                "total_success_count": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
                 }
             }
         }

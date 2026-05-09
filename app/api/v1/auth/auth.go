@@ -97,18 +97,32 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user via auth provider
-	authProviderID, err := h.authProvider.CreateUser(r.Context(), req.Email, req.Password)
+	createResp, err := h.authProvider.CreateUser(r.Context(), req.Email, req.Password)
 	if err != nil {
 		slog.Error("failed to create user at auth provider", "error", err)
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
+	// Check if email confirmation is required
+	if createResp.RequiresConfirm {
+		// Email confirmation required - return success without token
+		response := map[string]interface{}{
+			"message":          "Registration successful. Please check your email to confirm your account.",
+			"email":            req.Email,
+			"requires_confirm": true,
+		}
+		render.Status(r, http.StatusCreated)
+		render.JSON(w, r, response)
+		return
+	}
+
+	// Auto-confirmed - proceed with normal flow
 	// Create user in our database
 	user, err := h.userUseCase.GetOrCreateUserByAuthProvider(
 		r.Context(),
 		h.authProvider.Provider(),
-		authProviderID,
+		createResp.UserID,
 		req.Email,
 	)
 	if err != nil {
@@ -171,6 +185,206 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userUseCase.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
 		slog.Error("failed to get user from database", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Mint our JWT with local user ID
+	jwtToken, err := h.generateJWT(user.ID.String(), user.Email)
+	if err != nil {
+		slog.Error("failed to mint jwt", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	response := AuthResponse{
+		Token: jwtToken,
+		User: &UserResult{
+			ID:           user.ID.String(),
+			Email:        user.Email,
+			AuthProvider: user.AuthProvider,
+			CreatedAt:    user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		},
+	}
+
+	render.JSON(w, r, response)
+}
+
+// ConfirmEmailRequest represents email confirmation request
+type ConfirmEmailRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Token string `json:"token" validate:"required"`
+}
+
+// ConfirmEmail verifies user email with token/OTP
+// @Summary Confirm email
+// @Description Confirm user email with verification token or OTP
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body ConfirmEmailRequest true "Confirmation details"
+// @Success 200 {object} AuthResponse "Email confirmed successfully"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
+// @Router /auth/confirm [post]
+func (h *AuthHandlers) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	var req ConfirmEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("failed to decode request", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Validate request
+	if err := h.validator.Struct(req); err != nil {
+		slog.Error("validation error", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Confirm email with auth provider
+	authToken, err := h.authProvider.ConfirmEmail(r.Context(), req.Token, req.Email)
+	if err != nil {
+		slog.Error("failed to confirm email", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Get auth provider user info using the token
+	authUser, err := h.authProvider.ValidateToken(r.Context(), authToken)
+	if err != nil {
+		slog.Error("failed to validate token after confirmation", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Create user in our database
+	user, err := h.userUseCase.GetOrCreateUserByAuthProvider(
+		r.Context(),
+		h.authProvider.Provider(),
+		authUser.AuthProviderID,
+		authUser.Email,
+	)
+	if err != nil {
+		slog.Error("failed to get or create user in our database", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Mint our JWT with local user ID
+	jwtToken, err := h.generateJWT(user.ID.String(), user.Email)
+	if err != nil {
+		slog.Error("failed to mint jwt", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	response := AuthResponse{
+		Token: jwtToken,
+		User: &UserResult{
+			ID:           user.ID.String(),
+			Email:        user.Email,
+			AuthProvider: user.AuthProvider,
+			CreatedAt:    user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		},
+	}
+
+	render.JSON(w, r, response)
+}
+
+// ResendConfirmationRequest represents resend confirmation request
+type ResendConfirmationRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ResendConfirmation resends the confirmation email
+// @Summary Resend confirmation email
+// @Description Resend confirmation email to user
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body ResendConfirmationRequest true "Email address"
+// @Success 200 {object} map[string]string "Confirmation email sent"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
+// @Router /auth/resend-confirmation [post]
+func (h *AuthHandlers) ResendConfirmation(w http.ResponseWriter, r *http.Request) {
+	var req ResendConfirmationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("failed to decode request", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Validate request
+	if err := h.validator.Struct(req); err != nil {
+		slog.Error("validation error", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Resend confirmation via auth provider
+	if err := h.authProvider.ResendConfirmation(r.Context(), req.Email); err != nil {
+		slog.Error("failed to resend confirmation", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Confirmation email has been resent. Please check your inbox.",
+	}
+
+	render.JSON(w, r, response)
+}
+
+// ConfirmEmailWithTokenRequest represents token-based confirmation request
+type ConfirmEmailWithTokenRequest struct {
+	AccessToken string `json:"access_token" validate:"required"`
+}
+
+// ConfirmEmailWithToken verifies user email using Supabase access token
+// @Summary Confirm email with access token
+// @Description Confirm user email using Supabase access token from callback URL fragment
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body ConfirmEmailWithTokenRequest true "Access token from Supabase"
+// @Success 200 {object} AuthResponse "Email confirmed successfully"
+// @Failure 400 {object} models.ErrorResponseBody "Bad request"
+// @Failure 500 {object} models.ErrorResponseBody "Internal server error"
+// @Router /auth/confirm-token [post]
+func (h *AuthHandlers) ConfirmEmailWithToken(w http.ResponseWriter, r *http.Request) {
+	var req ConfirmEmailWithTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("failed to decode request", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Validate request
+	if err := h.validator.Struct(req); err != nil {
+		slog.Error("validation error", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Validate the Supabase access token to get user info
+	authUser, err := h.authProvider.ValidateToken(r.Context(), req.AccessToken)
+	if err != nil {
+		slog.Error("failed to validate Supabase access token", "error", err)
+		api.ErrorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Create or get user in our database
+	user, err := h.userUseCase.GetOrCreateUserByAuthProvider(
+		r.Context(),
+		h.authProvider.Provider(),
+		authUser.AuthProviderID,
+		authUser.Email,
+	)
+	if err != nil {
+		slog.Error("failed to get or create user in our database", "error", err)
 		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}

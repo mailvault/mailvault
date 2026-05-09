@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"mailvault/app/api/v1/auth/mocks"
+	domainauth "mailvault/domain/auth"
 	"mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
@@ -25,8 +26,12 @@ type fakeAuthProvider struct {
 }
 
 func (f *fakeAuthProvider) Provider() string { return f.provider }
-func (f *fakeAuthProvider) CreateUser(_ context.Context, email, password string) (string, error) {
-	return f.createUserFunc(email, password)
+func (f *fakeAuthProvider) CreateUser(_ context.Context, email, password string) (*domainauth.CreateUserResponse, error) {
+	providerID, err := f.createUserFunc(email, password)
+	if err != nil {
+		return nil, err
+	}
+	return &domainauth.CreateUserResponse{UserID: providerID, RequiresConfirm: false}, nil
 }
 func (f *fakeAuthProvider) Login(_ context.Context, email, password string) (string, error) {
 	return f.loginFunc(email, password)
@@ -36,6 +41,12 @@ func (f *fakeAuthProvider) ValidateToken(_ context.Context, _ string) (*entities
 }
 func (f *fakeAuthProvider) GetUserByID(_ context.Context, _ string) (*entities.User, error) {
 	return nil, errors.New("not implemented")
+}
+func (f *fakeAuthProvider) ResendConfirmation(_ context.Context, _ string) error {
+	return errors.New("not implemented")
+}
+func (f *fakeAuthProvider) ConfirmEmail(_ context.Context, _, _ string) (string, error) {
+	return "", errors.New("not implemented")
 }
 
 func TestAuthHandlers_Register_Success(t *testing.T) {

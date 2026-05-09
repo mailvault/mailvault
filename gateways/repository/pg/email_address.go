@@ -27,8 +27,8 @@ func NewEmailAddressRepository(db DBTX) email.EmailAddressRepository {
 
 func (r *EmailAddressRepository) Create(ctx context.Context, emailAddress *entities.EmailAddress) error {
 	query := `
-		INSERT INTO email_addresses (id, domain_id, local_part, forward_addresses, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO email_addresses (id, domain_id, local_part, forward_addresses, forwarding_enabled, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	_, err := r.db.Exec(ctx, query,
@@ -36,6 +36,7 @@ func (r *EmailAddressRepository) Create(ctx context.Context, emailAddress *entit
 		emailAddress.DomainID,
 		emailAddress.LocalPart,
 		emailAddress.ForwardAddresses,
+		emailAddress.ForwardingEnabled,
 		emailAddress.CreatedAt,
 		emailAddress.UpdatedAt,
 	)
@@ -45,7 +46,7 @@ func (r *EmailAddressRepository) Create(ctx context.Context, emailAddress *entit
 
 func (r *EmailAddressRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.EmailAddress, error) {
 	query := `
-		SELECT id, domain_id, local_part, forward_addresses, created_at, updated_at
+		SELECT id, domain_id, local_part, forward_addresses, forwarding_enabled, created_at, updated_at
 		FROM email_addresses
 		WHERE id = $1
 	`
@@ -55,7 +56,7 @@ func (r *EmailAddressRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 func (r *EmailAddressRepository) GetByDomainID(ctx context.Context, domainID uuid.UUID) ([]*entities.EmailAddress, error) {
 	query := `
-		SELECT id, domain_id, local_part, forward_addresses, created_at, updated_at
+		SELECT id, domain_id, local_part, forward_addresses, forwarding_enabled, created_at, updated_at
 		FROM email_addresses
 		WHERE domain_id = $1
 		ORDER BY created_at DESC
@@ -85,7 +86,7 @@ func (r *EmailAddressRepository) GetByDomainID(ctx context.Context, domainID uui
 
 func (r *EmailAddressRepository) GetByLocalPartAndDomain(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error) {
 	query := `
-		SELECT id, domain_id, local_part, forward_addresses, created_at, updated_at
+		SELECT id, domain_id, local_part, forward_addresses, forwarding_enabled, created_at, updated_at
 		FROM email_addresses
 		WHERE local_part = $1 AND domain_id = $2
 	`
@@ -104,7 +105,7 @@ func (r *EmailAddressRepository) GetByAddress(ctx context.Context, address strin
 	domainName = strings.ToLower(domainName)
 
 	query := `
-		SELECT ea.id, ea.domain_id, ea.local_part, ea.forward_addresses, ea.created_at, ea.updated_at
+		SELECT ea.id, ea.domain_id, ea.local_part, ea.forward_addresses, ea.forwarding_enabled, ea.created_at, ea.updated_at
 		FROM email_addresses ea
 		JOIN domains d ON ea.domain_id = d.id
 		WHERE ea.local_part = $1 AND d.domain = $2
@@ -116,7 +117,7 @@ func (r *EmailAddressRepository) GetByAddress(ctx context.Context, address strin
 func (r *EmailAddressRepository) Update(ctx context.Context, emailAddress *entities.EmailAddress) error {
 	query := `
 		UPDATE email_addresses
-		SET domain_id = $2, local_part = $3, forward_addresses = $4, updated_at = $5
+		SET domain_id = $2, local_part = $3, forward_addresses = $4, forwarding_enabled = $5, updated_at = $6
 		WHERE id = $1
 	`
 
@@ -125,6 +126,7 @@ func (r *EmailAddressRepository) Update(ctx context.Context, emailAddress *entit
 		emailAddress.DomainID,
 		emailAddress.LocalPart,
 		emailAddress.ForwardAddresses,
+		emailAddress.ForwardingEnabled,
 		emailAddress.UpdatedAt,
 	)
 
@@ -162,6 +164,7 @@ func (r *EmailAddressRepository) scanEmailAddress(row pgx.Row) (*entities.EmailA
 		&e.DomainID,
 		&e.LocalPart,
 		&e.ForwardAddresses,
+		&e.ForwardingEnabled,
 		&e.CreatedAt,
 		&e.UpdatedAt,
 	)
@@ -184,6 +187,7 @@ func (r *EmailAddressRepository) scanEmailAddressFromRows(rows pgx.Rows) (*entit
 		&e.DomainID,
 		&e.LocalPart,
 		&e.ForwardAddresses,
+		&e.ForwardingEnabled,
 		&e.CreatedAt,
 		&e.UpdatedAt,
 	)

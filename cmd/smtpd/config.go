@@ -25,6 +25,11 @@ type Config struct {
 
 	// Database optimization settings
 	EnableDatabaseMetrics bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
+
+	// Forwarding configuration
+	// ForwardingRelayAddr is the SMTP relay address used to forward emails.
+	// Leave empty to disable forwarding (default).
+	ForwardingRelayAddr string `conf:"env:SMTP_FORWARDING_RELAY_ADDR"`
 }
 
 func (c *Config) Load(prefix string) error {

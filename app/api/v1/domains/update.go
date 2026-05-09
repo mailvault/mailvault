@@ -12,10 +12,10 @@ import (
 
 // UpdateDomainRequest represents domain update request
 type UpdateDomainRequest struct {
-	PublicKey        *string               `json:"public_key,omitempty"`
-	WebhookConfig    *WebhookConfigRequest `json:"webhook_config,omitempty"`
-	StorageEnabled   *bool                 `json:"storage_enabled,omitempty"`
-	AutoCreateAddress *bool                `json:"auto_create_address,omitempty"`
+	PublicKey          *string                      `json:"public_key,omitempty"`
+	StorageEnabled     *bool                        `json:"storage_enabled,omitempty"`
+	AutoCreateAddress  *bool                        `json:"auto_create_address,omitempty"`
+	VerificationStatus entities.VerificationStatus  `json:"verification_status,omitempty"`
 }
 
 // UpdateDomain updates an existing domain
@@ -65,22 +65,10 @@ func (h *DomainsHandlers) UpdateDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert webhook config
-	var webhookConfig *entities.WebhookConfig
-	if req.WebhookConfig != nil {
-		webhookConfig = &entities.WebhookConfig{
-			URL:     req.WebhookConfig.URL,
-			Secret:  req.WebhookConfig.Secret,
-			Headers: req.WebhookConfig.Headers,
-			Enabled: req.WebhookConfig.Enabled,
-		}
-	}
-
 	// Update domain
 	updatedDomain, err := h.domainUseCase.UpdateDomain(r.Context(), domainID, domainpkg.UpdateDomainInput{
-		PublicKey:        req.PublicKey,
-		WebhookConfig:    webhookConfig,
-		StorageEnabled:   req.StorageEnabled,
+		PublicKey:         req.PublicKey,
+		StorageEnabled:    req.StorageEnabled,
 		AutoCreateAddress: req.AutoCreateAddress,
 	})
 	if err != nil {

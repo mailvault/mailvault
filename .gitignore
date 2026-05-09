@@ -26,3 +26,12 @@ go.work.sum
 
 # env file
 .env
+
+# Compiled binaries (root and stray locations)
+/service
+/smtpd
+/worker
+/cli
+domain/email/service
+domain/email/smtpd
+domain/email/worker

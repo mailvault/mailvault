@@ -60,15 +60,42 @@ func (jq *jobQueue) Pop() interface{} {
 	return job
 }
 
-// NewPriorityQueue creates a new priority queue
-func NewPriorityQueue(maxSize int) Queue {
+// NewPriorityQueue creates a new priority queue. Pass 0 for unlimited size.
+func NewPriorityQueue(maxSize ...int) *PriorityQueue {
+	ms := 0
+	if len(maxSize) > 0 {
+		ms = maxSize[0]
+	}
 	pq := &PriorityQueue{
 		jobs:    make(jobQueue, 0),
-		maxSize: maxSize,
+		maxSize: ms,
 	}
 	pq.cond = sync.NewCond(&pq.mutex)
 	heap.Init(&pq.jobs)
 	return pq
+}
+
+// Enqueue adds a job to the queue (convenience method, ignores errors)
+func (pq *PriorityQueue) Enqueue(job *validation.ValidationJob) {
+	_ = pq.Push(job)
+}
+
+// Dequeue removes and returns the highest priority job, or nil if empty
+func (pq *PriorityQueue) Dequeue() *validation.ValidationJob {
+	pq.mutex.Lock()
+	defer pq.mutex.Unlock()
+
+	if len(pq.jobs) == 0 {
+		return nil
+	}
+	return heap.Pop(&pq.jobs).(*validation.ValidationJob)
+}
+
+// IsEmpty returns true if the queue has no jobs
+func (pq *PriorityQueue) IsEmpty() bool {
+	pq.mutex.RLock()
+	defer pq.mutex.RUnlock()
+	return len(pq.jobs) == 0
 }
 
 // Push adds a job to the queue
@@ -239,6 +266,7 @@ type JobScheduler struct {
 	queue     Queue
 	stopCh    chan struct{}
 	stopped   bool
+	started   bool
 }
 
 // ScheduledJob represents a job scheduled for future execution
@@ -249,13 +277,31 @@ type ScheduledJob struct {
 	MaxRetries  int
 }
 
-// NewJobScheduler creates a new job scheduler
-func NewJobScheduler(queue Queue, checkInterval time.Duration) *JobScheduler {
+// NewJobScheduler creates a new job scheduler. checkInterval defaults to 10ms if not provided.
+func NewJobScheduler(queue Queue, checkInterval ...time.Duration) *JobScheduler {
+	interval := 10 * time.Millisecond
+	if len(checkInterval) > 0 {
+		interval = checkInterval[0]
+	}
 	return &JobScheduler{
 		scheduled: make(map[uuid.UUID]*ScheduledJob),
-		ticker:    time.NewTicker(checkInterval),
+		ticker:    time.NewTicker(interval),
 		queue:     queue,
 		stopCh:    make(chan struct{}),
+	}
+}
+
+// Schedule schedules a job for execution at the given time, auto-starting the scheduler.
+func (js *JobScheduler) Schedule(job *validation.ValidationJob, scheduleTime time.Time) {
+	js.ScheduleJob(job, scheduleTime, 0)
+	js.mutex.Lock()
+	alreadyStarted := js.started
+	if !alreadyStarted {
+		js.started = true
+	}
+	js.mutex.Unlock()
+	if !alreadyStarted {
+		js.Start(context.Background())
 	}
 }
 

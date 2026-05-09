@@ -8,11 +8,13 @@ import (
 	"mailvault/app/api/middleware"
 	v1 "mailvault/app/api/v1"
 	authDomain "mailvault/domain/auth"
+	"mailvault/domain/billing"
 	domainpkg "mailvault/domain/domain"
 	"mailvault/domain/email"
 	"mailvault/domain/user"
 	"mailvault/gateways/repository/pg"
 	"mailvault/internal/database"
+	"mailvault/internal/webhook"
 	"net/http"
 	"runtime"
 	"time"
@@ -93,11 +95,20 @@ func main() {
 		return
 	}
 
+	// Webhook system
+	// ------------------------------------------
+	webhookClient := webhook.NewHTTPClient(webhook.DefaultClientConfig())
+	webhookNotifier := webhook.NewIncomingEmailNotificationService(webhook.NotificationServiceConfig{
+		HTTPClient:  webhookClient,
+		EnableAsync: true, // Enable async processing for better performance
+	})
+
 	// Use cases and their dependencies
 	// ------------------------------------------
 	userUseCase := user.NewUseCase(repo.UserRepo)
 	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo, repo.UserRepo)
-	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
+	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo, webhook.NewNotificationServiceAdapter(webhookNotifier))
+	billingUseCase := billing.NewUseCase(repo.BillingRepo, log)
 
 	// Initialize metrics middleware for separate server
 	metricsMw := middleware.NewMetricsMiddleware(middleware.DefaultMetricsConfig())
@@ -120,16 +131,19 @@ func main() {
 
 	// Handlers V1
 	apiV1 := v1.ApiHandlers{
-		AuthProvider:      authProvider,
-		UserUseCase:       userUseCase,
-		AuthUseCase:       userUseCase,
-		DomainUseCase:     domainUseCase,
-		EmailUseCase:      emailUseCase,
-		AuthSecretKey:     cfg.AuthSecretKey,
-		AuthTokenTTL:      cfg.AuthTokenTTL,
-		Logger:            log,
-		HealthChecker:     dbPool,    // optimized database pool implements the Ping interface
-		MetricsMiddleware: metricsMw, // Pass metrics middleware for business metrics
+		AuthProvider:        authProvider,
+		UserUseCase:         userUseCase,
+		AuthUseCase:         userUseCase,
+		DomainUseCase:       domainUseCase,
+		EmailUseCase:        emailUseCase,
+		BillingUseCase:      billingUseCase,
+		AuthSecretKey:       cfg.AuthSecretKey,
+		AuthTokenTTL:        cfg.AuthTokenTTL,
+		Logger:              log,
+		StripeSecretKey:     cfg.StripeSecretKey,
+		StripeWebhookSecret: cfg.StripeWebhookSecret,
+		HealthChecker:       dbPool,    // optimized database pool implements the Ping interface
+		MetricsMiddleware:   metricsMw, // Pass metrics middleware for business metrics
 	}
 
 	router := api.Router()

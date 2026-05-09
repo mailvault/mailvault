@@ -3,7 +3,6 @@ package pg
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	domain "mailvault/domain/domain"
 	"mailvault/domain/entities"
@@ -24,31 +23,19 @@ func NewDomainRepository(db DBTX) domain.Repository {
 }
 
 func (r *DomainRepository) Create(ctx context.Context, d *entities.Domain) error {
-	var webhookConfigJSON []byte
-	var err error
-
-	if d.WebhookConfig != nil {
-		webhookConfigJSON, err = json.Marshal(d.WebhookConfig)
-		if err != nil {
-			return err
-		}
-	}
-
 	query := `
-		INSERT INTO domains (id, user_id, domain, public_key, encrypted_private_key, api_key, webhook_config, storage_enabled, auto_create_address,
+		INSERT INTO domains (id, user_id, domain, public_key, api_key, storage_enabled, auto_create_address,
 		                     verification_status, verification_token, last_verification_attempt, verification_error, verification_attempts, next_verification_attempt,
 		                     created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`
 
-	_, err = r.db.Exec(ctx, query,
+	_, err := r.db.Exec(ctx, query,
 		d.ID,
 		d.UserID,
 		d.Domain,
 		d.PublicKey,
-		d.EncryptedPrivateKey,
 		d.APIKey,
-		webhookConfigJSON,
 		d.StorageEnabled,
 		d.AutoCreateAddress,
 		d.VerificationStatus,
@@ -66,7 +53,7 @@ func (r *DomainRepository) Create(ctx context.Context, d *entities.Domain) error
 
 func (r *DomainRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, encrypted_private_key, api_key, webhook_config, storage_enabled, auto_create_address,
+		SELECT id, user_id, domain, public_key, api_key, storage_enabled, auto_create_address,
 		       verification_status, verification_token, last_verification_attempt, verification_error, verification_attempts, next_verification_attempt,
 		       created_at, updated_at
 		FROM domains
@@ -78,7 +65,7 @@ func (r *DomainRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities
 
 func (r *DomainRepository) GetByDomain(ctx context.Context, domain string) (*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, encrypted_private_key, api_key, webhook_config, storage_enabled, auto_create_address,
+		SELECT id, user_id, domain, public_key, api_key, storage_enabled, auto_create_address,
 		       verification_status, verification_token, last_verification_attempt, verification_error, verification_attempts, next_verification_attempt,
 		       created_at, updated_at
 		FROM domains
@@ -90,7 +77,7 @@ func (r *DomainRepository) GetByDomain(ctx context.Context, domain string) (*ent
 
 func (r *DomainRepository) GetByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, encrypted_private_key, api_key, webhook_config, storage_enabled, auto_create_address,
+		SELECT id, user_id, domain, public_key, api_key, storage_enabled, auto_create_address,
 		       verification_status, verification_token, last_verification_attempt, verification_error, verification_attempts, next_verification_attempt,
 		       created_at, updated_at
 		FROM domains
@@ -102,7 +89,7 @@ func (r *DomainRepository) GetByAPIKey(ctx context.Context, apiKey string) (*ent
 
 func (r *DomainRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
 	query := `
-		SELECT id, user_id, domain, public_key, encrypted_private_key, api_key, webhook_config, storage_enabled, auto_create_address,
+		SELECT id, user_id, domain, public_key, api_key, storage_enabled, auto_create_address,
 		       verification_status, verification_token, last_verification_attempt, verification_error, verification_attempts, next_verification_attempt,
 		       created_at, updated_at
 		FROM domains
@@ -133,21 +120,11 @@ func (r *DomainRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([
 }
 
 func (r *DomainRepository) Update(ctx context.Context, d *entities.Domain) error {
-	var webhookConfigJSON []byte
-	var err error
-
-	if d.WebhookConfig != nil {
-		webhookConfigJSON, err = json.Marshal(d.WebhookConfig)
-		if err != nil {
-			return err
-		}
-	}
-
 	query := `
 		UPDATE domains
-		SET user_id = $2, domain = $3, public_key = $4, encrypted_private_key = $5, api_key = $6, webhook_config = $7, storage_enabled = $8, auto_create_address = $9,
-		    verification_status = $10, verification_token = $11, last_verification_attempt = $12, verification_error = $13, verification_attempts = $14, next_verification_attempt = $15,
-		    updated_at = $16
+		SET user_id = $2, domain = $3, public_key = $4, api_key = $5, storage_enabled = $6, auto_create_address = $7,
+		    verification_status = $8, verification_token = $9, last_verification_attempt = $10, verification_error = $11, verification_attempts = $12, next_verification_attempt = $13,
+		    updated_at = $14
 		WHERE id = $1
 	`
 
@@ -156,9 +133,7 @@ func (r *DomainRepository) Update(ctx context.Context, d *entities.Domain) error
 		d.UserID,
 		d.Domain,
 		d.PublicKey,
-		d.EncryptedPrivateKey,
 		d.APIKey,
-		webhookConfigJSON,
 		d.StorageEnabled,
 		d.AutoCreateAddress,
 		d.VerificationStatus,
@@ -198,7 +173,6 @@ func (r *DomainRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *DomainRepository) scanDomain(row pgx.Row) (*entities.Domain, error) {
 	var d entities.Domain
-	var webhookConfigJSON []byte
 	var lastVerificationAttempt *time.Time
 	var nextVerificationAttempt *time.Time
 	var verificationError *string
@@ -209,9 +183,7 @@ func (r *DomainRepository) scanDomain(row pgx.Row) (*entities.Domain, error) {
 		&d.UserID,
 		&d.Domain,
 		&d.PublicKey,
-		&d.EncryptedPrivateKey,
 		&d.APIKey,
-		&webhookConfigJSON,
 		&d.StorageEnabled,
 		&d.AutoCreateAddress,
 		&d.VerificationStatus,
@@ -246,21 +218,11 @@ func (r *DomainRepository) scanDomain(row pgx.Row) (*entities.Domain, error) {
 		return nil, err
 	}
 
-	// Parse webhook config if present
-	if len(webhookConfigJSON) > 0 {
-		var webhookConfig entities.WebhookConfig
-		if err := json.Unmarshal(webhookConfigJSON, &webhookConfig); err != nil {
-			return nil, err
-		}
-		d.WebhookConfig = &webhookConfig
-	}
-
 	return &d, nil
 }
 
 func (r *DomainRepository) scanDomainFromRows(rows pgx.Rows) (*entities.Domain, error) {
 	var d entities.Domain
-	var webhookConfigJSON []byte
 	var lastVerificationAttempt *time.Time
 	var nextVerificationAttempt *time.Time
 	var verificationError *string
@@ -271,9 +233,7 @@ func (r *DomainRepository) scanDomainFromRows(rows pgx.Rows) (*entities.Domain, 
 		&d.UserID,
 		&d.Domain,
 		&d.PublicKey,
-		&d.EncryptedPrivateKey,
 		&d.APIKey,
-		&webhookConfigJSON,
 		&d.StorageEnabled,
 		&d.AutoCreateAddress,
 		&d.VerificationStatus,
@@ -303,15 +263,6 @@ func (r *DomainRepository) scanDomainFromRows(rows pgx.Rows) (*entities.Domain, 
 
 	if err != nil {
 		return nil, err
-	}
-
-	// Parse webhook config if present
-	if len(webhookConfigJSON) > 0 {
-		var webhookConfig entities.WebhookConfig
-		if err := json.Unmarshal(webhookConfigJSON, &webhookConfig); err != nil {
-			return nil, err
-		}
-		d.WebhookConfig = &webhookConfig
 	}
 
 	return &d, nil

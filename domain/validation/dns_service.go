@@ -14,7 +14,7 @@ import (
 type DNSService interface {
 	ValidateMXRecords(ctx context.Context, domain string, expectedServers []string) (*MXValidationResult, error)
 	ValidateTXTRecord(ctx context.Context, domain string, expectedRecord string) (*TXTValidationResult, error)
-	ValidateFullDomain(ctx context.Context, domain string, verificationToken string, config ValidationConfig) (*FullValidationResult, error)
+	ValidateFullDomain(ctx context.Context, domain string, verificationToken string, config *ValidationConfig) (*FullValidationResult, error)
 }
 
 // DNSValidator implements DNSService
@@ -45,23 +45,26 @@ func NewDNSValidator(config ValidationConfig, logger *slog.Logger) DNSService {
 
 // MXValidationResult contains the result of MX record validation
 type MXValidationResult struct {
-	Valid          bool       `json:"valid"`
-	FoundRecords   []MXRecord `json:"found_records"`
-	ExpectedServers []string  `json:"expected_servers"`
-	MissingServers []string   `json:"missing_servers,omitempty"`
-	ExtraServers   []string   `json:"extra_servers,omitempty"`
-	QueryTime      time.Duration `json:"query_time"`
-	Error          string     `json:"error,omitempty"`
+	Domain          string        `json:"domain,omitempty"`
+	Valid           bool          `json:"valid"`
+	FoundRecords    []MXRecord    `json:"found_records"`
+	ExpectedServers []string      `json:"expected_servers"`
+	MissingServers  []string      `json:"missing_servers,omitempty"`
+	ExtraServers    []string      `json:"extra_servers,omitempty"`
+	QueryTime       time.Duration `json:"query_time"`
+	Error           string        `json:"error,omitempty"`
 }
 
 // TXTValidationResult contains the result of TXT record validation
 type TXTValidationResult struct {
-	Valid            bool          `json:"valid"`
-	FoundRecords     []string      `json:"found_records"`
-	ExpectedRecord   string        `json:"expected_record"`
-	MatchingRecord   string        `json:"matching_record,omitempty"`
-	QueryTime        time.Duration `json:"query_time"`
-	Error            string        `json:"error,omitempty"`
+	Domain         string        `json:"domain,omitempty"`
+	Valid          bool          `json:"valid"`
+	FoundRecords   []string      `json:"found_records"`
+	ExpectedRecord string        `json:"expected_record"`
+	MatchingRecord string        `json:"matching_record,omitempty"`
+	QueryTime      time.Duration `json:"query_time"`
+	RetryCount     int           `json:"retry_count,omitempty"`
+	Error          string        `json:"error,omitempty"`
 }
 
 // FullValidationResult contains the complete validation result
@@ -217,7 +220,7 @@ func (v *DNSValidator) ValidateTXTRecord(ctx context.Context, domain string, exp
 }
 
 // ValidateFullDomain performs complete domain validation including MX and TXT records
-func (v *DNSValidator) ValidateFullDomain(ctx context.Context, domain string, verificationToken string, config ValidationConfig) (*FullValidationResult, error) {
+func (v *DNSValidator) ValidateFullDomain(ctx context.Context, domain string, verificationToken string, config *ValidationConfig) (*FullValidationResult, error) {
 	startTime := time.Now()
 
 	v.logger.Info( "Starting full domain validation",

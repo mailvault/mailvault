@@ -11,11 +11,13 @@ import (
 	"syscall"
 
 	"mailvault/app/smtp"
+	"mailvault/domain/billing"
 	domainUseCase "mailvault/domain/domain"
 	"mailvault/domain/email"
 	"mailvault/domain/smtp_stats"
 	"mailvault/gateways/repository/pg"
 	"mailvault/internal/database"
+	"mailvault/internal/webhook"
 
 	"github.com/guilhermebr/gox/logger"
 )
@@ -69,13 +71,23 @@ func main() {
 	// Initialize repositories
 	repo := pg.NewRepository(dbPool.Pool)
 
+	// Webhook system
+	webhookClient := webhook.NewHTTPClient(webhook.DefaultClientConfig())
+	webhookNotifier := webhook.NewIncomingEmailNotificationService(webhook.NotificationServiceConfig{
+		HTTPClient:  webhookClient,
+		EnableAsync: true, // Enable async processing for better performance
+	})
+
 	// Initialize use cases
 	domainUseCase := domainUseCase.NewUseCase(repo.DomainRepo, repo.UserRepo)
-	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo)
-	
+	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo, webhook.NewNotificationServiceAdapter(webhookNotifier))
+
 	// Initialize SMTP stats repository and use case
 	smtpStatsRepo := pg.NewSMTPStatsRepository(dbPool.Pool)
 	smtpStatsUseCase := smtp_stats.NewUseCase(smtpStatsRepo)
+
+	// Initialize billing use case for usage tracking
+	billingUseCase := billing.NewUseCase(repo.BillingRepo, log)
 
 	// Create SMTP server
 	smtpCfg := smtp.Config{
@@ -88,7 +100,13 @@ func main() {
 		TLSImplicit: cfg.TLSImplicit,
 	}
 
-	backend := smtp.NewBackend(domainUseCase, emailUseCase, smtpStatsUseCase, logger)
+	backend := smtp.NewBackend(domainUseCase, emailUseCase, smtpStatsUseCase, billingUseCase, logger)
+
+	// Configure email forwarding relay if an address is provided.
+	backend.ConfigureForwarding(smtp.ForwardingConfig{
+		RelayAddr: cfg.ForwardingRelayAddr,
+		Hostname:  cfg.Domain,
+	})
 
 	smtpServer, err := smtp.NewServer(smtpCfg, backend, logger)
 	if err != nil {

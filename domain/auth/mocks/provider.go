@@ -5,6 +5,7 @@ package mocks
 
 import (
 	"context"
+	"mailvault/domain/auth"
 	"mailvault/domain/entities"
 	"sync"
 )
@@ -15,7 +16,10 @@ import (
 //
 //		// make and configure a mocked auth.Provider
 //		mockedProvider := &ProviderMock{
-//			CreateUserFunc: func(ctx context.Context, email string, password string) (string, error) {
+//			ConfirmEmailFunc: func(ctx context.Context, token string, email string) (string, error) {
+//				panic("mock out the ConfirmEmail method")
+//			},
+//			CreateUserFunc: func(ctx context.Context, email string, password string) (*auth.CreateUserResponse, error) {
 //				panic("mock out the CreateUser method")
 //			},
 //			GetUserByIDFunc: func(ctx context.Context, id string) (*entities.User, error) {
@@ -27,6 +31,9 @@ import (
 //			ProviderFunc: func() string {
 //				panic("mock out the Provider method")
 //			},
+//			ResendConfirmationFunc: func(ctx context.Context, email string) error {
+//				panic("mock out the ResendConfirmation method")
+//			},
 //			ValidateTokenFunc: func(ctx context.Context, token string) (*entities.User, error) {
 //				panic("mock out the ValidateToken method")
 //			},
@@ -37,8 +44,11 @@ import (
 //
 //	}
 type ProviderMock struct {
+	// ConfirmEmailFunc mocks the ConfirmEmail method.
+	ConfirmEmailFunc func(ctx context.Context, token string, email string) (string, error)
+
 	// CreateUserFunc mocks the CreateUser method.
-	CreateUserFunc func(ctx context.Context, email string, password string) (string, error)
+	CreateUserFunc func(ctx context.Context, email string, password string) (*auth.CreateUserResponse, error)
 
 	// GetUserByIDFunc mocks the GetUserByID method.
 	GetUserByIDFunc func(ctx context.Context, id string) (*entities.User, error)
@@ -49,11 +59,23 @@ type ProviderMock struct {
 	// ProviderFunc mocks the Provider method.
 	ProviderFunc func() string
 
+	// ResendConfirmationFunc mocks the ResendConfirmation method.
+	ResendConfirmationFunc func(ctx context.Context, email string) error
+
 	// ValidateTokenFunc mocks the ValidateToken method.
 	ValidateTokenFunc func(ctx context.Context, token string) (*entities.User, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// ConfirmEmail holds details about calls to the ConfirmEmail method.
+		ConfirmEmail []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Token is the token argument value.
+			Token string
+			// Email is the email argument value.
+			Email string
+		}
 		// CreateUser holds details about calls to the CreateUser method.
 		CreateUser []struct {
 			// Ctx is the ctx argument value.
@@ -82,6 +104,13 @@ type ProviderMock struct {
 		// Provider holds details about calls to the Provider method.
 		Provider []struct {
 		}
+		// ResendConfirmation holds details about calls to the ResendConfirmation method.
+		ResendConfirmation []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Email is the email argument value.
+			Email string
+		}
 		// ValidateToken holds details about calls to the ValidateToken method.
 		ValidateToken []struct {
 			// Ctx is the ctx argument value.
@@ -90,15 +119,61 @@ type ProviderMock struct {
 			Token string
 		}
 	}
-	lockCreateUser    sync.RWMutex
-	lockGetUserByID   sync.RWMutex
-	lockLogin         sync.RWMutex
-	lockProvider      sync.RWMutex
-	lockValidateToken sync.RWMutex
+	lockConfirmEmail       sync.RWMutex
+	lockCreateUser         sync.RWMutex
+	lockGetUserByID        sync.RWMutex
+	lockLogin              sync.RWMutex
+	lockProvider           sync.RWMutex
+	lockResendConfirmation sync.RWMutex
+	lockValidateToken      sync.RWMutex
+}
+
+// ConfirmEmail calls ConfirmEmailFunc.
+func (mock *ProviderMock) ConfirmEmail(ctx context.Context, token string, email string) (string, error) {
+	callInfo := struct {
+		Ctx   context.Context
+		Token string
+		Email string
+	}{
+		Ctx:   ctx,
+		Token: token,
+		Email: email,
+	}
+	mock.lockConfirmEmail.Lock()
+	mock.calls.ConfirmEmail = append(mock.calls.ConfirmEmail, callInfo)
+	mock.lockConfirmEmail.Unlock()
+	if mock.ConfirmEmailFunc == nil {
+		var (
+			sOut   string
+			errOut error
+		)
+		return sOut, errOut
+	}
+	return mock.ConfirmEmailFunc(ctx, token, email)
+}
+
+// ConfirmEmailCalls gets all the calls that were made to ConfirmEmail.
+// Check the length with:
+//
+//	len(mockedProvider.ConfirmEmailCalls())
+func (mock *ProviderMock) ConfirmEmailCalls() []struct {
+	Ctx   context.Context
+	Token string
+	Email string
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Token string
+		Email string
+	}
+	mock.lockConfirmEmail.RLock()
+	calls = mock.calls.ConfirmEmail
+	mock.lockConfirmEmail.RUnlock()
+	return calls
 }
 
 // CreateUser calls CreateUserFunc.
-func (mock *ProviderMock) CreateUser(ctx context.Context, email string, password string) (string, error) {
+func (mock *ProviderMock) CreateUser(ctx context.Context, email string, password string) (*auth.CreateUserResponse, error) {
 	callInfo := struct {
 		Ctx      context.Context
 		Email    string
@@ -113,10 +188,10 @@ func (mock *ProviderMock) CreateUser(ctx context.Context, email string, password
 	mock.lockCreateUser.Unlock()
 	if mock.CreateUserFunc == nil {
 		var (
-			sOut   string
-			errOut error
+			createUserResponseOut *auth.CreateUserResponse
+			errOut                error
 		)
-		return sOut, errOut
+		return createUserResponseOut, errOut
 	}
 	return mock.CreateUserFunc(ctx, email, password)
 }
@@ -252,6 +327,45 @@ func (mock *ProviderMock) ProviderCalls() []struct {
 	mock.lockProvider.RLock()
 	calls = mock.calls.Provider
 	mock.lockProvider.RUnlock()
+	return calls
+}
+
+// ResendConfirmation calls ResendConfirmationFunc.
+func (mock *ProviderMock) ResendConfirmation(ctx context.Context, email string) error {
+	callInfo := struct {
+		Ctx   context.Context
+		Email string
+	}{
+		Ctx:   ctx,
+		Email: email,
+	}
+	mock.lockResendConfirmation.Lock()
+	mock.calls.ResendConfirmation = append(mock.calls.ResendConfirmation, callInfo)
+	mock.lockResendConfirmation.Unlock()
+	if mock.ResendConfirmationFunc == nil {
+		var (
+			errOut error
+		)
+		return errOut
+	}
+	return mock.ResendConfirmationFunc(ctx, email)
+}
+
+// ResendConfirmationCalls gets all the calls that were made to ResendConfirmation.
+// Check the length with:
+//
+//	len(mockedProvider.ResendConfirmationCalls())
+func (mock *ProviderMock) ResendConfirmationCalls() []struct {
+	Ctx   context.Context
+	Email string
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Email string
+	}
+	mock.lockResendConfirmation.RLock()
+	calls = mock.calls.ResendConfirmation
+	mock.lockResendConfirmation.RUnlock()
 	return calls
 }
 

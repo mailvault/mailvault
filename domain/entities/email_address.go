@@ -7,12 +7,13 @@ import (
 )
 
 type EmailAddress struct {
-	ID               uuid.UUID `json:"id" db:"id"`
-	DomainID         uuid.UUID `json:"domain_id" db:"domain_id"`
-	LocalPart        string    `json:"local_part" db:"local_part"`
-	ForwardAddresses []string  `json:"forward_addresses" db:"forward_addresses"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+	ID                uuid.UUID `json:"id" db:"id"`
+	DomainID          uuid.UUID `json:"domain_id" db:"domain_id"`
+	LocalPart         string    `json:"local_part" db:"local_part"`
+	ForwardAddresses  []string  `json:"forward_addresses" db:"forward_addresses"`
+	ForwardingEnabled bool      `json:"forwarding_enabled" db:"forwarding_enabled"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
 }
 
 func (e *EmailAddress) IsValid() bool {
@@ -24,5 +25,5 @@ func (e *EmailAddress) GetFullAddress(domain string) string {
 }
 
 func (e *EmailAddress) HasForwarding() bool {
-	return len(e.ForwardAddresses) > 0
+	return e.ForwardingEnabled && len(e.ForwardAddresses) > 0
 }

@@ -29,19 +29,18 @@ func NewUseCase(repo Repository, userRepo user.Repository) *UseCase {
 }
 
 type CreateDomainInput struct {
-	UserID            uuid.UUID               `json:"user_id"`
-	Domain            string                  `json:"domain"`
-	PublicKey         string                  `json:"public_key"`
+	UserID            uuid.UUID              `json:"user_id"`
+	Domain            string                 `json:"domain"`
+	PublicKey         string                 `json:"public_key"`
+	StorageEnabled    *bool                  `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                  `json:"auto_create_address,omitempty"`
 	WebhookConfig     *entities.WebhookConfig `json:"webhook_config,omitempty"`
-	StorageEnabled    *bool                   `json:"storage_enabled,omitempty"`
-	AutoCreateAddress *bool                   `json:"auto_create_address,omitempty"`
 }
 
 type UpdateDomainInput struct {
-	PublicKey         *string                 `json:"public_key,omitempty"`
-	WebhookConfig     *entities.WebhookConfig `json:"webhook_config,omitempty"`
-	StorageEnabled    *bool                   `json:"storage_enabled,omitempty"`
-	AutoCreateAddress *bool                   `json:"auto_create_address,omitempty"`
+	PublicKey         *string `json:"public_key,omitempty"`
+	StorageEnabled    *bool   `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool   `json:"auto_create_address,omitempty"`
 }
 
 func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*entities.Domain, error) {
@@ -85,7 +84,7 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 
 	domainLimit := user.GetDomainLimit()
 	if domainLimit > 0 && len(userDomains) >= domainLimit {
-		return nil, fmt.Errorf("domain limit exceeded: %s plan can have maximum %d domain(s), you currently have %d", 
+		return nil, fmt.Errorf("domain limit exceeded: %s plan can have maximum %d domain(s), you currently have %d",
 			user.UserPlan, domainLimit, len(userDomains))
 	}
 
@@ -93,11 +92,6 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 	existing, err := uc.repo.GetByDomain(ctx, normalizedDomain)
 	if err == nil && existing != nil {
 		return nil, fmt.Errorf("domain %s already exists", normalizedDomain)
-	}
-
-	// Validate webhook config if provided
-	if req.WebhookConfig != nil && !req.WebhookConfig.IsValid() {
-		return nil, fmt.Errorf("invalid webhook configuration")
 	}
 
 	// Default storage enabled to true if not specified
@@ -125,19 +119,18 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 	}
 
 	domain := &entities.Domain{
-		ID:                  uuid.Must(uuid.NewV4()),
-		UserID:              req.UserID,
-		Domain:              normalizedDomain,
-		PublicKey:           req.PublicKey, // Use user-provided public key
-		EncryptedPrivateKey: nil,           // No server-side private key storage
-		APIKey:              apiKey,
-		WebhookConfig:       req.WebhookConfig,
-		StorageEnabled:      storageEnabled,
-		AutoCreateAddress:   autoCreateAddress,
-		VerificationStatus:  entities.VerificationStatusPending,
-		VerificationToken:   verificationToken,
-		CreatedAt:           time.Now().UTC(),
-		UpdatedAt:           time.Now().UTC(),
+		ID:                 uuid.Must(uuid.NewV4()),
+		UserID:             req.UserID,
+		Domain:             normalizedDomain,
+		PublicKey:          req.PublicKey, // Use user-provided public key
+		APIKey:             apiKey,
+		StorageEnabled:     storageEnabled,
+		AutoCreateAddress:  autoCreateAddress,
+		WebhookConfig:      req.WebhookConfig,
+		VerificationStatus: entities.VerificationStatusPending,
+		VerificationToken:  verificationToken,
+		CreatedAt:          time.Now().UTC(),
+		UpdatedAt:          time.Now().UTC(),
 	}
 
 	if !domain.IsValid() {
@@ -216,13 +209,6 @@ func (uc *UseCase) UpdateDomain(ctx context.Context, id uuid.UUID, req UpdateDom
 	// Update fields if provided
 	if req.PublicKey != nil {
 		domain.PublicKey = *req.PublicKey
-	}
-	if req.WebhookConfig != nil {
-		// Validate webhook config if provided
-		if !req.WebhookConfig.IsValid() {
-			return nil, fmt.Errorf("invalid webhook configuration")
-		}
-		domain.WebhookConfig = req.WebhookConfig
 	}
 	if req.StorageEnabled != nil {
 		domain.StorageEnabled = *req.StorageEnabled

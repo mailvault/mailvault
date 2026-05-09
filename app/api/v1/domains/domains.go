@@ -2,7 +2,9 @@ package domains
 
 import (
 	"context"
+	"log/slog"
 
+	billingdomain "mailvault/domain/billing"
 	domainpkg "mailvault/domain/domain"
 	"mailvault/domain/entities"
 
@@ -11,7 +13,7 @@ import (
 
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
 
-// DomainUseCase defines the behavior required by this package from the domain use case.
+// UseCase defines the behavior required by this package from the domain use case.
 type UseCase interface {
 	CreateDomain(ctx context.Context, req domainpkg.CreateDomainInput) (*entities.Domain, error)
 	GetDomainsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error)
@@ -22,22 +24,32 @@ type UseCase interface {
 	GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error)
 }
 
-// DomainsHandlers contains domain-related endpoints
-type DomainsHandlers struct {
-	domainUseCase UseCase
+// BillingUseCase defines the billing operations required by domain handlers.
+type BillingUseCase interface {
+	CheckLimit(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric) (*billingdomain.CheckLimitResult, error)
+	IncrementUsage(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric, amount int64) error
 }
 
-func NewDomainsHandlers(domainUseCase UseCase) *DomainsHandlers {
+// DomainsHandlers contains domain-related endpoints
+type DomainsHandlers struct {
+	domainUseCase  UseCase
+	billingUseCase BillingUseCase
+	logger         *slog.Logger
+}
+
+func NewDomainsHandlers(domainUseCase UseCase, billingUseCase BillingUseCase, logger *slog.Logger) *DomainsHandlers {
 	return &DomainsHandlers{
-		domainUseCase: domainUseCase,
+		domainUseCase:  domainUseCase,
+		billingUseCase: billingUseCase,
+		logger:         logger,
 	}
 }
 
-// WebhookConfigRequest represents webhook configuration in requests
-type WebhookConfigRequest struct {
-	URL     string            `json:"url" validate:"required,url,max=2048"`
-	Secret  string            `json:"secret,omitempty" validate:"omitempty,min=16,max=256,safe_string"`
-	Headers map[string]string `json:"headers,omitempty" validate:"omitempty,dive,keys,safe_string,endkeys,safe_string"`
+// WebhookConfigResult represents webhook configuration in a response
+type WebhookConfigResult struct {
+	URL     string            `json:"url"`
+	Secret  string            `json:"secret,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
 	Enabled bool              `json:"enabled"`
 }
 
@@ -47,9 +59,9 @@ type DomainResult struct {
 	Domain            string               `json:"domain"`
 	PublicKey         string               `json:"public_key"`
 	APIKey            string               `json:"api_key"`
-	WebhookConfig     *WebhookConfigResult `json:"webhook_config,omitempty"`
 	StorageEnabled    bool                 `json:"storage_enabled"`
 	AutoCreateAddress bool                 `json:"auto_create_address"`
+	WebhookConfig     *WebhookConfigResult `json:"webhook_config,omitempty"`
 	// Verification fields
 	VerificationStatus      string `json:"verification_status"`
 	VerificationToken       string `json:"verification_token,omitempty"`
@@ -59,14 +71,6 @@ type DomainResult struct {
 	NextVerificationAttempt string `json:"next_verification_attempt,omitempty"`
 	CreatedAt               string `json:"created_at"`
 	UpdatedAt               string `json:"updated_at"`
-}
-
-// WebhookConfigResult represents webhook configuration in responses
-type WebhookConfigResult struct {
-	URL     string            `json:"url"`
-	Secret  string            `json:"secret,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Enabled bool              `json:"enabled"`
 }
 
 // mapDomainToResult converts domain entity to API result
@@ -87,6 +91,15 @@ func (h *DomainsHandlers) mapDomainToResult(domain *entities.Domain) *DomainResu
 		UpdatedAt:            domain.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
+	if domain.WebhookConfig != nil {
+		result.WebhookConfig = &WebhookConfigResult{
+			URL:     domain.WebhookConfig.URL,
+			Secret:  domain.WebhookConfig.Secret,
+			Headers: domain.WebhookConfig.Headers,
+			Enabled: domain.WebhookConfig.Enabled,
+		}
+	}
+
 	// Format verification attempt timestamps
 	if !domain.LastVerificationAttempt.IsZero() {
 		formatted := domain.LastVerificationAttempt.Format("2006-01-02T15:04:05Z07:00")
@@ -95,15 +108,6 @@ func (h *DomainsHandlers) mapDomainToResult(domain *entities.Domain) *DomainResu
 	if !domain.NextVerificationAttempt.IsZero() {
 		formatted := domain.NextVerificationAttempt.Format("2006-01-02T15:04:05Z07:00")
 		result.NextVerificationAttempt = formatted
-	}
-
-	if domain.WebhookConfig != nil {
-		result.WebhookConfig = &WebhookConfigResult{
-			URL:     domain.WebhookConfig.URL,
-			Secret:  domain.WebhookConfig.Secret,
-			Headers: domain.WebhookConfig.Headers,
-			Enabled: domain.WebhookConfig.Enabled,
-		}
 	}
 
 	return result

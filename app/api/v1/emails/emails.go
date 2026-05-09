@@ -49,24 +49,27 @@ func NewEmailsHandlers(emailUseCase UseCase) *EmailsHandlers {
 
 // CreateEmailRequest represents email address creation request
 type CreateEmailRequest struct {
-	LocalPart        string   `json:"local_part" validate:"required"`
-	ForwardAddresses []string `json:"forward_addresses,omitempty"`
+	LocalPart         string   `json:"local_part" validate:"required"`
+	ForwardAddresses  []string `json:"forward_addresses,omitempty"`
+	ForwardingEnabled bool     `json:"forwarding_enabled"`
 }
 
 // UpdateEmailRequest represents email address update request
 type UpdateEmailRequest struct {
-	ForwardAddresses []string `json:"forward_addresses,omitempty"`
+	ForwardAddresses  []string `json:"forward_addresses,omitempty"`
+	ForwardingEnabled *bool    `json:"forwarding_enabled,omitempty"`
 }
 
 // EmailAddressResult represents email address data in responses
 type EmailAddressResult struct {
-	ID               string   `json:"id"`
-	DomainID         string   `json:"domain_id"`
-	LocalPart        string   `json:"local_part"`
-	FullAddress      string   `json:"full_address"`
-	ForwardAddresses []string `json:"forward_addresses"`
-	CreatedAt        string   `json:"created_at"`
-	UpdatedAt        string   `json:"updated_at"`
+	ID                string   `json:"id"`
+	DomainID          string   `json:"domain_id"`
+	LocalPart         string   `json:"local_part"`
+	FullAddress       string   `json:"full_address"`
+	ForwardAddresses  []string `json:"forward_addresses"`
+	ForwardingEnabled bool     `json:"forwarding_enabled"`
+	CreatedAt         string   `json:"created_at"`
+	UpdatedAt         string   `json:"updated_at"`
 }
 
 // ReceivedEmailResult represents received email data in responses
@@ -147,9 +150,10 @@ func (h *EmailsHandlers) CreateEmailAddress(w http.ResponseWriter, r *http.Reque
 
 	// Create email address
 	emailAddress, err := h.emailUseCase.CreateEmailAddressFromInput(r.Context(), email.CreateEmailAddressInput{
-		DomainID:         domainID,
-		LocalPart:        req.LocalPart,
-		ForwardAddresses: req.ForwardAddresses,
+		DomainID:          domainID,
+		LocalPart:         req.LocalPart,
+		ForwardAddresses:  req.ForwardAddresses,
+		ForwardingEnabled: req.ForwardingEnabled,
 	})
 	if err != nil {
 		slog.Error("failed to create email address", "error", err, "domain_id", domainID, "local_part", req.LocalPart)
@@ -256,7 +260,8 @@ func (h *EmailsHandlers) UpdateEmailAddress(w http.ResponseWriter, r *http.Reque
 
 	// Update email address
 	emailAddress, err := h.emailUseCase.UpdateEmailAddress(r.Context(), emailID, email.UpdateEmailAddressInput{
-		ForwardAddresses: req.ForwardAddresses,
+		ForwardAddresses:  req.ForwardAddresses,
+		ForwardingEnabled: req.ForwardingEnabled,
 	})
 	if err != nil {
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)
@@ -587,13 +592,14 @@ func (h *EmailsHandlers) mapEmailAddressToResult(emailAddress *entities.EmailAdd
 	}
 
 	return &EmailAddressResult{
-		ID:               emailAddress.ID.String(),
-		DomainID:         emailAddress.DomainID.String(),
-		LocalPart:        emailAddress.LocalPart,
-		FullAddress:      fullAddress,
-		ForwardAddresses: emailAddress.ForwardAddresses,
-		CreatedAt:        emailAddress.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:        emailAddress.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:                emailAddress.ID.String(),
+		DomainID:          emailAddress.DomainID.String(),
+		LocalPart:         emailAddress.LocalPart,
+		FullAddress:       fullAddress,
+		ForwardAddresses:  emailAddress.ForwardAddresses,
+		ForwardingEnabled: emailAddress.ForwardingEnabled,
+		CreatedAt:         emailAddress.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:         emailAddress.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 

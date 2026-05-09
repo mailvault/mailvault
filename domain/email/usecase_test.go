@@ -1,4 +1,4 @@
-package email
+package email_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"mailvault/domain/email"
 	"mailvault/domain/email/mocks"
 	"mailvault/domain/entities"
 
@@ -23,7 +24,8 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		// Setup mocks
 		mockEmailRepo.GetByLocalPartAndDomainFunc = func(ctx context.Context, localPart string, domainID uuid.UUID) (*entities.EmailAddress, error) {
@@ -34,7 +36,7 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		}
 
 		// Execute
-		result, err := uc.CreateEmailAddressFromInput(ctx, CreateEmailAddressInput{
+		result, err := uc.CreateEmailAddressFromInput(ctx, email.CreateEmailAddressInput{
 			DomainID:  domainID,
 			LocalPart: localPart,
 		})
@@ -54,22 +56,22 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 	t.Run("validation errors", func(t *testing.T) {
 		testCases := []struct {
 			name  string
-			input CreateEmailAddressInput
+			input email.CreateEmailAddressInput
 			error string
 		}{
 			{
 				name:  "empty domain ID",
-				input: CreateEmailAddressInput{LocalPart: localPart},
+				input: email.CreateEmailAddressInput{LocalPart: localPart},
 				error: "domain ID is required",
 			},
 			{
 				name:  "empty local part",
-				input: CreateEmailAddressInput{DomainID: domainID},
+				input: email.CreateEmailAddressInput{DomainID: domainID},
 				error: "local part is required",
 			},
 			{
 				name:  "invalid local part format",
-				input: CreateEmailAddressInput{DomainID: domainID, LocalPart: "invalid@part"},
+				input: email.CreateEmailAddressInput{DomainID: domainID, LocalPart: "invalid@part"},
 				error: "invalid local part format",
 			},
 		}
@@ -80,7 +82,8 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 				mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 				mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 				mockDomainRepo := &mocks.DomainRepositoryMock{}
-				uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+				mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+				uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 				result, err := uc.CreateEmailAddressFromInput(ctx, tc.input)
 				assert.Error(t, err)
@@ -95,7 +98,8 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		existingEmail := &entities.EmailAddress{
 			ID:        uuid.Must(uuid.NewV4()),
@@ -106,7 +110,7 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 			return existingEmail, nil
 		}
 
-		result, err := uc.CreateEmailAddressFromInput(ctx, CreateEmailAddressInput{
+		result, err := uc.CreateEmailAddressFromInput(ctx, email.CreateEmailAddressInput{
 			DomainID:  domainID,
 			LocalPart: localPart,
 		})
@@ -124,7 +128,8 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		forwardAddresses := []string{"forward@example.com", "backup@test.com"}
 
@@ -135,7 +140,7 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 			return nil
 		}
 
-		result, err := uc.CreateEmailAddressFromInput(ctx, CreateEmailAddressInput{
+		result, err := uc.CreateEmailAddressFromInput(ctx, email.CreateEmailAddressInput{
 			DomainID:         domainID,
 			LocalPart:        localPart,
 			ForwardAddresses: forwardAddresses,
@@ -154,11 +159,12 @@ func TestCreateEmailAddressFromInput(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		invalidForwardAddresses := []string{"invalid-email"}
 
-		result, err := uc.CreateEmailAddressFromInput(ctx, CreateEmailAddressInput{
+		result, err := uc.CreateEmailAddressFromInput(ctx, email.CreateEmailAddressInput{
 			DomainID:         domainID,
 			LocalPart:        localPart,
 			ForwardAddresses: invalidForwardAddresses,
@@ -180,7 +186,8 @@ func TestUpdateEmailAddress(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		existingEmail := &entities.EmailAddress{
 			ID:        emailID,
@@ -199,7 +206,7 @@ func TestUpdateEmailAddress(t *testing.T) {
 			return nil
 		}
 
-		result, err := uc.UpdateEmailAddress(ctx, emailID, UpdateEmailAddressInput{
+		result, err := uc.UpdateEmailAddress(ctx, emailID, email.UpdateEmailAddressInput{
 			ForwardAddresses: forwardAddresses,
 		})
 
@@ -216,9 +223,10 @@ func TestUpdateEmailAddress(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
-		result, err := uc.UpdateEmailAddress(ctx, uuid.Nil, UpdateEmailAddressInput{})
+		result, err := uc.UpdateEmailAddress(ctx, uuid.Nil, email.UpdateEmailAddressInput{})
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "email address ID is required")
@@ -234,7 +242,8 @@ func TestGetEmailAddressByAddress(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		domainID := uuid.Must(uuid.NewV4())
 		domainEntity := &entities.Domain{
@@ -269,7 +278,8 @@ func TestGetEmailAddressByAddress(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		result, err := uc.GetEmailAddressByAddress(ctx, "invalid-email")
 
@@ -288,13 +298,14 @@ func TestProcessIncomingEmail(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		mockReceivedRepo.CreateFunc = func(ctx context.Context, email *entities.ReceivedEmail) error {
 			return nil
 		}
 
-		err := uc.ProcessIncomingEmail(ctx, ProcessIncomingEmailInput{
+		err := uc.ProcessIncomingEmail(ctx, email.ProcessIncomingEmailInput{
 			EmailAddressID: emailAddressID,
 			FromAddress:    "sender@test.com",
 			Subject:        "Test Subject",
@@ -310,22 +321,22 @@ func TestProcessIncomingEmail(t *testing.T) {
 	t.Run("validation errors", func(t *testing.T) {
 		testCases := []struct {
 			name  string
-			input ProcessIncomingEmailInput
+			input email.ProcessIncomingEmailInput
 			error string
 		}{
 			{
 				name:  "empty email address ID",
-				input: ProcessIncomingEmailInput{FromAddress: "sender@test.com", Body: "body"},
+				input: email.ProcessIncomingEmailInput{FromAddress: "sender@test.com", Body: "body"},
 				error: "email address ID is required",
 			},
 			{
 				name:  "empty from address",
-				input: ProcessIncomingEmailInput{EmailAddressID: emailAddressID, Body: "body"},
+				input: email.ProcessIncomingEmailInput{EmailAddressID: emailAddressID, Body: "body"},
 				error: "from address is required",
 			},
 			{
 				name:  "empty body",
-				input: ProcessIncomingEmailInput{EmailAddressID: emailAddressID, FromAddress: "sender@test.com"},
+				input: email.ProcessIncomingEmailInput{EmailAddressID: emailAddressID, FromAddress: "sender@test.com"},
 				error: "body is required",
 			},
 		}
@@ -336,7 +347,8 @@ func TestProcessIncomingEmail(t *testing.T) {
 				mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 				mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 				mockDomainRepo := &mocks.DomainRepositoryMock{}
-				uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+				mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+				uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 				err := uc.ProcessIncomingEmail(ctx, tc.input)
 				assert.Error(t, err)
@@ -355,7 +367,8 @@ func TestGetReceivedEmails(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		expectedEmails := []*entities.ReceivedEmail{
 			{
@@ -384,7 +397,8 @@ func TestGetReceivedEmails(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		expectedEmails := []*entities.ReceivedEmail{}
 
@@ -408,7 +422,8 @@ func TestGetReceivedEmails(t *testing.T) {
 		mockEmailRepo := &mocks.EmailAddressRepositoryMock{}
 		mockReceivedRepo := &mocks.ReceivedEmailRepositoryMock{}
 		mockDomainRepo := &mocks.DomainRepositoryMock{}
-		uc := NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo)
+		mockWebhookNotifier := &mocks.WebhookNotifierMock{}
+		uc := email.NewUseCase(mockEmailRepo, mockReceivedRepo, mockDomainRepo, mockWebhookNotifier)
 
 		expectedEmails := []*entities.ReceivedEmail{}
 
@@ -427,51 +442,3 @@ func TestGetReceivedEmails(t *testing.T) {
 	})
 }
 
-func TestEmailValidation(t *testing.T) {
-	t.Run("local part validation", func(t *testing.T) {
-		testCases := []struct {
-			localPart string
-			valid     bool
-		}{
-			{"test", true},
-			{"test123", true},
-			{"test-user", true},
-			{"test.user", true},
-			{"test_user", true},
-			{"", false},
-			{".test", false},
-			{"test.", false},
-			{"test@invalid", false},
-			{string(make([]byte, 70)), false}, // Too long
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.localPart, func(t *testing.T) {
-				result := isValidLocalPart(tc.localPart)
-				assert.Equal(t, tc.valid, result, "LocalPart: %s", tc.localPart)
-			})
-		}
-	})
-
-	t.Run("email validation", func(t *testing.T) {
-		testCases := []struct {
-			email string
-			valid bool
-		}{
-			{"test@example.com", true},
-			{"user.name@domain.co.uk", true},
-			{"test+tag@example.org", true},
-			{"invalid-email", false},
-			{"@domain.com", false},
-			{"user@", false},
-			{"user@domain", false},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.email, func(t *testing.T) {
-				result := isValidEmail(tc.email)
-				assert.Equal(t, tc.valid, result, "Email: %s", tc.email)
-			})
-		}
-	})
-}

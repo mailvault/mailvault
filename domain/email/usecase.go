@@ -3,12 +3,13 @@ package email
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
 
-	"mailvault/domain/entities"
 	"mailvault/app/smtp/verification"
+	"mailvault/domain/entities"
 	"mailvault/internal/utils"
 
 	"github.com/gofrs/uuid/v5"
@@ -18,24 +19,35 @@ type UseCase struct {
 	emailRepo         EmailAddressRepository
 	receivedEmailRepo ReceivedEmailRepository
 	domainRepo        DomainRepository
+	webhookNotifier   WebhookNotifier
+	emailForwarder    EmailForwarder
 }
 
-func NewUseCase(emailRepo EmailAddressRepository, receivedEmailRepo ReceivedEmailRepository, domainRepo DomainRepository) *UseCase {
+func NewUseCase(emailRepo EmailAddressRepository, receivedEmailRepo ReceivedEmailRepository, domainRepo DomainRepository, webhookNotifier WebhookNotifier) *UseCase {
 	return &UseCase{
 		emailRepo:         emailRepo,
 		receivedEmailRepo: receivedEmailRepo,
 		domainRepo:        domainRepo,
+		webhookNotifier:   webhookNotifier,
 	}
 }
 
+// SetEmailForwarder configures the email forwarder used to relay incoming emails.
+// It is set separately to avoid circular dependencies between the SMTP layer and the use case.
+func (uc *UseCase) SetEmailForwarder(forwarder EmailForwarder) {
+	uc.emailForwarder = forwarder
+}
+
 type CreateEmailAddressInput struct {
-	DomainID         uuid.UUID `json:"domain_id"`
-	LocalPart        string    `json:"local_part"`
-	ForwardAddresses []string  `json:"forward_addresses,omitempty"`
+	DomainID          uuid.UUID `json:"domain_id"`
+	LocalPart         string    `json:"local_part"`
+	ForwardAddresses  []string  `json:"forward_addresses,omitempty"`
+	ForwardingEnabled bool      `json:"forwarding_enabled"`
 }
 
 type UpdateEmailAddressInput struct {
-	ForwardAddresses []string `json:"forward_addresses,omitempty"`
+	ForwardAddresses  []string `json:"forward_addresses,omitempty"`
+	ForwardingEnabled *bool    `json:"forwarding_enabled,omitempty"`
 }
 
 type ProcessIncomingEmailInput struct {
@@ -46,6 +58,9 @@ type ProcessIncomingEmailInput struct {
 	DomainID            uuid.UUID                       `json:"domain_id"`
 	VerificationResults *verification.VerificationResult `json:"verification_results,omitempty"`
 	IsQuarantined       bool                            `json:"is_quarantined"`
+	Domain              *entities.Domain                `json:"domain,omitempty"`
+	EmailAddress        *entities.EmailAddress          `json:"email_address,omitempty"`
+	AutoCreated         bool                            `json:"auto_created"`
 }
 
 type GetReceivedEmailsFilter struct {
@@ -108,12 +123,13 @@ func (uc *UseCase) CreateEmailAddressFromInput(ctx context.Context, req CreateEm
 	}
 
 	emailAddress := &entities.EmailAddress{
-		ID:               uuid.Must(uuid.NewV4()),
-		DomainID:         req.DomainID,
-		LocalPart:        normalizedLocalPart,
-		ForwardAddresses: req.ForwardAddresses,
-		CreatedAt:        time.Now().UTC(),
-		UpdatedAt:        time.Now().UTC(),
+		ID:                uuid.Must(uuid.NewV4()),
+		DomainID:          req.DomainID,
+		LocalPart:         normalizedLocalPart,
+		ForwardAddresses:  req.ForwardAddresses,
+		ForwardingEnabled: req.ForwardingEnabled,
+		CreatedAt:         time.Now().UTC(),
+		UpdatedAt:         time.Now().UTC(),
 	}
 
 	if !emailAddress.IsValid() {
@@ -172,6 +188,10 @@ func (uc *UseCase) UpdateEmailAddress(ctx context.Context, id uuid.UUID, req Upd
 			}
 		}
 		emailAddress.ForwardAddresses = req.ForwardAddresses
+	}
+
+	if req.ForwardingEnabled != nil {
+		emailAddress.ForwardingEnabled = *req.ForwardingEnabled
 	}
 
 	emailAddress.UpdatedAt = time.Now().UTC()
@@ -248,8 +268,16 @@ func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, req ProcessIncoming
 		EmailAddressID: &req.EmailAddressID,
 		FromAddress:    req.FromAddress,
 		Subject:        subject,
-		EncryptedBody:  req.Body, // For now, store as-is. TODO: Add encryption
+		EncryptedBody:  req.Body,
 		ReceivedAt:     time.Now().UTC(),
+	}
+
+	// Set additional fields for webhook payload
+	if req.Domain != nil {
+		receivedEmail.DomainName = req.Domain.Domain
+	}
+	if req.EmailAddress != nil {
+		receivedEmail.EmailAddress = req.EmailAddress.LocalPart + "@" + receivedEmail.DomainName
 	}
 
 	if !receivedEmail.IsValid() {
@@ -260,8 +288,55 @@ func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, req ProcessIncoming
 		return fmt.Errorf("failed to store received email: %w", err)
 	}
 
-	// TODO: Trigger webhook if configured
-	// TODO: Forward email if configured
+	// Trigger webhook if configured (don't block email processing on webhook failures)
+	if uc.webhookNotifier != nil && req.Domain != nil && req.EmailAddress != nil {
+		go func() {
+			// Use a separate context with timeout for webhook delivery
+			webhookCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			if err := uc.webhookNotifier.NotifyIncomingEmail(
+				webhookCtx,
+				receivedEmail,
+				req.Domain,
+				req.EmailAddress,
+				req.VerificationResults,
+				req.AutoCreated,
+			); err != nil {
+				// Log webhook failure but don't fail email processing
+				// The webhook system should handle retries internally
+			}
+		}()
+	}
+
+	// Forward email if the destination address has forwarding enabled
+	if uc.emailForwarder != nil && req.EmailAddress != nil && req.EmailAddress.HasForwarding() {
+		go func() {
+			fwdCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			recipientAddr := ""
+			if req.Domain != nil {
+				recipientAddr = req.EmailAddress.LocalPart + "@" + req.Domain.Domain
+			}
+
+			if err := uc.emailForwarder.ForwardEmail(
+				fwdCtx,
+				req.FromAddress,
+				recipientAddr,
+				req.Subject,
+				req.EmailAddress.ForwardAddresses,
+			); err != nil {
+				// Log forwarding failure but never affect the original email storage
+				slog.Warn("Failed to forward email",
+					"error", err,
+					"from", req.FromAddress,
+					"recipient", recipientAddr,
+					"forward_count", len(req.EmailAddress.ForwardAddresses),
+				)
+			}
+		}()
+	}
 
 	return nil
 }

@@ -5,15 +5,19 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"mailvault/app/api"
+	billingdomain "mailvault/domain/billing"
 	"mailvault/domain/entities"
 	"mailvault/internal/utils"
 
 	"github.com/go-chi/render"
+	"github.com/gofrs/uuid/v5"
 )
 
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
@@ -23,15 +27,34 @@ type UseCase interface {
 	GetDomainByAPIKey(ctx context.Context, apiKey string) (*entities.Domain, error)
 }
 
-// SendHandlers contains email sending endpoints
-type SendHandlers struct {
-	sendUseCase UseCase
+// BillingUseCase defines the billing operations required by send handlers.
+type BillingUseCase interface {
+	CheckLimit(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric) (*billingdomain.CheckLimitResult, error)
+	IncrementUsage(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric, amount int64) error
 }
 
-func NewSendHandlers(sendUseCase UseCase) *SendHandlers {
+// SendHandlers contains email sending endpoints
+type SendHandlers struct {
+	sendUseCase    UseCase
+	billingUseCase BillingUseCase
+	logger         *slog.Logger
+}
+
+func NewSendHandlers(sendUseCase UseCase, billingUseCase BillingUseCase, logger *slog.Logger) *SendHandlers {
 	return &SendHandlers{
-		sendUseCase: sendUseCase,
+		sendUseCase:    sendUseCase,
+		billingUseCase: billingUseCase,
+		logger:         logger,
 	}
+}
+
+// planLimitExceededResponse is the 402 response body for plan limit violations.
+type planLimitExceededResponse struct {
+	Error      string `json:"error"`
+	Message    string `json:"message"`
+	Current    int64  `json:"current"`
+	Limit      int    `json:"limit"`
+	UpgradeURL string `json:"upgrade_url"`
 }
 
 // SendEmailRequest represents email sending request
@@ -86,6 +109,25 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check email send limit for the domain owner.
+	limitResult, err := h.billingUseCase.CheckLimit(r.Context(), domain.UserID, entities.UsageMetricEmailsSent)
+	if err != nil {
+		h.logger.Error("failed to check email send limit", "user_id", domain.UserID, "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if !limitResult.Allowed {
+		render.Status(r, http.StatusPaymentRequired)
+		render.JSON(w, r, planLimitExceededResponse{
+			Error:      "plan_limit_exceeded",
+			Message:    fmt.Sprintf("daily email send limit reached (%d/%d). upgrade your plan to send more emails", limitResult.Current, limitResult.Limit),
+			Current:    limitResult.Current,
+			Limit:      limitResult.Limit,
+			UpgradeURL: "/billing",
+		})
+		return
+	}
+
 	var req SendEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		api.ErrorResponse(w, r, http.StatusBadRequest, err)
@@ -112,6 +154,12 @@ func (h *SendHandlers) SendEmail(w http.ResponseWriter, r *http.Request) {
 
 	// Note: Actual email sending would be implemented here
 	// This would typically queue the email for processing by an SMTP service
+
+	// Increment emails_sent usage counter after successful acceptance.
+	if err := h.billingUseCase.IncrementUsage(r.Context(), domain.UserID, entities.UsageMetricEmailsSent, 1); err != nil {
+		h.logger.Error("failed to increment email send usage", "user_id", domain.UserID, "error", err)
+		// Non-fatal: email was accepted, log and continue.
+	}
 
 	// Generate a proper message ID
 	messageID := generateMessageID()

@@ -110,7 +110,6 @@ func (s *Session) Data(r io.Reader) error {
 	return nil
 }
 
-
 // processEmail handles incoming email for a specific recipient
 func (s *Session) processEmail(recipient string, body []byte) error {
 	// Extract domain from recipient email using safe parsing
@@ -209,6 +208,7 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 
 	// Try to find specific email address first
 	emailAddress, err := s.backend.emailUseCase.GetEmailAddressByAddress(context.Background(), recipient)
+	autoCreated := false
 	if err != nil {
 		s.logger.Info("Email address not found, checking domain auto-creation policy", "email", recipient, "auto_create_enabled", domain.AutoCreateAddress)
 
@@ -234,6 +234,7 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 			return &smtp.SMTPError{Code: 451, Message: "Temporary failure creating email address"}
 		}
 
+		autoCreated = true
 		s.logger.Info("Auto-created email address", "email", recipient, "domain", domainName)
 	}
 
@@ -253,6 +254,9 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 		DomainID:            domain.ID,
 		VerificationResults: &verificationResult,
 		IsQuarantined:       verificationResult.Action == verification.ActionQuarantine,
+		Domain:              domain,
+		EmailAddress:        emailAddress,
+		AutoCreated:         autoCreated,
 	})
 
 	if err != nil {
@@ -260,11 +264,24 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 		return err
 	}
 
+	// Increment emails_received usage counter (async, don't fail email processing if billing update fails).
+	go func() {
+		billingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := s.backend.billingUseCase.IncrementUsage(billingCtx, domain.UserID, entities.UsageMetricEmailsReceived, 1); err != nil {
+			s.logger.Warn("Failed to increment emails_received usage",
+				"error", err,
+				"domain", domainName,
+				"user_id", domain.UserID)
+		}
+	}()
+
 	// Record verification statistics (async, don't fail email processing if stats fail)
 	go func() {
 		statsCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		
+
 		err := s.backend.smtpStatsUseCase.RecordVerificationResult(
 			statsCtx,
 			domain.ID,
@@ -275,7 +292,7 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 			verificationResult.Action,
 		)
 		if err != nil {
-			s.logger.Warn("Failed to record SMTP verification statistics", 
+			s.logger.Warn("Failed to record SMTP verification statistics",
 				"error", err,
 				"recipient", recipient,
 				"from", fromAddr)

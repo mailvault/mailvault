@@ -195,7 +195,7 @@ func TestDNSValidator_ValidateFullDomain(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 
-			result, err := validator.ValidateFullDomain(ctx, tt.domain, tt.verificationToken, config)
+			result, err := validator.ValidateFullDomain(ctx, tt.domain, tt.verificationToken, &config)
 
 			if (err != nil) != tt.expectError {
 				t.Errorf("ValidateFullDomain() error = %v, expectError %v", err, tt.expectError)

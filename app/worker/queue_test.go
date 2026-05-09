@@ -16,17 +16,17 @@ func TestPriorityQueue_EnqueueDequeue(t *testing.T) {
 	job1 := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 10,
-		Domain:   "low-priority.com",
+		DomainName: "low-priority.com",
 	}
 	job2 := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 100,
-		Domain:   "high-priority.com",
+		DomainName: "high-priority.com",
 	}
 	job3 := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 50,
-		Domain:   "medium-priority.com",
+		DomainName: "medium-priority.com",
 	}
 
 	// Enqueue jobs in random order
@@ -74,7 +74,7 @@ func TestPriorityQueue_Size(t *testing.T) {
 		job := &validation.ValidationJob{
 			ID:       uuid.Must(uuid.NewV4()),
 			Priority: i,
-			Domain:   "test.com",
+			DomainName: "test.com",
 		}
 		queue.Enqueue(job)
 
@@ -104,7 +104,7 @@ func TestPriorityQueue_IsEmpty(t *testing.T) {
 	job := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 10,
-		Domain:   "test.com",
+		DomainName: "test.com",
 	}
 	queue.Enqueue(job)
 
@@ -129,7 +129,7 @@ func TestPriorityQueue_ConcurrentAccess(t *testing.T) {
 			job := &validation.ValidationJob{
 				ID:       uuid.Must(uuid.NewV4()),
 				Priority: i % 10,
-				Domain:   "test.com",
+				DomainName: "test.com",
 			}
 			queue.Enqueue(job)
 		}
@@ -167,7 +167,7 @@ func TestJobScheduler_Schedule(t *testing.T) {
 	job := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 10,
-		Domain:   "test.com",
+		DomainName: "test.com",
 		Attempts: 1,
 	}
 
@@ -192,7 +192,7 @@ func TestJobScheduler_ScheduleDelayed(t *testing.T) {
 	job := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 10,
-		Domain:   "test.com",
+		DomainName: "test.com",
 		Attempts: 1,
 	}
 
@@ -227,7 +227,7 @@ func TestJobScheduler_Stop(t *testing.T) {
 	job := &validation.ValidationJob{
 		ID:       uuid.Must(uuid.NewV4()),
 		Priority: 10,
-		Domain:   "test.com",
+		DomainName: "test.com",
 		Attempts: 1,
 	}
 	futureTime := time.Now().Add(200 * time.Millisecond)
@@ -255,17 +255,17 @@ func TestJobScheduler_MultipleJobs(t *testing.T) {
 		{
 			ID:       uuid.Must(uuid.NewV4()),
 			Priority: 30,
-			Domain:   "third.com",
+			DomainName: "third.com",
 		},
 		{
 			ID:       uuid.Must(uuid.NewV4()),
 			Priority: 10,
-			Domain:   "first.com",
+			DomainName: "first.com",
 		},
 		{
 			ID:       uuid.Must(uuid.NewV4()),
 			Priority: 20,
-			Domain:   "second.com",
+			DomainName: "second.com",
 		},
 	}
 
@@ -307,7 +307,7 @@ func BenchmarkPriorityQueue_Enqueue(b *testing.B) {
 		job := &validation.ValidationJob{
 			ID:       uuid.Must(uuid.NewV4()),
 			Priority: i % 100,
-			Domain:   "benchmark.com",
+			DomainName: "benchmark.com",
 		}
 		queue.Enqueue(job)
 	}
@@ -321,7 +321,7 @@ func BenchmarkPriorityQueue_Dequeue(b *testing.B) {
 		job := &validation.ValidationJob{
 			ID:       uuid.Must(uuid.NewV4()),
 			Priority: i % 100,
-			Domain:   "benchmark.com",
+			DomainName: "benchmark.com",
 		}
 		queue.Enqueue(job)
 	}

@@ -7,6 +7,7 @@ import (
 	"mailvault/app/api/middleware"
 	"mailvault/app/api/v1/admin"
 	"mailvault/app/api/v1/auth"
+	apibilling "mailvault/app/api/v1/billing"
 	"mailvault/app/api/v1/domains"
 	"mailvault/app/api/v1/emails"
 	"mailvault/app/api/v1/providers"
@@ -31,13 +32,17 @@ type ApiHandlers struct {
 	DomainUseCase    domains.UseCase
 	EmailUseCase     emails.UseCase
 	ProviderUseCase  providers.UseCase
-	EmailProviderUC  admin.ProviderUseCase // Direct access to email provider domain use case for admin
+	EmailProviderUC  admin.ProviderUseCase           // Direct access to email provider domain use case for admin
 	WebhookUseCase   webhooks.ProviderWebhookUseCase // For processing provider webhooks
 	SMTPStatsUseCase *smtp_stats.UseCase
 	UserAdminUseCase *userDomain.UseCase
+	BillingUseCase   apibilling.UseCase
 	AuthSecretKey    string
 	AuthTokenTTL     string
 	Logger           *slog.Logger
+	// Stripe configuration (forwarded to billing handlers)
+	StripeSecretKey     string
+	StripeWebhookSecret string
 	// For health checks
 	HealthChecker HealthChecker
 	// For metrics collection
@@ -66,10 +71,11 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	// Parse JWT TTL
 	authHandlers := auth.NewAuthHandlers(h.AuthProvider, h.AuthUseCase, []byte(h.AuthSecretKey), h.AuthTokenTTL)
 	usersHandlers := users.NewUsersHandlers(h.UserUseCase)
-	domainsHandlers := domains.NewDomainsHandlers(h.DomainUseCase)
+	domainsHandlers := domains.NewDomainsHandlers(h.DomainUseCase, h.BillingUseCase, h.Logger)
 	emailsHandlers := emails.NewEmailsHandlers(h.EmailUseCase)
 	providersHandlers := providers.NewProvidersHandlers(h.ProviderUseCase)
-	sendHandlers := send.NewSendHandlers(h.DomainUseCase)
+	sendHandlers := send.NewSendHandlers(h.DomainUseCase, h.BillingUseCase, h.Logger)
+	billingHandlers := apibilling.NewBillingHandlers(h.BillingUseCase, h.StripeSecretKey, h.StripeWebhookSecret, h.Logger)
 
 	// Initialize middleware
 	authMiddleware, err := middleware.NewAuthMiddleware(h.AuthSecretKey)
@@ -107,6 +113,9 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 			r.Use(rateLimitMw.AuthRateLimit())
 			r.Post("/register", authHandlers.Register)
 			r.Post("/login", authHandlers.Login)
+			r.Post("/auth/confirm", authHandlers.ConfirmEmail)
+			r.Post("/auth/confirm-token", authHandlers.ConfirmEmailWithToken)
+			r.Post("/auth/resend-confirmation", authHandlers.ResendConfirmation)
 		})
 
 		// Protected users endpoints
@@ -179,6 +188,24 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(rateLimitMw.EmailSendRateLimit())
 			r.Post("/send", sendHandlers.SendEmail)
+		})
+
+		// Public billing plans (no auth required)
+		r.Get("/plans", billingHandlers.ListPlans)
+
+		// Protected billing endpoints
+		r.Route("/billing", func(r chi.Router) {
+			// Webhook is public — Stripe signs the payload instead.
+			r.Post("/webhook", billingHandlers.HandleWebhook)
+
+			r.Group(func(r chi.Router) {
+				r.Use(authMiddleware.RequireAuth)
+				r.Use(rateLimitMw.UserRateLimit())
+				r.Get("/subscription", billingHandlers.GetSubscription)
+				r.Get("/usage", billingHandlers.GetUsage)
+				r.Post("/checkout", billingHandlers.CreateCheckout)
+				r.Post("/portal", billingHandlers.CreatePortal)
+			})
 		})
 	})
 	// Provider webhook endpoints (public, no auth required)

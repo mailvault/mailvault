@@ -1,20 +1,27 @@
 definitions:
-  app_api_v1_auth.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
   auth.AuthResponse:
     properties:
       token:
         type: string
       user:
         $ref: '#/definitions/auth.UserResult'
+    type: object
+  auth.ConfirmEmailRequest:
+    properties:
+      email:
+        type: string
+      token:
+        type: string
+    required:
+    - email
+    - token
+    type: object
+  auth.ConfirmEmailWithTokenRequest:
+    properties:
+      access_token:
+        type: string
+    required:
+    - access_token
     type: object
   auth.RegisterRequest:
     properties:
@@ -27,6 +34,13 @@ definitions:
     - email
     - password
     type: object
+  auth.ResendConfirmationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   auth.UserResult:
     properties:
       auth_provider:
@@ -37,6 +51,85 @@ definitions:
         type: string
       id:
         type: string
+    type: object
+  billing.CheckoutRequest:
+    properties:
+      cancel_url:
+        type: string
+      plan_id:
+        type: string
+      success_url:
+        type: string
+    type: object
+  billing.PlanResult:
+    properties:
+      currency:
+        type: string
+      description:
+        type: string
+      display_name:
+        type: string
+      domain_limit:
+        type: integer
+      email_limit:
+        type: integer
+      id:
+        type: string
+      interval:
+        type: string
+      name:
+        type: string
+      price_cents:
+        type: integer
+      send_limit_daily:
+        type: integer
+      sort_order:
+        type: integer
+      storage_limit_mb:
+        type: integer
+    type: object
+  billing.PortalRequest:
+    properties:
+      return_url:
+        type: string
+    type: object
+  billing.SubscriptionResult:
+    properties:
+      cancel_at_period_end:
+        type: boolean
+      canceled_at:
+        type: string
+      created_at:
+        type: string
+      current_period_end:
+        type: string
+      current_period_start:
+        type: string
+      id:
+        type: string
+      plan:
+        $ref: '#/definitions/billing.PlanResult'
+      plan_id:
+        type: string
+      status:
+        type: string
+      trial_end:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  billing.UsageResult:
+    properties:
+      metric:
+        type: string
+      period_end:
+        type: string
+      period_start:
+        type: string
+      value:
+        type: integer
     type: object
   domains.CreateDomainRequest:
     properties:
@@ -99,8 +192,8 @@ definitions:
         type: string
       storage_enabled:
         type: boolean
-      webhook_config:
-        $ref: '#/definitions/domains.WebhookConfigRequest'
+      verification_status:
+        $ref: '#/definitions/entities.VerificationStatus'
     type: object
   domains.WebhookConfigRequest:
     properties:
@@ -111,14 +204,9 @@ definitions:
           type: string
         type: object
       secret:
-        maxLength: 256
-        minLength: 16
         type: string
       url:
-        maxLength: 2048
         type: string
-    required:
-    - url
     type: object
   domains.WebhookConfigResult:
     properties:
@@ -131,6 +219,19 @@ definitions:
       secret:
         type: string
       url:
+        type: string
+    type: object
+  domains.planLimitExceededResponse:
+    properties:
+      current:
+        type: integer
+      error:
+        type: string
+      limit:
+        type: integer
+      message:
+        type: string
+      upgrade_url:
         type: string
     type: object
   emailrender.AttachmentInfo:
@@ -198,6 +299,8 @@ definitions:
         items:
           type: string
         type: array
+      forwarding_enabled:
+        type: boolean
       local_part:
         type: string
     required:
@@ -213,6 +316,8 @@ definitions:
         items:
           type: string
         type: array
+      forwarding_enabled:
+        type: boolean
       full_address:
         type: string
       id:
@@ -313,6 +418,141 @@ definitions:
         items:
           type: string
         type: array
+      forwarding_enabled:
+        type: boolean
+    type: object
+  entities.CircuitBreakerState:
+    enum:
+    - closed
+    - open
+    - half_open
+    type: string
+    x-enum-varnames:
+    - CircuitBreakerStateClosed
+    - CircuitBreakerStateOpen
+    - CircuitBreakerStateHalfOpen
+  entities.VerificationStatus:
+    enum:
+    - pending
+    - validating
+    - verified
+    - failed
+    - expired
+    type: string
+    x-enum-varnames:
+    - VerificationStatusPending
+    - VerificationStatusValidating
+    - VerificationStatusVerified
+    - VerificationStatusFailed
+    - VerificationStatusExpired
+  entities.WebhookAuthType:
+    enum:
+    - none
+    - basic
+    - bearer
+    - hmac_sha256
+    type: string
+    x-enum-varnames:
+    - WebhookAuthTypeNone
+    - WebhookAuthTypeBasic
+    - WebhookAuthTypeBearer
+    - WebhookAuthTypeHMACSHA256
+  entities.WebhookConfigurationAudit:
+    properties:
+      action:
+        type: string
+      change_reason:
+        type: string
+      changed_by_user_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      new_values:
+        additionalProperties: true
+        type: object
+      old_values:
+        additionalProperties: true
+        type: object
+      user_agent:
+        type: string
+      webhook_config_id:
+        type: string
+    type: object
+  entities.WebhookConfigurationTemplate:
+    properties:
+      created_at:
+        type: string
+      default_auth_type:
+        $ref: '#/definitions/entities.WebhookAuthType'
+      default_headers:
+        additionalProperties:
+          type: string
+        type: object
+      default_method:
+        type: string
+      default_timeout_seconds:
+        type: integer
+      description:
+        type: string
+      documentation_url:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      provider_name:
+        type: string
+      updated_at:
+        type: string
+      usage_count:
+        type: integer
+    type: object
+  entities.WebhookHealthCheck:
+    properties:
+      check_type:
+        type: string
+      checked_at:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: string
+      response_status_code:
+        type: integer
+      response_time_ms:
+        type: integer
+      status:
+        $ref: '#/definitions/entities.WebhookHealthStatus'
+      webhook_config_id:
+        type: string
+    type: object
+  entities.WebhookHealthStatus:
+    enum:
+    - unknown
+    - healthy
+    - degraded
+    - unhealthy
+    type: string
+    x-enum-varnames:
+    - WebhookHealthStatusUnknown
+    - WebhookHealthStatusHealthy
+    - WebhookHealthStatusDegraded
+    - WebhookHealthStatusUnhealthy
+  mailvault_app_api_v1_auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
     type: object
   models.DomainValidationResponse:
     description: Domain validation response with instructions and status
@@ -729,6 +969,9 @@ definitions:
         type: string
       message:
         type: string
+      response_time:
+        description: milliseconds
+        type: integer
       success:
         type: boolean
     type: object
@@ -831,9 +1074,355 @@ definitions:
       version:
         type: string
     type: object
+  webhook_config.TestWebhookResult:
+    properties:
+      errorMessage:
+        type: string
+      responseBody:
+        type: string
+      responseTimeMs:
+        description: Response time in milliseconds
+        format: int64
+        type: integer
+      statusCode:
+        type: integer
+      success:
+        type: boolean
+    type: object
+  webhook_config.WebhookMetrics:
+    properties:
+      averageResponseTime:
+        type: integer
+      circuitBreakerState:
+        $ref: '#/definitions/entities.CircuitBreakerState'
+      consecutiveFailures:
+        type: integer
+      failureCount:
+        format: int64
+        type: integer
+      healthStatus:
+        $ref: '#/definitions/entities.WebhookHealthStatus'
+      lastFailure:
+        type: string
+      lastSuccess:
+        type: string
+      successCount:
+        format: int64
+        type: integer
+      successRate:
+        format: float64
+        type: number
+      totalDeliveries:
+        format: int64
+        type: integer
+    type: object
+  webhook_configs.CreateFromTemplateRequest:
+    properties:
+      auth_secret:
+        maxLength: 512
+        type: string
+      event_types:
+        items:
+          type: string
+        type: array
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      template_id:
+        type: string
+      url:
+        maxLength: 2048
+        type: string
+    required:
+    - name
+    - template_id
+    - url
+    type: object
+  webhook_configs.CreateWebhookConfigRequest:
+    properties:
+      auth_secret:
+        maxLength: 512
+        type: string
+      auth_type:
+        allOf:
+        - $ref: '#/definitions/entities.WebhookAuthType'
+        enum:
+        - none
+        - basic
+        - bearer
+        - hmac_sha256
+      auth_username:
+        maxLength: 255
+        type: string
+      circuit_breaker_enabled:
+        type: boolean
+      circuit_breaker_threshold:
+        minimum: 1
+        type: integer
+      circuit_breaker_timeout_seconds:
+        minimum: 1
+        type: integer
+      custom_headers:
+        additionalProperties:
+          type: string
+        type: object
+      description:
+        maxLength: 1000
+        type: string
+      event_types:
+        items:
+          type: string
+        type: array
+      initial_retry_delay_seconds:
+        minimum: 0
+        type: integer
+      max_retries:
+        maximum: 10
+        minimum: 0
+        type: integer
+      method:
+        enum:
+        - POST
+        - PUT
+        - PATCH
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      rate_limit_per_hour:
+        minimum: 1
+        type: integer
+      rate_limit_per_minute:
+        minimum: 1
+        type: integer
+      retry_backoff_multiplier:
+        maximum: 5
+        minimum: 1
+        type: number
+      timeout_seconds:
+        maximum: 300
+        minimum: 1
+        type: integer
+      url:
+        maxLength: 2048
+        type: string
+    required:
+    - name
+    - url
+    type: object
+  webhook_configs.UpdateWebhookConfigRequest:
+    properties:
+      auth_secret:
+        maxLength: 512
+        type: string
+      auth_type:
+        allOf:
+        - $ref: '#/definitions/entities.WebhookAuthType'
+        enum:
+        - none
+        - basic
+        - bearer
+        - hmac_sha256
+      auth_username:
+        maxLength: 255
+        type: string
+      circuit_breaker_enabled:
+        type: boolean
+      circuit_breaker_threshold:
+        minimum: 1
+        type: integer
+      circuit_breaker_timeout_seconds:
+        minimum: 1
+        type: integer
+      custom_headers:
+        additionalProperties:
+          type: string
+        type: object
+      description:
+        maxLength: 1000
+        type: string
+      event_types:
+        items:
+          type: string
+        type: array
+      initial_retry_delay_seconds:
+        minimum: 0
+        type: integer
+      max_retries:
+        maximum: 10
+        minimum: 0
+        type: integer
+      method:
+        enum:
+        - POST
+        - PUT
+        - PATCH
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      rate_limit_per_hour:
+        minimum: 1
+        type: integer
+      rate_limit_per_minute:
+        minimum: 1
+        type: integer
+      retry_backoff_multiplier:
+        maximum: 5
+        minimum: 1
+        type: number
+      timeout_seconds:
+        maximum: 300
+        minimum: 1
+        type: integer
+      url:
+        maxLength: 2048
+        type: string
+    type: object
+  webhook_configs.WebhookConfigResponse:
+    properties:
+      auth_type:
+        $ref: '#/definitions/entities.WebhookAuthType'
+      auth_username:
+        type: string
+      average_response_time_ms:
+        type: integer
+      circuit_breaker_enabled:
+        type: boolean
+      circuit_breaker_opened_at:
+        type: string
+      circuit_breaker_state:
+        $ref: '#/definitions/entities.CircuitBreakerState'
+      circuit_breaker_threshold:
+        type: integer
+      circuit_breaker_timeout_seconds:
+        type: integer
+      consecutive_failures:
+        type: integer
+      created_at:
+        type: string
+      custom_headers:
+        additionalProperties:
+          type: string
+        type: object
+      description:
+        type: string
+      domain_id:
+        type: string
+      enabled:
+        type: boolean
+      event_types:
+        items:
+          type: string
+        type: array
+      health_status:
+        $ref: '#/definitions/entities.WebhookHealthStatus'
+      id:
+        type: string
+      initial_retry_delay_seconds:
+        type: integer
+      last_failure_at:
+        type: string
+      last_health_check_at:
+        type: string
+      last_success_at:
+        type: string
+      last_used_at:
+        type: string
+      max_retries:
+        type: integer
+      method:
+        type: string
+      name:
+        type: string
+      rate_limit_per_hour:
+        type: integer
+      rate_limit_per_minute:
+        type: integer
+      retry_backoff_multiplier:
+        type: number
+      success_rate:
+        type: number
+      timeout_seconds:
+        type: integer
+      total_failure_count:
+        type: integer
+      total_success_count:
+        type: integer
+      updated_at:
+        type: string
+      url:
+        type: string
+      verified:
+        type: boolean
+    type: object
 info:
   contact: {}
 paths:
+  /auth/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Confirm user email with verification token or OTP
+      parameters:
+      - description: Confirmation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ConfirmEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email confirmed successfully
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      summary: Confirm email
+      tags:
+      - Authentication
+  /auth/confirm-token:
+    post:
+      consumes:
+      - application/json
+      description: Confirm user email using Supabase access token from callback URL
+        fragment
+      parameters:
+      - description: Access token from Supabase
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ConfirmEmailWithTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email confirmed successfully
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      summary: Confirm email with access token
+      tags:
+      - Authentication
   /auth/login:
     post:
       consumes:
@@ -845,7 +1434,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app_api_v1_auth.LoginRequest'
+          $ref: '#/definitions/mailvault_app_api_v1_auth.LoginRequest'
       produces:
       - application/json
       responses:
@@ -921,6 +1510,194 @@ paths:
       summary: Register a new user
       tags:
       - Authentication
+  /auth/resend-confirmation:
+    post:
+      consumes:
+      - application/json
+      description: Resend confirmation email to user
+      parameters:
+      - description: Email address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ResendConfirmationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Confirmation email sent
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      summary: Resend confirmation email
+      tags:
+      - Authentication
+  /billing/checkout:
+    post:
+      consumes:
+      - application/json
+      description: Initiate a Stripe Checkout session for upgrading to a paid plan
+      parameters:
+      - description: Checkout request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/billing.CheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stripe session URL
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Create Stripe checkout session
+      tags:
+      - Billing
+  /billing/portal:
+    post:
+      consumes:
+      - application/json
+      description: Create a Stripe Customer Portal session to manage subscription,
+        payment methods, and invoices
+      parameters:
+      - description: Portal request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/billing.PortalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stripe portal URL
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: No subscription found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Create Stripe billing portal session
+      tags:
+      - Billing
+  /billing/subscription:
+    get:
+      description: Retrieve the authenticated user's active subscription and plan
+        details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current subscription
+          schema:
+            $ref: '#/definitions/billing.SubscriptionResult'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: No active subscription
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get user subscription
+      tags:
+      - Billing
+  /billing/usage:
+    get:
+      description: Retrieve the authenticated user's resource usage for the current
+        billing period
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current period usage
+          schema:
+            items:
+              $ref: '#/definitions/billing.UsageResult'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get usage stats
+      tags:
+      - Billing
+  /billing/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Handle Stripe webhook events for subscription lifecycle management
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook processed
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      summary: Stripe webhook handler
+      tags:
+      - Billing
   /domains:
     get:
       description: Retrieve all domains belonging to the authenticated user
@@ -973,6 +1750,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/models.ErrorResponseBody'
+        "402":
+          description: Plan limit exceeded
+          schema:
+            $ref: '#/definitions/domains.planLimitExceededResponse'
       security:
       - BearerAuth: []
       summary: Create a new domain
@@ -1296,6 +2077,480 @@ paths:
       summary: List healthy email providers for a domain
       tags:
       - Providers
+  /domains/{domainId}/webhooks:
+    get:
+      description: List all webhook configurations for a domain
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/webhook_configs.WebhookConfigResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: List webhook configurations
+      tags:
+      - webhook-configs
+    post:
+      consumes:
+      - application/json
+      description: Create a new webhook configuration for a domain
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/webhook_configs.CreateWebhookConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/webhook_configs.WebhookConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Create webhook configuration
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}:
+    delete:
+      description: Delete a webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Delete webhook configuration
+      tags:
+      - webhook-configs
+    get:
+      description: Get a specific webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/webhook_configs.WebhookConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get webhook configuration
+      tags:
+      - webhook-configs
+    put:
+      consumes:
+      - application/json
+      description: Update a webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      - description: Updated webhook configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/webhook_configs.UpdateWebhookConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/webhook_configs.WebhookConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Update webhook configuration
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}/audit:
+    get:
+      description: Get audit log for a webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.WebhookConfigurationAudit'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get webhook audit log
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}/disable:
+    post:
+      description: Disable a webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Disable webhook configuration
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}/enable:
+    post:
+      description: Enable a webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Enable webhook configuration
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}/health:
+    get:
+      description: Perform a health check on the webhook endpoint
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.WebhookHealthCheck'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Check webhook health
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}/metrics:
+    get:
+      description: Get performance metrics for a webhook configuration
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/webhook_config.WebhookMetrics'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Get webhook metrics
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/{webhookId}/test:
+    post:
+      description: Send a test event to the webhook endpoint
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Webhook Configuration ID
+        in: path
+        name: webhookId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/webhook_config.TestWebhookResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Test webhook configuration
+      tags:
+      - webhook-configs
+  /domains/{domainId}/webhooks/from-template:
+    post:
+      consumes:
+      - application/json
+      description: Create a webhook configuration from a template
+      parameters:
+      - description: Domain ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      - description: Template configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/webhook_configs.CreateFromTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/webhook_configs.WebhookConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: Create webhook from template
+      tags:
+      - webhook-configs
   /domains/{id}:
     delete:
       description: Delete a domain and all associated email addresses and received
@@ -1669,6 +2924,25 @@ paths:
       summary: Health check
       tags:
       - System
+  /plans:
+    get:
+      description: Retrieve all available billing plans ordered by tier
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Available plans
+          schema:
+            items:
+              $ref: '#/definitions/billing.PlanResult'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      summary: List billing plans
+      tags:
+      - Billing
   /providers:
     post:
       consumes:
@@ -2064,4 +3338,25 @@ paths:
       summary: Send email
       tags:
       - Email Sending
+  /webhook-templates:
+    get:
+      description: List all available webhook templates
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.WebhookConfigurationTemplate'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponseBody'
+      security:
+      - BearerAuth: []
+      summary: List webhook templates
+      tags:
+      - webhook-configs
 swagger: "2.0"

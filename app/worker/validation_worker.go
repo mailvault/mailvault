@@ -26,11 +26,12 @@ type ValidationWorker struct {
 
 // ValidationUseCase defines the interface for validation business logic
 type ValidationUseCase interface {
-	ValidateDomain(ctx context.Context, domainID uuid.UUID) error
+	ValidateDomain(ctx context.Context, domainID uuid.UUID) (*validation.FullValidationResult, error)
 	ValidateMXRecords(ctx context.Context, domainID uuid.UUID) error
 	ValidateTXTRecord(ctx context.Context, domainID uuid.UUID) error
 	UpdateValidationStatus(ctx context.Context, domainID uuid.UUID, status validation.VerificationStatus, errorMsg *string) error
 	GetDomainValidationInfo(ctx context.Context, domainID uuid.UUID) (*validation.DomainValidationInfo, error)
+	GetPendingValidations(ctx context.Context, limit int) ([]*validation.DomainValidationInfo, error)
 }
 
 // NewValidationWorker creates a new validation worker
@@ -141,7 +142,7 @@ func (w *ValidationWorker) processJob(ctx context.Context, job *validation.Valid
 	case validation.ValidationTypeTXTRecord:
 		err = w.validationUseCase.ValidateTXTRecord(jobCtx, job.DomainID)
 	case validation.ValidationTypeFullValidation:
-		err = w.validationUseCase.ValidateDomain(jobCtx, job.DomainID)
+		_, err = w.validationUseCase.ValidateDomain(jobCtx, job.DomainID)
 	case validation.ValidationTypeOwnership:
 		// For ownership validation, we typically validate TXT record
 		err = w.validationUseCase.ValidateTXTRecord(jobCtx, job.DomainID)

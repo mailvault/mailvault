@@ -11,6 +11,8 @@ import (
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/email_address_repository.go . EmailAddressRepository
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/received_email_repository.go . ReceivedEmailRepository
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/domain_repository.go . DomainRepository
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/webhook_notifier.go . WebhookNotifier
+//go:generate moq -skip-ensure -stub -pkg mocks -out mocks/email_forwarder.go . EmailForwarder
 
 type EmailAddressRepository interface {
 	Create(ctx context.Context, emailAddress *entities.EmailAddress) error
@@ -35,4 +37,12 @@ type ReceivedEmailRepository interface {
 type DomainRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Domain, error)
 	GetByDomain(ctx context.Context, domain string) (*entities.Domain, error)
+}
+
+// EmailForwarder sends an incoming email to one or more external forward addresses.
+// Implementations must be safe for concurrent use and should not block for long.
+type EmailForwarder interface {
+	// ForwardEmail relays the original email (identified by fromAddr and originalRecipient)
+	// to each address in forwardTo, adding appropriate forwarding headers.
+	ForwardEmail(ctx context.Context, fromAddr, originalRecipient, subject string, forwardTo []string) error
 }

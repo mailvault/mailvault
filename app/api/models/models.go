@@ -35,13 +35,14 @@ type Domain struct {
 // EmailAddress represents an email address configuration
 // @Description Email address configuration within a domain
 type EmailAddress struct {
-	ID               string    `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	DomainID         string    `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	LocalPart        string    `json:"local_part" example:"support"`
-	FullAddress      string    `json:"full_address" example:"support@example.com"`
-	ForwardAddresses []string  `json:"forward_addresses" example:"[\"user@company.com\", \"admin@company.com\"]"`
-	CreatedAt        time.Time `json:"created_at" example:"2023-01-01T00:00:00Z"`
-	UpdatedAt        time.Time `json:"updated_at" example:"2023-01-01T00:00:00Z"`
+	ID                string    `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DomainID          string    `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	LocalPart         string    `json:"local_part" example:"support"`
+	FullAddress       string    `json:"full_address" example:"support@example.com"`
+	ForwardAddresses  []string  `json:"forward_addresses" example:"[\"user@company.com\", \"admin@company.com\"]"`
+	ForwardingEnabled bool      `json:"forwarding_enabled" example:"false"`
+	CreatedAt         time.Time `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	UpdatedAt         time.Time `json:"updated_at" example:"2023-01-01T00:00:00Z"`
 }
 
 // ReceivedEmail represents a received email
@@ -110,22 +111,25 @@ type DomainResult struct {
 
 // Email address management types
 type CreateEmailRequest struct {
-	LocalPart        string   `json:"local_part" validate:"required,min=1,max=64,safe_string" example:"info"`
-	ForwardAddresses []string `json:"forward_addresses,omitempty" validate:"omitempty,email_list,max=10" example:"[\"forward@example.com\"]"`
+	LocalPart         string   `json:"local_part" validate:"required,min=1,max=64,safe_string" example:"info"`
+	ForwardAddresses  []string `json:"forward_addresses,omitempty" validate:"omitempty,email_list,max=10" example:"[\"forward@example.com\"]"`
+	ForwardingEnabled bool     `json:"forwarding_enabled" example:"false"`
 }
 
 type UpdateEmailRequest struct {
-	ForwardAddresses []string `json:"forward_addresses,omitempty" validate:"omitempty,email_list,max=10" example:"[\"forward1@example.com\", \"forward2@example.com\"]"`
+	ForwardAddresses  []string `json:"forward_addresses,omitempty" validate:"omitempty,email_list,max=10" example:"[\"forward1@example.com\", \"forward2@example.com\"]"`
+	ForwardingEnabled *bool    `json:"forwarding_enabled,omitempty" example:"true"`
 }
 
 type EmailAddressResult struct {
-	ID               string   `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
-	DomainID         string   `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174001"`
-	LocalPart        string   `json:"local_part" example:"info"`
-	FullAddress      string   `json:"full_address" example:"info@example.com"`
-	ForwardAddresses []string `json:"forward_addresses" example:"[\"forward@example.com\"]"`
-	CreatedAt        string   `json:"created_at" example:"2023-01-01T00:00:00Z"`
-	UpdatedAt        string   `json:"updated_at" example:"2023-01-01T00:00:00Z"`
+	ID                string   `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DomainID          string   `json:"domain_id" example:"123e4567-e89b-12d3-a456-426614174001"`
+	LocalPart         string   `json:"local_part" example:"info"`
+	FullAddress       string   `json:"full_address" example:"info@example.com"`
+	ForwardAddresses  []string `json:"forward_addresses" example:"[\"forward@example.com\"]"`
+	ForwardingEnabled bool     `json:"forwarding_enabled" example:"false"`
+	CreatedAt         string   `json:"created_at" example:"2023-01-01T00:00:00Z"`
+	UpdatedAt         string   `json:"updated_at" example:"2023-01-01T00:00:00Z"`
 }
 
 type ReceivedEmailResult struct {

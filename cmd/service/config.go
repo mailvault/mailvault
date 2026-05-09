@@ -21,8 +21,13 @@ type Config struct {
 	MetricsAddress string `conf:"env:METRICS_ADDRESS,default::8080"`
 
 	// Database optimization settings
-	EnableDatabaseMetrics bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
+	EnableDatabaseMetrics      bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
 	EnableQueryInstrumentation bool `conf:"env:ENABLE_QUERY_INSTRUMENTATION,default:true"`
+
+	// Stripe billing configuration
+	StripeSecretKey      string `conf:"env:STRIPE_SECRET_KEY"`
+	StripeWebhookSecret  string `conf:"env:STRIPE_WEBHOOK_SECRET"`
+	StripePublishableKey string `conf:"env:STRIPE_PUBLISHABLE_KEY"`
 }
 
 func (c *Config) Load(prefix string) error {
