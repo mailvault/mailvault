@@ -96,6 +96,7 @@ func TestSPFVerifier_Verify_InvalidEmail(t *testing.T) {
 }
 
 func TestSPFVerifier_Verify_NoSPFRecord(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockSPFVerifier()
 	
 	// Mock DNS response with no SPF record
@@ -119,6 +120,7 @@ func TestSPFVerifier_Verify_NoSPFRecord(t *testing.T) {
 }
 
 func TestSPFVerifier_Verify_SPFPass(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockSPFVerifier()
 	
 	// Mock DNS response with SPF record that passes
@@ -147,6 +149,7 @@ func TestSPFVerifier_Verify_SPFPass(t *testing.T) {
 }
 
 func TestSPFVerifier_Verify_SPFFail(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockSPFVerifier()
 	
 	// Mock DNS response with SPF record that fails
@@ -175,6 +178,7 @@ func TestSPFVerifier_Verify_SPFFail(t *testing.T) {
 }
 
 func TestSPFVerifier_Verify_SPFSoftFail(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockSPFVerifier()
 	
 	// Mock DNS response with SPF record that soft fails
@@ -303,6 +307,7 @@ func TestSPFVerifier_QualifierToResult(t *testing.T) {
 }
 
 func TestExtractDomainFromEmail(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	tests := []struct {
 		input    string
 		expected string

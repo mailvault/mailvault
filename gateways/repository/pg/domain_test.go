@@ -84,7 +84,10 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	d.StorageEnabled = false
 	d.AutoCreateAddress = true
 	d.UpdatedAt = time.Now().UTC()
-	d.WebhookConfig = &entities.WebhookConfig{URL: "https://hook.tld", Enabled: true}
+	// Inline d.WebhookConfig is no longer persisted by the repo — webhook
+	// configurations are now a separate top-level resource owned by the
+	// webhook_configs table. Re-add round-trip assertions in
+	// webhook_config_repository_test once it exists.
 	require.NoError(t, repo.Update(ctx, d))
 
 	got4, err := repo.GetByID(ctx, d.ID)
@@ -92,8 +95,6 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	assert.Equal(t, entities.VerificationStatusVerified, got4.VerificationStatus)
 	assert.False(t, got4.StorageEnabled)
 	assert.True(t, got4.AutoCreateAddress)
-	require.NotNil(t, got4.WebhookConfig)
-	assert.Equal(t, "https://hook.tld", got4.WebhookConfig.URL)
 
 	// Delete
 	require.NoError(t, repo.Delete(ctx, d.ID))

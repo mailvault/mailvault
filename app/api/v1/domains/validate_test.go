@@ -174,6 +174,8 @@ func TestRetryValidation_Success(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 
 	domain := newDomainForValidation(domainID, userID, "test.com")
+	// Retry requires the previous verification to have failed.
+	domain.VerificationStatus = entities.VerificationStatusFailed
 	// Allow retry: NextVerificationAttempt is zero (not set)
 
 	mockUseCase.GetDomainByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {

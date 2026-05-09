@@ -463,7 +463,7 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err)
 		assert.Equal(t, "updated-key", result.PublicKey)
-		assert.Equal(t, entities.VerificationStatusVerified, result.VerificationStatus)
+		assert.Equal(t, string(entities.VerificationStatusVerified), result.VerificationStatus)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -547,7 +547,7 @@ func TestDomainsHandlers_mapDomainToResult(t *testing.T) {
 		assert.Equal(t, domain.Domain, result.Domain)
 		assert.Equal(t, domain.PublicKey, result.PublicKey)
 		assert.Equal(t, domain.APIKey, result.APIKey)
-		assert.Equal(t, domain.VerificationStatus, result.VerificationStatus)
+		assert.Equal(t, string(domain.VerificationStatus), result.VerificationStatus)
 		assert.Equal(t, domain.StorageEnabled, result.StorageEnabled)
 		assert.Equal(t, "2024-01-01T12:00:00Z", result.CreatedAt)
 		assert.Equal(t, "2024-01-02T12:00:00Z", result.UpdatedAt)

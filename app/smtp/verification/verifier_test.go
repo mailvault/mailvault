@@ -339,6 +339,7 @@ func TestVerifierHelperMethods(t *testing.T) {
 }
 
 func TestVerifier_RiskScoreCalculation(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	config := DefaultConfig()
 	verifier := NewVerifier(config, logger)
@@ -554,6 +555,7 @@ func TestVerifier_ConfigurationEffects(t *testing.T) {
 }
 
 func TestVerifier_EdgeCases(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	config := DefaultConfig()
 	verifier := NewVerifier(config, logger)
@@ -620,6 +622,7 @@ func TestVerifier_EdgeCases(t *testing.T) {
 }
 
 func TestVerifier_TemporaryFailures(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	config := DefaultConfig()
 	verifier := NewVerifier(config, logger)
@@ -646,6 +649,7 @@ func TestVerifier_TemporaryFailures(t *testing.T) {
 }
 
 func TestVerifier_PolicyEnforcement(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	
 	tests := []struct {

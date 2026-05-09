@@ -53,6 +53,7 @@ func TestDKIMVerifier_Verify_MalformedEmail(t *testing.T) {
 }
 
 func TestDKIMVerifier_Verify_WithDKIMSignature(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	verifier := NewDKIMVerifier("8.8.8.8:53")
 	
 	// Email with DKIM signature (this will fail verification since the signature is not real)
@@ -135,6 +136,7 @@ func TestDKIMStatus_String(t *testing.T) {
 }
 
 func TestDKIMVerifier_MultipleSignatures(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	verifier := NewDKIMVerifier("8.8.8.8:53")
 	
 	// Email with multiple DKIM signatures

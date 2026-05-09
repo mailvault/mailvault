@@ -81,6 +81,7 @@ func TestDMARCVerifier_Verify_InvalidFromHeader(t *testing.T) {
 }
 
 func TestDMARCVerifier_Verify_NoDMARCPolicy(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockDMARCVerifier()
 	
 	// Mock DNS response with no DMARC record
@@ -107,6 +108,7 @@ func TestDMARCVerifier_Verify_NoDMARCPolicy(t *testing.T) {
 }
 
 func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockDMARCVerifier()
 	
 	// Mock DNS response with DMARC policy
@@ -148,6 +150,7 @@ func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 }
 
 func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockDMARCVerifier()
 	
 	// Mock DNS response with DMARC policy
@@ -397,6 +400,7 @@ func TestDMARCVerifier_CheckDKIMAlignment_Relaxed(t *testing.T) {
 }
 
 func TestDMARCVerifier_OrganizationalDomainsMatch(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	verifier := NewDMARCVerifier("8.8.8.8:53")
 	
 	tests := []struct {

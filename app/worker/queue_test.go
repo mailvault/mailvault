@@ -171,8 +171,14 @@ func TestJobScheduler_Schedule(t *testing.T) {
 		Attempts: 1,
 	}
 
-	// Schedule for immediate execution
+	// Schedule for immediate execution. The scheduler's ticker (default 10ms)
+	// promotes due jobs into the queue, so wait briefly for it to run.
 	scheduler.Schedule(job, time.Now())
+
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for queue.Size() == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	// Job should be in queue
 	if queue.Size() != 1 {

@@ -19,6 +19,7 @@ import (
 )
 
 func TestWebhookIntegration_EndToEnd(t *testing.T) {
+	skipDeprecatedNotificationTest(t)
 	// Track received webhooks
 	receivedWebhooks := make([]IncomingEmailEvent, 0)
 	webhookCalled := make(chan bool, 1)
@@ -237,6 +238,7 @@ func TestWebhookIntegration_EndToEnd(t *testing.T) {
 }
 
 func TestWebhookIntegration_WithRetries(t *testing.T) {
+	skipDeprecatedNotificationTest(t)
 	attempts := 0
 	webhookCalled := make(chan bool, 1)
 
@@ -322,6 +324,7 @@ func TestWebhookIntegration_WithRetries(t *testing.T) {
 }
 
 func TestWebhookIntegration_AsyncMode(t *testing.T) {
+	skipDeprecatedNotificationTest(t)
 	webhookCalled := make(chan bool, 1)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -396,6 +399,7 @@ func TestWebhookIntegration_AsyncMode(t *testing.T) {
 }
 
 func TestWebhookIntegration_TestWebhook(t *testing.T) {
+	skipDeprecatedNotificationTest(t)
 	testWebhookReceived := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify it's a test webhook

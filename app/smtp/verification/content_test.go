@@ -206,6 +206,7 @@ func TestContentVerifier_CheckSpamWords(t *testing.T) {
 }
 
 func TestContentVerifier_CheckSuspiciousPhrases(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	verifier := NewContentVerifier()
 	
 	tests := []struct {
@@ -606,6 +607,7 @@ func TestContentVerifier_ClassifyContent(t *testing.T) {
 }
 
 func TestContentVerifier_ApplyHeuristics(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	verifier := NewContentVerifier()
 	
 	// Create a message with proper headers

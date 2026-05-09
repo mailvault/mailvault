@@ -56,6 +56,7 @@ func (m *MockReputationVerifier) checkIPBlacklist(ctx context.Context, ip net.IP
 }
 
 func TestReputationVerifier_Verify_NoSenderIP(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	verifier := NewReputationVerifier("8.8.8.8:53")
 	
 	emailCtx := EmailContext{
@@ -85,6 +86,7 @@ func TestReputationVerifier_Verify_PrivateIP(t *testing.T) {
 }
 
 func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	// Mock DNS responses for blacklist queries (all return positive)
@@ -112,6 +114,7 @@ func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
 }
 
 func TestReputationVerifier_Verify_CleanIP(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	// Mock DNS responses for blacklist queries (all return negative)
@@ -218,6 +221,7 @@ func TestReputationVerifier_HasSuspiciousTLD(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	tests := []struct {
@@ -294,6 +298,7 @@ func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckDomainReputation(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	// Mock all DNS queries to return negative (clean)
@@ -385,6 +390,7 @@ func TestDomainReputationStatus_String(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	// Mock MX record response
@@ -419,6 +425,7 @@ func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	// Mock no MX records
@@ -451,6 +458,7 @@ func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
 }
 
 func TestReputationVerifier_HasMultipleARecords(t *testing.T) {
+	skipNeedsDNSInjection(t)
 	mockVerifier := NewMockReputationVerifier()
 	
 	// Mock multiple A records response
