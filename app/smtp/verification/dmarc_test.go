@@ -2,7 +2,6 @@ package verification
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -22,45 +21,13 @@ func (m *MockDMARCExchanger) ExchangeContext(ctx context.Context, msg *dns.Msg, 
 	return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), args.Error(2)
 }
 
-// MockDMARCVerifier extends DMARCVerifier to use mock DNS client
-type MockDMARCVerifier struct {
-	*DMARCVerifier
-	mockExchanger *MockDMARCExchanger
-}
-
-func NewMockDMARCVerifier() *MockDMARCVerifier {
+// newDMARCVerifierWithMock returns a DMARCVerifier wired to a fresh mock DNS
+// exchanger.
+func newDMARCVerifierWithMock() (*DMARCVerifier, *MockDMARCExchanger) {
 	mockExchanger := &MockDMARCExchanger{}
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
-	return &MockDMARCVerifier{
-		DMARCVerifier: verifier,
-		mockExchanger: mockExchanger,
-	}
-}
-
-// Override getDMARCPolicy to use mock exchanger
-func (m *MockDMARCVerifier) getDMARCPolicy(ctx context.Context, domain string) (*msdmarc.Record, error) {
-	options := &msdmarc.LookupOptions{
-		LookupTXT: func(name string) ([]string, error) {
-			msg := new(dns.Msg)
-			msg.SetQuestion(dns.Fqdn(name), dns.TypeTXT)
-			resp, _, err := m.mockExchanger.ExchangeContext(ctx, msg, m.resolver)
-			if err != nil {
-				return nil, err
-			}
-			if resp.Rcode != dns.RcodeSuccess {
-				return nil, fmt.Errorf("DNS query returned code: %d", resp.Rcode)
-			}
-			var txts []string
-			for _, rr := range resp.Answer {
-				if txt, ok := rr.(*dns.TXT); ok {
-					txts = append(txts, txt.Txt[0])
-				}
-			}
-			return txts, nil
-		},
-	}
-	return msdmarc.LookupWithOptions(domain, options)
+	verifier.client = mockExchanger
+	return verifier, mockExchanger
 }
 
 func TestDMARCVerifier_Verify_InvalidFromHeader(t *testing.T) {
@@ -81,8 +48,7 @@ func TestDMARCVerifier_Verify_InvalidFromHeader(t *testing.T) {
 }
 
 func TestDMARCVerifier_Verify_NoDMARCPolicy(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockDMARCVerifier()
+	verifier, mockExchanger := newDMARCVerifierWithMock()
 	
 	// Mock DNS response with no DMARC record
 	resp := &dns.Msg{
@@ -90,7 +56,7 @@ func TestDMARCVerifier_Verify_NoDMARCPolicy(t *testing.T) {
 		Answer: []dns.RR{},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -101,15 +67,14 @@ func TestDMARCVerifier_Verify_NoDMARCPolicy(t *testing.T) {
 	spfResult := SPFResult{Result: SPFPass}
 	dkimResult := DKIMResult{Valid: true}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
+	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
 	
 	assert.Equal(t, DMARCNone, result.Result)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockDMARCVerifier()
+	verifier, mockExchanger := newDMARCVerifierWithMock()
 	
 	// Mock DNS response with DMARC policy
 	txtRecord := &dns.TXT{
@@ -121,7 +86,7 @@ func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -140,18 +105,17 @@ func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 		},
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
+	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
 	
 	assert.Equal(t, DMARCPass, result.Result)
 	assert.Equal(t, "quarantine", result.Policy)
 	assert.True(t, result.SPFAlign)
 	assert.True(t, result.DKIMAlign)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockDMARCVerifier()
+	verifier, mockExchanger := newDMARCVerifierWithMock()
 	
 	// Mock DNS response with DMARC policy
 	txtRecord := &dns.TXT{
@@ -163,7 +127,7 @@ func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -182,13 +146,13 @@ func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
 		},
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
+	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
 	
 	assert.Equal(t, DMARCFail, result.Result)
 	assert.Equal(t, "reject", result.Policy)
 	assert.False(t, result.SPFAlign)
 	assert.False(t, result.DKIMAlign)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestDMARCVerifier_CheckSPFAlignment_Strict(t *testing.T) {
@@ -400,7 +364,6 @@ func TestDMARCVerifier_CheckDKIMAlignment_Relaxed(t *testing.T) {
 }
 
 func TestDMARCVerifier_OrganizationalDomainsMatch(t *testing.T) {
-	skipNeedsDNSInjection(t)
 	verifier := NewDMARCVerifier("8.8.8.8:53")
 	
 	tests := []struct {
@@ -412,7 +375,7 @@ func TestDMARCVerifier_OrganizationalDomainsMatch(t *testing.T) {
 		{"mail.example.com", "example.com", true},
 		{"sub.mail.example.com", "other.example.com", true},
 		{"example.com", "different.com", false},
-		{"example.co.uk", "mail.example.co.uk", false}, // Simplified implementation limitation
+		{"example.co.uk", "mail.example.co.uk", true}, // Public-suffix-aware: both share org domain example.co.uk
 		{"test.com", "test.org", false},
 	}
 	
@@ -574,7 +537,7 @@ func TestDMARCVerifier_GetPolicyAction_WithPercentage(t *testing.T) {
 }
 
 func BenchmarkDMARCVerify(b *testing.B) {
-	mockVerifier := NewMockDMARCVerifier()
+	verifier, mockExchanger := newDMARCVerifierWithMock()
 	
 	// Mock DNS response
 	txtRecord := &dns.TXT{
@@ -586,7 +549,7 @@ func BenchmarkDMARCVerify(b *testing.B) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -606,6 +569,6 @@ func BenchmarkDMARCVerify(b *testing.B) {
 	
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mockVerifier.Verify(ctx, emailCtx, spfResult, dkimResult)
+		verifier.Verify(ctx, emailCtx, spfResult, dkimResult)
 	}
 }

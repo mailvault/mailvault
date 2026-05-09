@@ -14,7 +14,7 @@ import (
 
 // SPFVerifier handles SPF record verification
 type SPFVerifier struct {
-	client   *dns.Client
+	client   DNSExchanger
 	resolver string
 	timeout  time.Duration
 }

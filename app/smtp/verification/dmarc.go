@@ -12,7 +12,7 @@ import (
 
 // DMARCVerifier handles DMARC policy verification
 type DMARCVerifier struct {
-	client   *dns.Client
+	client   DNSExchanger
 	resolver string
 	timeout  time.Duration
 }

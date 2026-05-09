@@ -13,7 +13,7 @@ import (
 
 // ReputationVerifier handles IP and domain reputation checks
 type ReputationVerifier struct {
-	client     *dns.Client
+	client     DNSExchanger
 	httpClient *http.Client
 	resolver   string
 	timeout    time.Duration

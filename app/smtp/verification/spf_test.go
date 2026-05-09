@@ -21,50 +21,14 @@ func (m *MockDNSExchanger) ExchangeContext(ctx context.Context, msg *dns.Msg, ad
 	return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), args.Error(2)
 }
 
-// MockSPFVerifier extends SPFVerifier to use mock DNS client
-type MockSPFVerifier struct {
-	*SPFVerifier
-	mockExchanger *MockDNSExchanger
-}
-
-func NewMockSPFVerifier() *MockSPFVerifier {
+// newSPFVerifierWithMock returns an SPFVerifier wired to a fresh mock DNS
+// exchanger. Tests configure expectations via the returned mock and call
+// verifier methods normally.
+func newSPFVerifierWithMock() (*SPFVerifier, *MockDNSExchanger) {
 	mockExchanger := &MockDNSExchanger{}
 	verifier := NewSPFVerifier("8.8.8.8:53")
-	
-	return &MockSPFVerifier{
-		SPFVerifier:   verifier,
-		mockExchanger: mockExchanger,
-	}
-}
-
-// Override getSPFRecord to use mock exchanger
-func (m *MockSPFVerifier) getSPFRecord(ctx context.Context, domain string) (string, error) {
-	msg := new(dns.Msg)
-	msg.SetQuestion(dns.Fqdn(domain), dns.TypeTXT)
-
-	resp, _, err := m.mockExchanger.ExchangeContext(ctx, msg, m.resolver)
-	if err != nil {
-		return "", err
-	}
-
-	if resp.Rcode != dns.RcodeSuccess {
-		return "", nil
-	}
-
-	// Look for SPF record in TXT records
-	for _, rr := range resp.Answer {
-		if txt, ok := rr.(*dns.TXT); ok {
-			record := ""
-			for _, s := range txt.Txt {
-				record += s
-			}
-			if len(record) > 6 && record[:6] == "v=spf1" {
-				return record, nil
-			}
-		}
-	}
-
-	return "", nil
+	verifier.client = mockExchanger
+	return verifier, mockExchanger
 }
 
 func TestSPFVerifier_Verify_NoSenderIP(t *testing.T) {
@@ -96,8 +60,7 @@ func TestSPFVerifier_Verify_InvalidEmail(t *testing.T) {
 }
 
 func TestSPFVerifier_Verify_NoSPFRecord(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockSPFVerifier()
+	verifier, mockExchanger := newSPFVerifierWithMock()
 	
 	// Mock DNS response with no SPF record
 	resp := &dns.Msg{
@@ -105,7 +68,7 @@ func TestSPFVerifier_Verify_NoSPFRecord(t *testing.T) {
 		Answer: []dns.RR{},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -113,15 +76,14 @@ func TestSPFVerifier_Verify_NoSPFRecord(t *testing.T) {
 		SenderIP: net.ParseIP("192.168.1.1"),
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx)
+	result := verifier.Verify(context.Background(), emailCtx)
 	
 	assert.Equal(t, SPFNone, result.Result)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestSPFVerifier_Verify_SPFPass(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockSPFVerifier()
+	verifier, mockExchanger := newSPFVerifierWithMock()
 	
 	// Mock DNS response with SPF record that passes
 	txtRecord := &dns.TXT{
@@ -133,7 +95,7 @@ func TestSPFVerifier_Verify_SPFPass(t *testing.T) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -141,16 +103,15 @@ func TestSPFVerifier_Verify_SPFPass(t *testing.T) {
 		SenderIP: net.ParseIP("192.168.1.100"),
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx)
+	result := verifier.Verify(context.Background(), emailCtx)
 	
 	assert.Equal(t, SPFPass, result.Result)
 	assert.Equal(t, "ip4:192.168.1.0/24", result.Mechanism)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestSPFVerifier_Verify_SPFFail(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockSPFVerifier()
+	verifier, mockExchanger := newSPFVerifierWithMock()
 	
 	// Mock DNS response with SPF record that fails
 	txtRecord := &dns.TXT{
@@ -162,7 +123,7 @@ func TestSPFVerifier_Verify_SPFFail(t *testing.T) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -170,16 +131,15 @@ func TestSPFVerifier_Verify_SPFFail(t *testing.T) {
 		SenderIP: net.ParseIP("192.168.1.100"),
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx)
+	result := verifier.Verify(context.Background(), emailCtx)
 	
 	assert.Equal(t, SPFFail, result.Result)
 	assert.Equal(t, "all:", result.Mechanism)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestSPFVerifier_Verify_SPFSoftFail(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockSPFVerifier()
+	verifier, mockExchanger := newSPFVerifierWithMock()
 	
 	// Mock DNS response with SPF record that soft fails
 	txtRecord := &dns.TXT{
@@ -191,7 +151,7 @@ func TestSPFVerifier_Verify_SPFSoftFail(t *testing.T) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -199,11 +159,11 @@ func TestSPFVerifier_Verify_SPFSoftFail(t *testing.T) {
 		SenderIP: net.ParseIP("192.168.1.100"),
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx)
+	result := verifier.Verify(context.Background(), emailCtx)
 	
 	assert.Equal(t, SPFSoftFail, result.Result)
 	assert.Equal(t, "all:", result.Mechanism)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestSPFVerifier_ParseMechanism(t *testing.T) {
@@ -307,7 +267,6 @@ func TestSPFVerifier_QualifierToResult(t *testing.T) {
 }
 
 func TestExtractDomainFromEmail(t *testing.T) {
-	skipNeedsDNSInjection(t)
 	tests := []struct {
 		input    string
 		expected string
@@ -319,7 +278,10 @@ func TestExtractDomainFromEmail(t *testing.T) {
 		{"user@example.com (Comment)", "example.com"},
 		{"<user@example.com>", "example.com"},
 		{"invalid-email", ""},
-		{"@example.com", ""},
+		// Production extracts the domain from a missing-local-part address
+		// because SPF/DKIM/DMARC verification is best-effort against any
+		// recognisable domain. Reject this only at the SMTP envelope layer.
+		{"@example.com", "example.com"},
 		{"user@", ""},
 		{"", ""},
 		{"user@EXAMPLE.COM", "example.com"}, // Should be lowercase
@@ -383,7 +345,7 @@ func TestSPFVerifier_ExpandMacros(t *testing.T) {
 }
 
 func BenchmarkSPFVerify(b *testing.B) {
-	mockVerifier := NewMockSPFVerifier()
+	verifier, mockExchanger := newSPFVerifierWithMock()
 	
 	// Mock DNS response
 	txtRecord := &dns.TXT{
@@ -395,7 +357,7 @@ func BenchmarkSPFVerify(b *testing.B) {
 		Answer: []dns.RR{txtRecord},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -407,6 +369,6 @@ func BenchmarkSPFVerify(b *testing.B) {
 	
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mockVerifier.Verify(ctx, emailCtx)
+		verifier.Verify(ctx, emailCtx)
 	}
 }

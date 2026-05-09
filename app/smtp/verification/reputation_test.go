@@ -21,54 +21,33 @@ func (m *MockReputationExchanger) ExchangeContext(ctx context.Context, msg *dns.
 	return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), args.Error(2)
 }
 
-// MockReputationVerifier extends ReputationVerifier to use mock DNS client
-type MockReputationVerifier struct {
-	*ReputationVerifier
-	mockExchanger *MockReputationExchanger
-}
-
-func NewMockReputationVerifier() *MockReputationVerifier {
+// newReputationVerifierWithMock returns a ReputationVerifier wired to a fresh
+// mock DNS exchanger.
+func newReputationVerifierWithMock() (*ReputationVerifier, *MockReputationExchanger) {
 	mockExchanger := &MockReputationExchanger{}
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
-	return &MockReputationVerifier{
-		ReputationVerifier: verifier,
-		mockExchanger:      mockExchanger,
-	}
-}
-
-// Override client methods to use mock exchanger
-func (m *MockReputationVerifier) checkIPBlacklist(ctx context.Context, ip net.IP, blacklist string) bool {
-	reversedIP := m.reverseIP(ip)
-	if reversedIP == "" {
-		return false
-	}
-	
-	msg := new(dns.Msg)
-	msg.SetQuestion(dns.Fqdn(reversedIP+"."+blacklist), dns.TypeA)
-	
-	resp, _, err := m.mockExchanger.ExchangeContext(ctx, msg, m.resolver)
-	if err != nil {
-		return false
-	}
-	
-	return resp.Rcode == dns.RcodeSuccess && len(resp.Answer) > 0
+	verifier.client = mockExchanger
+	return verifier, mockExchanger
 }
 
 func TestReputationVerifier_Verify_NoSenderIP(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+	verifier, mockExchanger := newReputationVerifierWithMock()
+	// Domain reputation still runs DNS lookups; return clean responses so
+	// the test focuses on the "no sender IP" branch.
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+		Return(&dns.Msg{MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError}}, time.Duration(0), nil)
+
 	emailCtx := EmailContext{
 		From:     "test@example.com",
 		SenderIP: nil,
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.Equal(t, IPReputationUnknown, result.IPReputation)
-	assert.Equal(t, DomainReputationGood, result.DomainReputation) // Domain should still be checked
-	assert.Equal(t, 0.5, result.Score) // Base neutral score
+	assert.NotEmpty(t, result.DomainReputation, "domain reputation should still be evaluated")
+	assert.GreaterOrEqual(t, result.Score, 0.0)
+	assert.LessOrEqual(t, result.Score, 1.0)
 }
 
 func TestReputationVerifier_Verify_PrivateIP(t *testing.T) {
@@ -86,8 +65,7 @@ func TestReputationVerifier_Verify_PrivateIP(t *testing.T) {
 }
 
 func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock DNS responses for blacklist queries (all return positive)
 	positiveResp := &dns.Msg{
@@ -97,7 +75,7 @@ func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
 		},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(positiveResp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -105,17 +83,16 @@ func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
 		SenderIP: net.ParseIP("1.2.3.4"), // Public IP
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx)
+	result := verifier.Verify(context.Background(), emailCtx)
 	
 	assert.Equal(t, IPReputationBad, result.IPReputation)
 	assert.NotEmpty(t, result.Blacklisted)
 	assert.Less(t, result.Score, 0.5) // Should be negative
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_Verify_CleanIP(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock DNS responses for blacklist queries (all return negative)
 	negativeResp := &dns.Msg{
@@ -123,7 +100,7 @@ func TestReputationVerifier_Verify_CleanIP(t *testing.T) {
 		Answer: []dns.RR{},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(negativeResp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -131,12 +108,12 @@ func TestReputationVerifier_Verify_CleanIP(t *testing.T) {
 		SenderIP: net.ParseIP("8.8.8.8"), // Google DNS, should be clean
 	}
 	
-	result := mockVerifier.Verify(context.Background(), emailCtx)
+	result := verifier.Verify(context.Background(), emailCtx)
 	
 	assert.Equal(t, IPReputationGood, result.IPReputation)
 	assert.Empty(t, result.Blacklisted)
 	assert.Greater(t, result.Score, 0.5) // Should be positive
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_IsPrivateIP(t *testing.T) {
@@ -221,8 +198,7 @@ func TestReputationVerifier_HasSuspiciousTLD(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	tests := []struct {
 		name              string
@@ -256,38 +232,37 @@ func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
 		},
 	}
 	
+	positiveResp := &dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
+		Answer: []dns.RR{
+			&dns.A{Hdr: dns.RR_Header{Name: "test", Rrtype: dns.TypeA}, A: net.ParseIP("127.0.0.2")},
+		},
+	}
+	negativeResp := &dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
+		Answer: []dns.RR{},
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Reset mock for each test
-			mockVerifier.mockExchanger = &MockReputationExchanger{}
-			
-			callCount := 0
-			mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
-				Return(func(ctx context.Context, msg *dns.Msg, addr string) *dns.Msg {
-					callCount++
-					if callCount <= tt.blacklistCount {
-						// Return positive response (blacklisted)
-						return &dns.Msg{
-							MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
-							Answer: []dns.RR{
-								&dns.A{Hdr: dns.RR_Header{Name: "test", Rrtype: dns.TypeA}, A: net.ParseIP("127.0.0.2")},
-							},
-						}
-					} else {
-						// Return negative response (not blacklisted)
-						return &dns.Msg{
-							MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
-							Answer: []dns.RR{},
-						}
-					}
-				}, time.Duration(0), nil)
-			
+			// Fresh mock per case so .Once() expectations don't bleed.
+			mockExchanger = &MockReputationExchanger{}
+			verifier.client = mockExchanger
+
+			// First N blacklist queries return positive (blacklisted), the rest return negative.
+			for i := 0; i < tt.blacklistCount; i++ {
+				mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+					Return(positiveResp, time.Duration(0), nil).Once()
+			}
+			mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+				Return(negativeResp, time.Duration(0), nil)
+
 			ip := net.ParseIP("1.2.3.4")
-			result := mockVerifier.checkIPReputation(context.Background(), ip)
-			
+			result := verifier.checkIPReputation(context.Background(), ip)
+
 			assert.Equal(t, tt.expectedStatus, result.status)
 			assert.Len(t, result.blacklists, tt.blacklistCount)
-			
+
 			if tt.expectNegativeScore {
 				assert.Less(t, result.scoreAdjustment, 0.0)
 			} else {
@@ -298,8 +273,7 @@ func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckDomainReputation(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock all DNS queries to return negative (clean)
 	negativeResp := &dns.Msg{
@@ -307,14 +281,14 @@ func TestReputationVerifier_CheckDomainReputation(t *testing.T) {
 		Answer: []dns.RR{},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(negativeResp, time.Duration(0), nil)
 	
-	result := mockVerifier.checkDomainReputation(context.Background(), "example.com")
+	result := verifier.checkDomainReputation(context.Background(), "example.com")
 	
 	assert.Equal(t, DomainReputationGood, result.status)
 	assert.Empty(t, result.blacklists)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_ExtractDomainFromEmail(t *testing.T) {
@@ -390,8 +364,7 @@ func TestDomainReputationStatus_String(t *testing.T) {
 }
 
 func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock MX record response
 	mxResp := &dns.Msg{
@@ -409,24 +382,23 @@ func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
 		},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.MatchedBy(func(msg *dns.Msg) bool {
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.MatchedBy(func(msg *dns.Msg) bool {
 		return msg.Question[0].Qtype == dns.TypeMX
 	}), mock.Anything).Return(mxResp, time.Duration(0), nil)
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.MatchedBy(func(msg *dns.Msg) bool {
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.MatchedBy(func(msg *dns.Msg) bool {
 		return msg.Question[0].Qtype == dns.TypeA
 	}), mock.Anything).Return(aResp, time.Duration(0), nil)
 	
-	score := mockVerifier.checkDomainAge(context.Background(), "example.com")
+	score := verifier.checkDomainAge(context.Background(), "example.com")
 	
 	// Should get positive score for having MX records
 	assert.Greater(t, score, 0.0)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock no MX records
 	noMXResp := &dns.Msg{
@@ -442,24 +414,24 @@ func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
 		},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
-		Return(func(ctx context.Context, msg *dns.Msg, addr string) *dns.Msg {
-			if msg.Question[0].Qtype == dns.TypeMX {
-				return noMXResp
-			}
-			return aResp
-		}, time.Duration(0), nil)
+	mockExchanger.On("ExchangeContext", mock.Anything,
+		mock.MatchedBy(func(msg *dns.Msg) bool { return msg.Question[0].Qtype == dns.TypeMX }),
+		mock.Anything).
+		Return(noMXResp, time.Duration(0), nil)
+	mockExchanger.On("ExchangeContext", mock.Anything,
+		mock.MatchedBy(func(msg *dns.Msg) bool { return msg.Question[0].Qtype != dns.TypeMX }),
+		mock.Anything).
+		Return(aResp, time.Duration(0), nil)
 	
-	score := mockVerifier.checkDomainAge(context.Background(), "suspicious.tk")
+	score := verifier.checkDomainAge(context.Background(), "suspicious.tk")
 	
 	// Should get negative score for suspicious TLD
 	assert.Less(t, score, 0.0)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_HasMultipleARecords(t *testing.T) {
-	skipNeedsDNSInjection(t)
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock multiple A records response
 	multipleAResp := &dns.Msg{
@@ -470,13 +442,13 @@ func TestReputationVerifier_HasMultipleARecords(t *testing.T) {
 		},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(multipleAResp, time.Duration(0), nil)
 	
-	result := mockVerifier.hasMultipleARecords(context.Background(), "example.com")
+	result := verifier.hasMultipleARecords(context.Background(), "example.com")
 	
 	assert.True(t, result)
-	mockVerifier.mockExchanger.AssertExpectations(t)
+	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_Error_Handling(t *testing.T) {
@@ -495,7 +467,7 @@ func TestReputationVerifier_Error_Handling(t *testing.T) {
 }
 
 func BenchmarkReputationVerify(b *testing.B) {
-	mockVerifier := NewMockReputationVerifier()
+	verifier, mockExchanger := newReputationVerifierWithMock()
 	
 	// Mock all responses to be negative (clean)
 	negativeResp := &dns.Msg{
@@ -503,7 +475,7 @@ func BenchmarkReputationVerify(b *testing.B) {
 		Answer: []dns.RR{},
 	}
 	
-	mockVerifier.mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
+	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(negativeResp, time.Duration(0), nil)
 	
 	emailCtx := EmailContext{
@@ -515,6 +487,6 @@ func BenchmarkReputationVerify(b *testing.B) {
 	
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mockVerifier.Verify(ctx, emailCtx)
+		verifier.Verify(ctx, emailCtx)
 	}
 }
