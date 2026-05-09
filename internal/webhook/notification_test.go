@@ -2,438 +2,243 @@ package webhook
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"mailvault/app/smtp/verification"
 	"mailvault/domain/entities"
+	"mailvault/domain/webhook_config"
+	"mailvault/domain/webhook_config/mocks"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// All tests in this file exercise the legacy inline-on-Domain webhook config
-// shape (entities.Domain.WebhookConfig). The production code now resolves
-// webhook configurations via webhook_config.ConfigLoader against the
-// webhook_configs table, so these tests need a full rewrite against the
-// new architecture before they can be re-enabled.
-func skipDeprecatedNotificationTest(t *testing.T) {
+// notificationTestFixture wires a notification service against a fake
+// webhook_config repository so each test can declare exactly which
+// configurations the loader returns.
+type notificationTestFixture struct {
+	t       *testing.T
+	repo    *mocks.RepositoryMock
+	loader  *ConfigLoader
+	service *IncomingEmailNotificationService
+	domain  *entities.Domain
+}
+
+func newNotificationFixture(t *testing.T, configs []*entities.WebhookConfiguration) *notificationTestFixture {
 	t.Helper()
-	t.Skip("legacy notification path: rewrite against webhook_config.ConfigLoader")
-}
 
-func TestIncomingEmailNotificationService_NotifyIncomingEmail(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	tests := []struct {
-		name               string
-		domain             *entities.Domain
-		expectWebhookCall  bool
-		expectError        bool
-		serverResponse     func(w http.ResponseWriter, r *http.Request)
-	}{
-		{
-			name: "successful webhook notification",
-			domain: &entities.Domain{
-				ID:     uuid.Must(uuid.NewV4()),
-				Domain: "example.com",
-				WebhookConfig: &entities.WebhookConfig{
-					URL:     "", // Will be set to test server URL
-					Secret:  "test-secret",
-					Enabled: true,
-					Headers: map[string]string{
-						"X-Custom": "test-value",
-					},
-				},
-			},
-			expectWebhookCall: true,
-			expectError:       false,
-			serverResponse: func(w http.ResponseWriter, r *http.Request) {
-				// Verify request
-				assert.Equal(t, "POST", r.Method)
-				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-				assert.Equal(t, "MailVault-Webhook/1.0", r.Header.Get("User-Agent"))
-				assert.Equal(t, "test-value", r.Header.Get("X-Custom"))
-				assert.NotEmpty(t, r.Header.Get("X-MailVault-Signature"))
-				assert.NotEmpty(t, r.Header.Get("X-MailVault-Timestamp"))
-
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
-			},
+	repo := &mocks.RepositoryMock{
+		GetActiveByDomainIDFunc: func(ctx context.Context, domainID uuid.UUID) ([]*entities.WebhookConfiguration, error) {
+			return configs, nil
 		},
-		{
-			name: "webhook not configured",
-			domain: &entities.Domain{
-				ID:            uuid.Must(uuid.NewV4()),
-				Domain:        "example.com",
-				WebhookConfig: nil,
-			},
-			expectWebhookCall: false,
-			expectError:       true, // Should return ErrWebhookNotConfigured
+		UpdateFunc: func(ctx context.Context, config *entities.WebhookConfiguration) error {
+			return nil
 		},
-		{
-			name: "webhook disabled",
-			domain: &entities.Domain{
-				ID:     uuid.Must(uuid.NewV4()),
-				Domain: "example.com",
-				WebhookConfig: &entities.WebhookConfig{
-					URL:     "https://example.com/webhook",
-					Enabled: false,
-				},
-			},
-			expectWebhookCall: false,
-			expectError:       true, // Should return ErrWebhookNotConfigured
+		CreateAuditFunc: func(ctx context.Context, audit *entities.WebhookConfigurationAudit) error {
+			return nil
 		},
-		{
-			name: "webhook URL invalid",
-			domain: &entities.Domain{
-				ID:     uuid.Must(uuid.NewV4()),
-				Domain: "example.com",
-				WebhookConfig: &entities.WebhookConfig{
-					URL:     "", // Empty URL
-					Enabled: true,
-				},
-			},
-			expectWebhookCall: false,
-			expectError:       true,
+		CreateHealthCheckFunc: func(ctx context.Context, check *entities.WebhookHealthCheck) error {
+			return nil
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var server *httptest.Server
-			if tt.expectWebhookCall && tt.serverResponse != nil {
-				server = httptest.NewServer(http.HandlerFunc(tt.serverResponse))
-				defer server.Close()
-				tt.domain.WebhookConfig.URL = server.URL
-			}
+	loader := NewConfigLoader(repo)
 
-			// Create notification service
-			client := NewHTTPClient(DefaultClientConfig())
-			client.isTestMode = true // Allow localhost URLs for testing
-			service := NewIncomingEmailNotificationService(NotificationServiceConfig{
-				HTTPClient:  client,
-				EnableAsync: false, // Use sync for testing
-			})
-
-			// Create test data
-			emailAddress := &entities.EmailAddress{
-				ID:        uuid.Must(uuid.NewV4()),
-				LocalPart: "test",
-			}
-
-			subject := "Test Email"
-			receivedEmail := &entities.ReceivedEmail{
-				ID:            uuid.Must(uuid.NewV4()),
-				FromAddress:   "sender@example.org",
-				Subject:       &subject,
-				EncryptedBody: "encrypted-content",
-				ReceivedAt:    time.Now(),
-				EmailAddress:  "test@example.com",
-				DomainName:    "example.com",
-			}
-
-			verificationResult := &verification.VerificationResult{
-				Action: verification.ActionAccept,
-			}
-
-			// Call notification service
-			err := service.NotifyIncomingEmail(
-				context.Background(),
-				receivedEmail,
-				tt.domain,
-				emailAddress,
-				verificationResult,
-				false,
-			)
-
-			// Verify results
-			if tt.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestIncomingEmailNotificationService_TestWebhook(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify it's a test webhook
-		assert.Equal(t, "true", r.Header.Get("X-MailVault-Test"))
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Test webhook received"))
-	}))
-	defer server.Close()
-
-	// Create domain with webhook config
-	domain := &entities.Domain{
-		ID:     uuid.Must(uuid.NewV4()),
-		Domain: "example.com",
-		WebhookConfig: &entities.WebhookConfig{
-			URL:     server.URL,
-			Secret:  "test-secret",
-			Enabled: true,
-		},
-	}
-
-	// Create notification service
 	client := NewHTTPClient(DefaultClientConfig())
-	client.isTestMode = true // Allow localhost URLs for testing
+	client.isTestMode = true // allow localhost URLs
+
 	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
-		HTTPClient: client,
+		HTTPClient:   client,
+		ConfigLoader: loader,
+		EnableAsync:  false,
 	})
 
-	// Test webhook
-	response, err := service.TestWebhook(context.Background(), domain)
-
-	require.NoError(t, err)
-	require.NotNil(t, response)
-	assert.True(t, response.Success)
-	assert.Equal(t, http.StatusOK, response.StatusCode)
-	assert.Contains(t, response.Body, "Test webhook received")
+	return &notificationTestFixture{
+		t:       t,
+		repo:    repo,
+		loader:  loader,
+		service: service,
+		domain: &entities.Domain{
+			ID:     uuid.Must(uuid.NewV4()),
+			Domain: "example.com",
+		},
+	}
 }
 
-func TestIncomingEmailNotificationService_TestWebhook_NotConfigured(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	domain := &entities.Domain{
+func (f *notificationTestFixture) sampleEvent() (*entities.ReceivedEmail, *entities.EmailAddress, *verification.VerificationResult) {
+	subject := "Hello"
+	received := &entities.ReceivedEmail{
 		ID:            uuid.Must(uuid.NewV4()),
-		Domain:        "example.com",
-		WebhookConfig: nil, // No webhook configured
+		FromAddress:   "sender@elsewhere.test",
+		Subject:       &subject,
+		EncryptedBody: "ciphertext",
+		ReceivedAt:    time.Now(),
+		EmailAddress:  "inbox@example.com",
+		DomainName:    "example.com",
 	}
+	addr := &entities.EmailAddress{
+		ID:        uuid.Must(uuid.NewV4()),
+		LocalPart: "inbox",
+	}
+	verResult := &verification.VerificationResult{Action: verification.ActionAccept}
+	return received, addr, verResult
+}
 
+func enabledWebhookConfig(url string) *entities.WebhookConfiguration {
+	return &entities.WebhookConfiguration{
+		ID:                      uuid.Must(uuid.NewV4()),
+		DomainID:                uuid.Must(uuid.NewV4()),
+		Name:                    "test",
+		URL:                     url,
+		Method:                  "POST",
+		Enabled:                 true,
+		EventTypes:              []string{"*"},
+		TimeoutSeconds:          5,
+		CircuitBreakerEnabled:   false,
+		CircuitBreakerState:     entities.CircuitBreakerStateClosed,
+		HealthStatus:            entities.WebhookHealthStatusHealthy,
+		MaxRetries:              0,
+		AuthType:                entities.WebhookAuthTypeNone,
+	}
+}
+
+func TestNotificationService_NoConfigLoader_ReturnsError(t *testing.T) {
 	client := NewHTTPClient(DefaultClientConfig())
-	client.isTestMode = true // Allow localhost URLs for testing
+	client.isTestMode = true
+
 	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
 		HTTPClient: client,
+		// No ConfigLoader: must surface an error.
 	})
 
-	response, err := service.TestWebhook(context.Background(), domain)
+	domain := &entities.Domain{ID: uuid.Must(uuid.NewV4()), Domain: "example.com"}
+	subject := "Hi"
+	received := &entities.ReceivedEmail{
+		ID: uuid.Must(uuid.NewV4()), FromAddress: "a@b.test", Subject: &subject,
+		EncryptedBody: "x", ReceivedAt: time.Now(),
+		EmailAddress: "inbox@example.com", DomainName: "example.com",
+	}
+	addr := &entities.EmailAddress{ID: uuid.Must(uuid.NewV4()), LocalPart: "inbox"}
+
+	err := service.NotifyIncomingEmail(context.Background(), received, domain, addr,
+		&verification.VerificationResult{Action: verification.ActionAccept}, false)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrWebhookNotConfigured, err)
-	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "config loader")
 }
 
-func TestIncomingEmailNotificationService_AsyncMode(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	// Create test server
-	called := make(chan bool, 1)
+func TestNotificationService_NoConfigsForDomain_ReturnsErrWebhookNotConfigured(t *testing.T) {
+	fix := newNotificationFixture(t, nil) // empty config list
+
+	received, addr, verResult := fix.sampleEvent()
+
+	err := fix.service.NotifyIncomingEmail(context.Background(), received, fix.domain, addr, verResult, false)
+
+	assert.ErrorIs(t, err, ErrWebhookNotConfigured)
+}
+
+func TestNotificationService_SuccessfulSyncDelivery(t *testing.T) {
+	var hits int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called <- true
+		atomic.AddInt32(&hits, 1)
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	// Create domain with webhook config
-	domain := &entities.Domain{
-		ID:     uuid.Must(uuid.NewV4()),
-		Domain: "example.com",
-		WebhookConfig: &entities.WebhookConfig{
-			URL:     server.URL,
-			Enabled: true,
-		},
-	}
-
-	// Create notification service in async mode
-	client := NewHTTPClient(DefaultClientConfig())
-	client.isTestMode = true // Allow localhost URLs for testing
-	metricsCollector := NewMetricsCollector()
-	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
-		HTTPClient:       client,
-		EnableAsync:      true,
-		MetricsCollector: metricsCollector,
+	fix := newNotificationFixture(t, []*entities.WebhookConfiguration{
+		enabledWebhookConfig(server.URL),
 	})
 
-	// Start the service
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	received, addr, verResult := fix.sampleEvent()
 
-	err := service.Start(ctx)
-	require.NoError(t, err)
-	defer service.Stop(context.Background())
-
-	// Create test data
-	emailAddress := &entities.EmailAddress{
-		ID:        uuid.Must(uuid.NewV4()),
-		LocalPart: "test",
-	}
-
-	receivedEmail := &entities.ReceivedEmail{
-		ID:            uuid.Must(uuid.NewV4()),
-		FromAddress:   "sender@example.org",
-		EncryptedBody: "encrypted-content",
-		ReceivedAt:    time.Now(),
-		EmailAddress:  "test@example.com",
-		DomainName:    "example.com",
-	}
-
-	// Send notification
-	err = service.NotifyIncomingEmail(
-		context.Background(),
-		receivedEmail,
-		domain,
-		emailAddress,
-		nil,
-		false,
-	)
+	err := fix.service.NotifyIncomingEmail(context.Background(), received, fix.domain, addr, verResult, false)
 
 	require.NoError(t, err)
-
-	// Wait for async delivery
-	select {
-	case <-called:
-		// Success
-	case <-time.After(5 * time.Second):
-		t.Fatal("Webhook was not called within timeout")
-	}
-
-	// Check stats
-	stats := service.GetStats()
-	assert.Equal(t, "async", stats.Mode)
-	assert.Equal(t, 5, stats.WorkerCount) // Default worker count
+	assert.Equal(t, int32(1), atomic.LoadInt32(&hits))
 }
 
-func TestIncomingEmailNotificationService_GetStats(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	client := NewHTTPClient(DefaultClientConfig())
-	client.isTestMode = true // Allow localhost URLs for testing
-	metricsCollector := NewMetricsCollector()
-	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
-		HTTPClient:       client,
-		EnableAsync:      false,
-		MetricsCollector: metricsCollector,
-	})
-
-	// Initial stats
-	stats := service.GetStats()
-	assert.Equal(t, "sync", stats.Mode)
-	assert.Equal(t, int64(0), stats.TotalAttempts)
-	assert.Equal(t, int64(0), stats.SuccessfulDeliveries)
-	assert.Equal(t, int64(0), stats.FailedDeliveries)
-
-	// Record some metrics
-	metricsCollector.RecordWebhookAttempt("incoming_email", "example.com")
-	metricsCollector.RecordWebhookSuccess("incoming_email", "example.com")
-	metricsCollector.RecordWebhookDuration("incoming_email", "example.com", 100*time.Millisecond, true)
-
-	stats = service.GetStats()
-	assert.Equal(t, int64(1), stats.TotalAttempts)
-	assert.Equal(t, int64(1), stats.SuccessfulDeliveries)
-	assert.Equal(t, int64(0), stats.FailedDeliveries)
-	assert.Equal(t, 100*time.Millisecond, stats.AverageLatency)
-}
-
-func TestIncomingEmailNotificationService_SyncTimeout(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	// Create server that delays response
+func TestNotificationService_AllDeliveriesFail_ReturnsError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(15 * time.Second) // Longer than sync timeout
-		w.WriteHeader(http.StatusOK)
+		http.Error(w, "boom", http.StatusInternalServerError)
 	}))
 	defer server.Close()
 
-	domain := &entities.Domain{
-		ID:     uuid.Must(uuid.NewV4()),
-		Domain: "example.com",
-		WebhookConfig: &entities.WebhookConfig{
-			URL:     server.URL,
-			Enabled: true,
-		},
-	}
-
-	client := NewHTTPClient(DefaultClientConfig())
-	client.isTestMode = true // Allow localhost URLs for testing
-	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
-		HTTPClient:  client,
-		EnableAsync: false,
+	fix := newNotificationFixture(t, []*entities.WebhookConfiguration{
+		enabledWebhookConfig(server.URL),
 	})
 
-	emailAddress := &entities.EmailAddress{
-		ID:        uuid.Must(uuid.NewV4()),
-		LocalPart: "test",
-	}
+	received, addr, verResult := fix.sampleEvent()
 
-	receivedEmail := &entities.ReceivedEmail{
-		ID:            uuid.Must(uuid.NewV4()),
-		FromAddress:   "sender@example.org",
-		EncryptedBody: "encrypted-content",
-		ReceivedAt:    time.Now(),
-		EmailAddress:  "test@example.com",
-		DomainName:    "example.com",
-	}
-
-	// Should timeout
-	err := service.NotifyIncomingEmail(
-		context.Background(),
-		receivedEmail,
-		domain,
-		emailAddress,
-		nil,
-		false,
-	)
+	err := fix.service.NotifyIncomingEmail(context.Background(), received, fix.domain, addr, verResult, false)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "webhook delivery failed")
+	assert.Contains(t, err.Error(), "all webhook deliveries failed")
 }
 
-func TestNotificationServiceAdapter(t *testing.T) {
-	skipDeprecatedNotificationTest(t)
-	// Create test server
+func TestNotificationService_SkipsCircuitBreakerOpenConfig(t *testing.T) {
+	// Server should NOT be called for the open-circuit config.
+	var hits int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	// Create service and adapter
-	client := NewHTTPClient(DefaultClientConfig())
-	client.isTestMode = true // Allow localhost URLs for testing
-	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
-		HTTPClient: client,
-	})
-	adapter := NewNotificationServiceAdapter(service)
+	openedAt := time.Now().Add(-1 * time.Second) // Open recently — still within timeout window.
+	openCfg := enabledWebhookConfig(server.URL)
+	openCfg.CircuitBreakerEnabled = true
+	openCfg.CircuitBreakerState = entities.CircuitBreakerStateOpen
+	openCfg.CircuitBreakerOpenedAt = &openedAt
+	openCfg.CircuitBreakerTimeoutSeconds = 600
 
-	// Verify adapter implements interface
-	var _ interface{} = adapter
+	fix := newNotificationFixture(t, []*entities.WebhookConfiguration{openCfg})
 
-	// Create domain with webhook
-	domain := &entities.Domain{
-		ID:     uuid.Must(uuid.NewV4()),
-		Domain: "example.com",
-		WebhookConfig: &entities.WebhookConfig{
-			URL:     server.URL,
-			Enabled: true,
+	received, addr, verResult := fix.sampleEvent()
+
+	// The loader filters out !ShouldSendEvent configs, so this returns
+	// ErrWebhookNotConfigured because no configs survive filtering.
+	err := fix.service.NotifyIncomingEmail(context.Background(), received, fix.domain, addr, verResult, false)
+	assert.ErrorIs(t, err, ErrWebhookNotConfigured)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&hits))
+}
+
+func TestNotificationService_RepositoryErrorPropagates(t *testing.T) {
+	repo := &mocks.RepositoryMock{
+		GetActiveByDomainIDFunc: func(ctx context.Context, domainID uuid.UUID) ([]*entities.WebhookConfiguration, error) {
+			return nil, errors.New("postgres down")
 		},
 	}
+	loader := NewConfigLoader(repo)
 
-	emailAddress := &entities.EmailAddress{
-		ID:        uuid.Must(uuid.NewV4()),
-		LocalPart: "test",
+	client := NewHTTPClient(DefaultClientConfig())
+	client.isTestMode = true
+	service := NewIncomingEmailNotificationService(NotificationServiceConfig{
+		HTTPClient:   client,
+		ConfigLoader: loader,
+	})
+
+	domain := &entities.Domain{ID: uuid.Must(uuid.NewV4()), Domain: "example.com"}
+	subject := "Hi"
+	received := &entities.ReceivedEmail{
+		ID: uuid.Must(uuid.NewV4()), FromAddress: "a@b.test", Subject: &subject,
+		EncryptedBody: "x", ReceivedAt: time.Now(),
+		EmailAddress: "inbox@example.com", DomainName: "example.com",
 	}
+	addr := &entities.EmailAddress{ID: uuid.Must(uuid.NewV4()), LocalPart: "inbox"}
 
-	receivedEmail := &entities.ReceivedEmail{
-		ID:            uuid.Must(uuid.NewV4()),
-		FromAddress:   "sender@example.org",
-		EncryptedBody: "encrypted-content",
-		ReceivedAt:    time.Now(),
-		EmailAddress:  "test@example.com",
-		DomainName:    "example.com",
-	}
-
-	// Call through adapter
-	err := adapter.NotifyIncomingEmail(
-		context.Background(),
-		receivedEmail,
-		domain,
-		emailAddress,
-		nil,
-		false,
-	)
-
-	assert.NoError(t, err)
+	err := service.NotifyIncomingEmail(context.Background(), received, domain, addr,
+		&verification.VerificationResult{Action: verification.ActionAccept}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "load webhook configurations")
 }
+
+// Compile-time assertion that the mock satisfies the Repository interface.
+var _ webhook_config.Repository = (*mocks.RepositoryMock)(nil)
