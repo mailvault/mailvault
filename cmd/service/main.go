@@ -12,6 +12,7 @@ import (
 	domainpkg "mailvault/domain/domain"
 	"mailvault/domain/email"
 	"mailvault/domain/user"
+	"mailvault/domain/webhook_config"
 	"mailvault/gateways/repository/pg"
 	"mailvault/internal/database"
 	"mailvault/internal/webhook"
@@ -109,6 +110,7 @@ func main() {
 	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo, repo.UserRepo)
 	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo, webhook.NewNotificationServiceAdapter(webhookNotifier))
 	billingUseCase := billing.NewUseCase(repo.BillingRepo, log)
+	webhookConfigUseCase := webhook_config.NewUseCase(repo.WebhookConfigRepo, repo.DomainRepo, log)
 
 	// Initialize metrics middleware for separate server
 	metricsMw := middleware.NewMetricsMiddleware(middleware.DefaultMetricsConfig())
@@ -136,8 +138,9 @@ func main() {
 		AuthUseCase:         userUseCase,
 		DomainUseCase:       domainUseCase,
 		EmailUseCase:        emailUseCase,
-		BillingUseCase:      billingUseCase,
-		AuthSecretKey:       cfg.AuthSecretKey,
+		BillingUseCase:       billingUseCase,
+		WebhookConfigUseCase: webhookConfigUseCase,
+		AuthSecretKey:        cfg.AuthSecretKey,
 		AuthTokenTTL:        cfg.AuthTokenTTL,
 		Logger:              log,
 		StripeSecretKey:     cfg.StripeSecretKey,

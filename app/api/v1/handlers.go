@@ -13,6 +13,7 @@ import (
 	"mailvault/app/api/v1/providers"
 	"mailvault/app/api/v1/send"
 	"mailvault/app/api/v1/users"
+	"mailvault/app/api/v1/webhook_configs"
 	"mailvault/app/api/v1/webhooks"
 	"mailvault/domain/smtp_stats"
 	"net/http"
@@ -36,8 +37,9 @@ type ApiHandlers struct {
 	WebhookUseCase   webhooks.ProviderWebhookUseCase // For processing provider webhooks
 	SMTPStatsUseCase *smtp_stats.UseCase
 	UserAdminUseCase *userDomain.UseCase
-	BillingUseCase   apibilling.UseCase
-	AuthSecretKey    string
+	BillingUseCase       apibilling.UseCase
+	WebhookConfigUseCase webhook_configs.UseCase
+	AuthSecretKey        string
 	AuthTokenTTL     string
 	Logger           *slog.Logger
 	// Stripe configuration (forwarded to billing handlers)
@@ -76,6 +78,10 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	providersHandlers := providers.NewProvidersHandlers(h.ProviderUseCase)
 	sendHandlers := send.NewSendHandlers(h.DomainUseCase, h.BillingUseCase, h.Logger)
 	billingHandlers := apibilling.NewBillingHandlers(h.BillingUseCase, h.StripeSecretKey, h.StripeWebhookSecret, h.Logger)
+	var webhookConfigHandlers *webhook_configs.WebhookConfigHandlers
+	if h.WebhookConfigUseCase != nil {
+		webhookConfigHandlers = webhook_configs.NewWebhookConfigHandlers(h.WebhookConfigUseCase, h.Logger)
+	}
 
 	// Initialize middleware
 	authMiddleware, err := middleware.NewAuthMiddleware(h.AuthSecretKey)
@@ -154,7 +160,34 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 				r.Get("/", providersHandlers.GetProviders)
 				r.Get("/healthy", providersHandlers.GetHealthyProviders)
 			})
+
+			// Webhook configurations for domains
+			if webhookConfigHandlers != nil {
+				r.Route("/{domainId}/webhooks", func(r chi.Router) {
+					r.Post("/", webhookConfigHandlers.CreateWebhookConfig)
+					r.Get("/", webhookConfigHandlers.ListWebhookConfigs)
+					r.Post("/from-template", webhookConfigHandlers.CreateFromTemplate)
+					r.Get("/{webhookId}", webhookConfigHandlers.GetWebhookConfig)
+					r.Put("/{webhookId}", webhookConfigHandlers.UpdateWebhookConfig)
+					r.Delete("/{webhookId}", webhookConfigHandlers.DeleteWebhookConfig)
+					r.Post("/{webhookId}/enable", webhookConfigHandlers.EnableWebhookConfig)
+					r.Post("/{webhookId}/disable", webhookConfigHandlers.DisableWebhookConfig)
+					r.Post("/{webhookId}/test", webhookConfigHandlers.TestWebhookConfig)
+					r.Get("/{webhookId}/health", webhookConfigHandlers.GetWebhookHealth)
+					r.Get("/{webhookId}/metrics", webhookConfigHandlers.GetWebhookMetrics)
+					r.Get("/{webhookId}/audit", webhookConfigHandlers.GetWebhookAuditLog)
+				})
+			}
 		})
+
+		// Webhook templates (read-only, authenticated)
+		if webhookConfigHandlers != nil {
+			r.Group(func(r chi.Router) {
+				r.Use(authMiddleware.RequireAuth)
+				r.Use(rateLimitMw.UserRateLimit())
+				r.Get("/webhook-templates", webhookConfigHandlers.ListWebhookTemplates)
+			})
+		}
 
 		// Email endpoints for CLI access
 		r.Route("/emails", func(r chi.Router) {
