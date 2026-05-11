@@ -61,17 +61,17 @@ func DefaultCacheConfig() CacheConfig {
 			"/health",
 			"/ready",
 			"/metrics",
-			"/api/v1/send",    // Don't cache email sending
-			"/api/v1/login",   // Don't cache authentication
+			"/api/v1/send",  // Don't cache email sending
+			"/api/v1/login", // Don't cache authentication
 			"/api/v1/register",
 		},
 		IncludePaths: []string{
-			"/api/v1/domains",      // Cache domain listings
-			"/api/v1/me",           // Cache user info
-			"/api/v1/emails",       // Cache email listings
+			"/api/v1/domains", // Cache domain listings
+			"/api/v1/me",      // Cache user info
+			"/api/v1/emails",  // Cache email listings
 		},
-		CacheSuccessOnly:  true,
-		MaxResponseSize:   1024 * 1024, // 1MB
+		CacheSuccessOnly: true,
+		MaxResponseSize:  1024 * 1024, // 1MB
 		CacheContentTypes: []string{
 			"application/json",
 			"text/plain",

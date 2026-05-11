@@ -42,16 +42,16 @@ func TestDomainRepository_CRUD(t *testing.T) {
 	userID := createDomainTestUser(t, pool)
 
 	d := &entities.Domain{
-		ID:               uuid.Must(uuid.NewV4()),
-		UserID:           userID,
-		Domain:           "myexample.com",
-		PublicKey:        "pubkey",
-		APIKey:           "pm_domain_api_key",
+		ID:                 uuid.Must(uuid.NewV4()),
+		UserID:             userID,
+		Domain:             "myexample.com",
+		PublicKey:          "pubkey",
+		APIKey:             "pm_domain_api_key",
 		VerificationStatus: entities.VerificationStatusPending,
-		StorageEnabled:   true,
-		AutoCreateAddress: false,
-		CreatedAt:        time.Now().UTC(),
-		UpdatedAt:        time.Now().UTC(),
+		StorageEnabled:     true,
+		AutoCreateAddress:  false,
+		CreatedAt:          time.Now().UTC(),
+		UpdatedAt:          time.Now().UTC(),
 	}
 
 	// Create

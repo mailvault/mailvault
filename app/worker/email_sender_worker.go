@@ -9,23 +9,24 @@ import (
 	"mailvault/domain/email_sending"
 	"mailvault/internal/providers"
 
-	"github.com/gofrs/uuid/v5"
 	"log/slog"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // EmailSenderWorker handles email sending jobs
 type EmailSenderWorker struct {
-	id              int
-	queue           EmailQueue
-	emailUseCase    *email_sending.UseCase
-	emailSender     providers.EmailSender
-	logger          *slog.Logger
-	running         bool
-	mutex           sync.RWMutex
-	stopCh          chan struct{}
-	doneCh          chan struct{}
-	stats           EmailWorkerStats
-	config          EmailWorkerConfig
+	id           int
+	queue        EmailQueue
+	emailUseCase *email_sending.UseCase
+	emailSender  providers.EmailSender
+	logger       *slog.Logger
+	running      bool
+	mutex        sync.RWMutex
+	stopCh       chan struct{}
+	doneCh       chan struct{}
+	stats        EmailWorkerStats
+	config       EmailWorkerConfig
 }
 
 // EmailWorkerConfig contains configuration for email workers
@@ -61,17 +62,17 @@ type EmailWorkerStats struct {
 
 // EmailSendingJob represents an email sending job
 type EmailSendingJob struct {
-	ID              uuid.UUID                      `json:"id"`
-	Type            EmailJobType                   `json:"type"`
-	SentEmailID     uuid.UUID                      `json:"sent_email_id,omitempty"`
-	EmailRequest    *email_sending.SendEmailRequest `json:"email_request,omitempty"`
-	Priority        int                            `json:"priority"`
-	ScheduledAt     time.Time                      `json:"scheduled_at"`
-	Attempts        int                            `json:"attempts"`
-	MaxAttempts     int                            `json:"max_attempts"`
-	LastAttemptAt   time.Time                      `json:"last_attempt_at"`
-	LastError       string                         `json:"last_error,omitempty"`
-	CreatedAt       time.Time                      `json:"created_at"`
+	ID            uuid.UUID                       `json:"id"`
+	Type          EmailJobType                    `json:"type"`
+	SentEmailID   uuid.UUID                       `json:"sent_email_id,omitempty"`
+	EmailRequest  *email_sending.SendEmailRequest `json:"email_request,omitempty"`
+	Priority      int                             `json:"priority"`
+	ScheduledAt   time.Time                       `json:"scheduled_at"`
+	Attempts      int                             `json:"attempts"`
+	MaxAttempts   int                             `json:"max_attempts"`
+	LastAttemptAt time.Time                       `json:"last_attempt_at"`
+	LastError     string                          `json:"last_error,omitempty"`
+	CreatedAt     time.Time                       `json:"created_at"`
 }
 
 // EmailJobType represents the type of email job
@@ -111,8 +112,8 @@ func NewEmailSenderWorker(
 		stopCh:       make(chan struct{}),
 		doneCh:       make(chan struct{}),
 		stats: EmailWorkerStats{
-			WorkerID:  id,
-			IsActive:  false,
+			WorkerID: id,
+			IsActive: false,
 		},
 	}
 }
@@ -401,12 +402,12 @@ func (w *EmailSenderWorker) updateAverageTime(duration time.Duration) {
 
 // EmailWorkerPool manages multiple email sender workers
 type EmailWorkerPool struct {
-	workers     []*EmailSenderWorker
-	queue       EmailQueue
-	config      EmailWorkerConfig
-	logger      *slog.Logger
-	running     bool
-	mutex       sync.RWMutex
+	workers []*EmailSenderWorker
+	queue   EmailQueue
+	config  EmailWorkerConfig
+	logger  *slog.Logger
+	running bool
+	mutex   sync.RWMutex
 }
 
 // NewEmailWorkerPool creates a new email worker pool
@@ -504,14 +505,14 @@ func (p *EmailWorkerPool) GetPoolStats() EmailPoolStats {
 	}
 
 	return EmailPoolStats{
-		TotalWorkers:    len(p.workers),
-		RunningWorkers:  runningWorkers,
-		EmailsProcessed: totalProcessed,
+		TotalWorkers:     len(p.workers),
+		RunningWorkers:   runningWorkers,
+		EmailsProcessed:  totalProcessed,
 		EmailsSuccessful: totalSuccessful,
-		EmailsFailed:    totalFailed,
-		EmailsRetried:   totalRetried,
-		AverageTime:     overallAverageTime,
-		QueueSize:       p.queue.Size(),
+		EmailsFailed:     totalFailed,
+		EmailsRetried:    totalRetried,
+		AverageTime:      overallAverageTime,
+		QueueSize:        p.queue.Size(),
 	}
 }
 

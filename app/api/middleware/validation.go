@@ -97,7 +97,7 @@ func (m *ValidationMiddleware) ValidateRequest(target interface{}) func(http.Han
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check content type for JSON requests
 			if r.Header.Get("Content-Type") != "" &&
-			   !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+				!strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 				m.validationErrorResponse(w, r, "invalid content type", "INVALID_CONTENT_TYPE", nil)
 				return
 			}
@@ -120,7 +120,7 @@ func (m *ValidationMiddleware) ValidateRequest(target interface{}) func(http.Han
 
 			// Create new instance of target struct
 			targetType := reflect.TypeOf(target)
-			if targetType.Kind() == reflect.Ptr {
+			if targetType.Kind() == reflect.Pointer {
 				targetType = targetType.Elem()
 			}
 
@@ -249,7 +249,7 @@ func (m *ValidationMiddleware) isSensitiveField(fieldName string) bool {
 // performSecurityValidation performs additional security checks
 func (m *ValidationMiddleware) performSecurityValidation(data interface{}) error {
 	v := reflect.ValueOf(data)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -413,7 +413,7 @@ func (m *ValidationMiddleware) registerBuiltinValidators() {
 	m.validator.RegisterValidation("public_key", func(fl validator.FieldLevel) bool {
 		value := fl.Field().String()
 		return strings.HasPrefix(value, "-----BEGIN PUBLIC KEY-----") &&
-			   strings.HasSuffix(value, "-----END PUBLIC KEY-----")
+			strings.HasSuffix(value, "-----END PUBLIC KEY-----")
 	})
 }
 

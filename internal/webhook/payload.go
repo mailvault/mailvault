@@ -32,34 +32,34 @@ type IncomingEmailEvent struct {
 
 // EmailMetadata contains metadata about the received email
 type EmailMetadata struct {
-	ID               uuid.UUID `json:"id"`                         // Received email ID
-	SequenceNumber   int       `json:"sequence_number"`            // Sequence number for this recipient
-	FromAddress      string    `json:"from_address"`               // Sender email address
-	Subject          string    `json:"subject"`                    // Email subject (empty string if no subject)
-	EncryptedBody    string    `json:"encrypted_body"`             // Encrypted email body (base64 encoded)
-	ReceivedAt       time.Time `json:"received_at"`                // When email was received
-	Size             int       `json:"size,omitempty"`             // Email size in bytes
-	MessageID        string    `json:"message_id,omitempty"`       // Email Message-ID header
-	InReplyTo        string    `json:"in_reply_to,omitempty"`      // In-Reply-To header
-	References       string    `json:"references,omitempty"`       // References header
-	IsQuarantined    bool      `json:"is_quarantined"`             // Whether email was quarantined
+	ID             uuid.UUID `json:"id"`                    // Received email ID
+	SequenceNumber int       `json:"sequence_number"`       // Sequence number for this recipient
+	FromAddress    string    `json:"from_address"`          // Sender email address
+	Subject        string    `json:"subject"`               // Email subject (empty string if no subject)
+	EncryptedBody  string    `json:"encrypted_body"`        // Encrypted email body (base64 encoded)
+	ReceivedAt     time.Time `json:"received_at"`           // When email was received
+	Size           int       `json:"size,omitempty"`        // Email size in bytes
+	MessageID      string    `json:"message_id,omitempty"`  // Email Message-ID header
+	InReplyTo      string    `json:"in_reply_to,omitempty"` // In-Reply-To header
+	References     string    `json:"references,omitempty"`  // References header
+	IsQuarantined  bool      `json:"is_quarantined"`        // Whether email was quarantined
 }
 
 // RecipientInfo contains information about the email recipient
 type RecipientInfo struct {
-	EmailAddress   string    `json:"email_address"`   // Full recipient email address
-	LocalPart      string    `json:"local_part"`      // Local part (before @)
-	DomainName     string    `json:"domain_name"`     // Domain name (after @)
-	AddressID      uuid.UUID `json:"address_id"`      // Email address ID
-	AutoCreated    bool      `json:"auto_created"`    // Whether address was auto-created for this email
+	EmailAddress string    `json:"email_address"` // Full recipient email address
+	LocalPart    string    `json:"local_part"`    // Local part (before @)
+	DomainName   string    `json:"domain_name"`   // Domain name (after @)
+	AddressID    uuid.UUID `json:"address_id"`    // Email address ID
+	AutoCreated  bool      `json:"auto_created"`  // Whether address was auto-created for this email
 }
 
 // SecurityInfo contains security and verification information
 type SecurityInfo struct {
 	// Overall verification result
 	VerificationAction string  `json:"verification_action"` // accept, reject, quarantine, temp_fail
-	SpamScore          float64 `json:"spam_score"`           // Content spam score (0-1)
-	ReputationScore    float64 `json:"reputation_score"`     // Sender reputation score (0-1)
+	SpamScore          float64 `json:"spam_score"`          // Content spam score (0-1)
+	ReputationScore    float64 `json:"reputation_score"`    // Sender reputation score (0-1)
 
 	// SPF verification
 	SPF SPFResult `json:"spf"`
@@ -76,8 +76,8 @@ type SecurityInfo struct {
 
 // SPFResult contains SPF verification results
 type SPFResult struct {
-	Result      string `json:"result"`               // pass, fail, softfail, neutral, none, temperror, permerror
-	Domain      string `json:"domain,omitempty"`     // Domain checked
+	Result      string `json:"result"`                // pass, fail, softfail, neutral, none, temperror, permerror
+	Domain      string `json:"domain,omitempty"`      // Domain checked
 	Explanation string `json:"explanation,omitempty"` // SPF explanation if any
 }
 
@@ -91,18 +91,18 @@ type DKIMResult struct {
 
 // DMARCResult contains DMARC verification results
 type DMARCResult struct {
-	Result       string `json:"result"`                 // pass, fail, temperror, permerror
-	Policy       string `json:"policy"`                 // none, quarantine, reject
-	Disposition  string `json:"disposition,omitempty"`  // Action taken based on policy
-	AlignmentSPF bool   `json:"alignment_spf"`          // SPF alignment result
-	AlignmentDKIM bool  `json:"alignment_dkim"`         // DKIM alignment result
+	Result        string `json:"result"`                // pass, fail, temperror, permerror
+	Policy        string `json:"policy"`                // none, quarantine, reject
+	Disposition   string `json:"disposition,omitempty"` // Action taken based on policy
+	AlignmentSPF  bool   `json:"alignment_spf"`         // SPF alignment result
+	AlignmentDKIM bool   `json:"alignment_dkim"`        // DKIM alignment result
 }
 
 // DomainInfo contains information about the receiving domain
 type DomainInfo struct {
-	ID              uuid.UUID `json:"id"`               // Domain ID
-	Name            string    `json:"name"`             // Domain name
-	StorageEnabled  bool      `json:"storage_enabled"`  // Whether storage is enabled
+	ID              uuid.UUID `json:"id"`                // Domain ID
+	Name            string    `json:"name"`              // Domain name
+	StorageEnabled  bool      `json:"storage_enabled"`   // Whether storage is enabled
 	AutoCreateEmail bool      `json:"auto_create_email"` // Whether auto-creation is enabled
 }
 

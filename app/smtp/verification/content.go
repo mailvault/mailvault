@@ -1,11 +1,11 @@
 package verification
 
 import (
+	"bytes"
 	"context"
 	"net/mail"
 	"regexp"
 	"strings"
-	"bytes"
 	"unicode"
 )
 
@@ -196,7 +196,7 @@ func (v *ContentVerifier) checkSpamWords(text string) float64 {
 
 	// Calculate spam word ratio
 	ratio := float64(spamWordCount) / float64(totalWords)
-	
+
 	// Convert ratio to score (0-1)
 	if ratio >= 0.1 {
 		return 0.8
@@ -205,20 +205,20 @@ func (v *ContentVerifier) checkSpamWords(text string) float64 {
 	} else if ratio > 0 {
 		return 0.2
 	}
-	
+
 	return 0.0
 }
 
 // checkSuspiciousPhrases checks for suspicious phrases
 func (v *ContentVerifier) checkSuspiciousPhrases(text string) float64 {
 	score := 0.0
-	
+
 	for _, phrase := range v.suspiciousPhases {
 		if strings.Contains(text, phrase) {
 			score += 0.3
 		}
 	}
-	
+
 	return score
 }
 
@@ -317,7 +317,7 @@ func (v *ContentVerifier) calculateHTMLRatio(content string) float64 {
 	// Simple HTML tag detection
 	htmlPattern := regexp.MustCompile(`<[^>]+>`)
 	htmlTags := htmlPattern.FindAllString(content, -1)
-	
+
 	htmlLength := 0
 	for _, tag := range htmlTags {
 		htmlLength += len(tag)
@@ -399,7 +399,7 @@ func (v *ContentVerifier) hasSuspiciousRouting(msg *mail.Message) bool {
 	// Simple check - in production, this would be more sophisticated
 	for _, r := range received {
 		if strings.Contains(strings.ToLower(r), "unknown") ||
-		   strings.Contains(strings.ToLower(r), "localhost") {
+			strings.Contains(strings.ToLower(r), "localhost") {
 			return true
 		}
 	}
@@ -411,7 +411,7 @@ func (v *ContentVerifier) hasSuspiciousRouting(msg *mail.Message) bool {
 func (v *ContentVerifier) extractTextContent(body []byte) string {
 	// Simple text extraction - in production, use a proper email parser
 	content := string(body)
-	
+
 	// Find body start
 	bodyStart := strings.Index(content, "\r\n\r\n")
 	if bodyStart == -1 {
@@ -425,15 +425,15 @@ func (v *ContentVerifier) extractTextContent(body []byte) string {
 	}
 
 	emailBody := content[bodyStart:]
-	
+
 	// Remove HTML tags (simplified)
 	htmlPattern := regexp.MustCompile(`<[^>]*>`)
 	emailBody = htmlPattern.ReplaceAllString(emailBody, " ")
-	
+
 	// Clean up whitespace
 	emailBody = regexp.MustCompile(`\s+`).ReplaceAllString(emailBody, " ")
 	emailBody = strings.TrimSpace(emailBody)
-	
+
 	return emailBody
 }
 

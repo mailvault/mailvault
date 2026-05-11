@@ -5,9 +5,10 @@ import (
 	"net"
 	"time"
 
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 // SMTPMetricsConfig holds SMTP metrics configuration
@@ -61,42 +62,42 @@ type SMTPMetrics struct {
 	registry *prometheus.Registry
 
 	// Connection metrics
-	connectionsTotal       *prometheus.CounterVec
-	connectionsActive      prometheus.Gauge
-	connectionDuration     *prometheus.HistogramVec
-	connectionErrors       *prometheus.CounterVec
+	connectionsTotal   *prometheus.CounterVec
+	connectionsActive  prometheus.Gauge
+	connectionDuration *prometheus.HistogramVec
+	connectionErrors   *prometheus.CounterVec
 
 	// Session metrics
-	sessionsTotal          *prometheus.CounterVec
-	sessionDuration        *prometheus.HistogramVec
-	sessionErrors          *prometheus.CounterVec
+	sessionsTotal   *prometheus.CounterVec
+	sessionDuration *prometheus.HistogramVec
+	sessionErrors   *prometheus.CounterVec
 
 	// Email processing metrics
-	emailsReceived         *prometheus.CounterVec
-	emailsProcessed        *prometheus.CounterVec
-	emailProcessingTime    *prometheus.HistogramVec
-	emailSize              *prometheus.HistogramVec
-	emailsRejected         *prometheus.CounterVec
-	emailsDeferred         *prometheus.CounterVec
+	emailsReceived      *prometheus.CounterVec
+	emailsProcessed     *prometheus.CounterVec
+	emailProcessingTime *prometheus.HistogramVec
+	emailSize           *prometheus.HistogramVec
+	emailsRejected      *prometheus.CounterVec
+	emailsDeferred      *prometheus.CounterVec
 
 	// Verification metrics
-	verificationChecks     *prometheus.CounterVec
-	verificationDuration   *prometheus.HistogramVec
-	spfChecks              *prometheus.CounterVec
-	dkimChecks             *prometheus.CounterVec
-	dmarcChecks            *prometheus.CounterVec
+	verificationChecks   *prometheus.CounterVec
+	verificationDuration *prometheus.HistogramVec
+	spfChecks            *prometheus.CounterVec
+	dkimChecks           *prometheus.CounterVec
+	dmarcChecks          *prometheus.CounterVec
 
 	// Domain metrics
-	domainEmails           *prometheus.CounterVec
-	domainErrors           *prometheus.CounterVec
+	domainEmails *prometheus.CounterVec
+	domainErrors *prometheus.CounterVec
 
 	// Queue metrics (if applicable)
-	queueSize              prometheus.Gauge
-	queueProcessingTime    *prometheus.HistogramVec
+	queueSize           prometheus.Gauge
+	queueProcessingTime *prometheus.HistogramVec
 
 	// Resource metrics
-	memoryUsage            prometheus.Gauge
-	goroutineCount         prometheus.Gauge
+	memoryUsage    prometheus.Gauge
+	goroutineCount prometheus.Gauge
 }
 
 // NewSMTPMetrics creates a new SMTP metrics collector
@@ -575,12 +576,12 @@ func (m *SMTPMetrics) GetRegistry() *prometheus.Registry {
 // GetMetricsInfo returns information about configured SMTP metrics
 func (m *SMTPMetrics) GetMetricsInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"namespace":                  m.config.Namespace,
-		"subsystem":                  m.config.Subsystem,
-		"domain_metrics_enabled":     m.config.EnableDomainMetrics,
+		"namespace":                    m.config.Namespace,
+		"subsystem":                    m.config.Subsystem,
+		"domain_metrics_enabled":       m.config.EnableDomainMetrics,
 		"verification_metrics_enabled": m.config.EnableVerificationMetrics,
-		"connection_metrics_enabled": m.config.EnableConnectionMetrics,
-		"duration_buckets":           m.config.DurationBuckets,
-		"size_buckets":               m.config.SizeBuckets,
+		"connection_metrics_enabled":   m.config.EnableConnectionMetrics,
+		"duration_buckets":             m.config.DurationBuckets,
+		"size_buckets":                 m.config.SizeBuckets,
 	}
 }

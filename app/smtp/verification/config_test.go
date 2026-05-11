@@ -11,7 +11,7 @@ import (
 
 func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
-	
+
 	assert.True(t, config.EnableSPF, "SPF should be enabled by default")
 	assert.True(t, config.EnableDKIM, "DKIM should be enabled by default")
 	assert.True(t, config.EnableDMARC, "DMARC should be enabled by default")
@@ -24,24 +24,24 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestDefaultVerificationConfig(t *testing.T) {
 	config := DefaultVerificationConfig()
-	
+
 	// Check verification settings
 	assert.True(t, config.Verification.EnableSPF)
 	assert.True(t, config.Verification.EnableDKIM)
 	assert.True(t, config.Verification.EnableDMARC)
 	assert.True(t, config.Verification.EnableReputation)
 	assert.True(t, config.Verification.EnableContent)
-	
+
 	// Check DNS settings
 	assert.Equal(t, "8.8.8.8:53", config.DNS.Resolver)
 	assert.Equal(t, 5, config.DNS.Timeout)
-	
+
 	// Check blacklist settings
 	assert.True(t, config.Blacklists.Enabled)
 	assert.NotEmpty(t, config.Blacklists.IPLists)
 	assert.NotEmpty(t, config.Blacklists.DomainLists)
 	assert.Equal(t, 60, config.Blacklists.CacheTime)
-	
+
 	// Check specific blacklists
 	assert.Contains(t, config.Blacklists.IPLists, "zen.spamhaus.org")
 	assert.Contains(t, config.Blacklists.IPLists, "bl.spamcop.net")
@@ -51,14 +51,14 @@ func TestDefaultVerificationConfig(t *testing.T) {
 
 func TestLoadConfigFromFile_NonExistentFile(t *testing.T) {
 	config, err := LoadConfigFromFile("nonexistent.json")
-	
+
 	assert.NoError(t, err, "Should not error for non-existent file")
 	assert.Equal(t, DefaultVerificationConfig(), config, "Should return default config")
 }
 
 func TestLoadConfigFromFile_EmptyFilename(t *testing.T) {
 	config, err := LoadConfigFromFile("")
-	
+
 	assert.NoError(t, err, "Should not error for empty filename")
 	assert.Equal(t, DefaultVerificationConfig(), config, "Should return default config")
 }
@@ -68,7 +68,7 @@ func TestLoadConfigFromFile_ValidFile(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "test_config_*.json")
 	assert.NoError(t, err)
 	defer os.Remove(tempFile.Name())
-	
+
 	testConfig := Config{
 		Verification: VerificationConfig{
 			EnableSPF:        false,
@@ -90,17 +90,17 @@ func TestLoadConfigFromFile_ValidFile(t *testing.T) {
 			CacheTime: 30,
 		},
 	}
-	
+
 	configJSON, err := json.MarshalIndent(testConfig, "", "  ")
 	assert.NoError(t, err)
-	
+
 	err = os.WriteFile(tempFile.Name(), configJSON, 0644)
 	assert.NoError(t, err)
-	
+
 	// Load the config
 	loadedConfig, err := LoadConfigFromFile(tempFile.Name())
 	assert.NoError(t, err)
-	
+
 	// Verify loaded config
 	assert.False(t, loadedConfig.Verification.EnableSPF)
 	assert.True(t, loadedConfig.Verification.EnableDKIM)
@@ -119,10 +119,10 @@ func TestLoadConfigFromFile_InvalidJSON(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "test_invalid_*.json")
 	assert.NoError(t, err)
 	defer os.Remove(tempFile.Name())
-	
+
 	err = os.WriteFile(tempFile.Name(), []byte("invalid json content {"), 0644)
 	assert.NoError(t, err)
-	
+
 	// Try to load the invalid config
 	_, err = LoadConfigFromFile(tempFile.Name())
 	assert.Error(t, err, "Should error for invalid JSON")
@@ -140,21 +140,21 @@ func TestSaveConfigToFile(t *testing.T) {
 			Timeout:  7,
 		},
 	}
-	
+
 	// Create temporary file
 	tempFile, err := os.CreateTemp("", "test_save_*.json")
 	assert.NoError(t, err)
 	defer os.Remove(tempFile.Name())
 	tempFile.Close() // Close so we can write to it
-	
+
 	// Save config
 	err = SaveConfigToFile(testConfig, tempFile.Name())
 	assert.NoError(t, err)
-	
+
 	// Load and verify
 	loadedConfig, err := LoadConfigFromFile(tempFile.Name())
 	assert.NoError(t, err)
-	
+
 	assert.True(t, loadedConfig.Verification.EnableSPF)
 	assert.False(t, loadedConfig.Verification.EnableDKIM)
 	assert.Equal(t, 0.9, loadedConfig.Verification.SpamThreshold)
@@ -173,13 +173,13 @@ func TestConfigFromEnvironment_Defaults(t *testing.T) {
 		"MAILVAULT_REJECT_ON_FAIL",
 		"MAILVAULT_QUARANTINE_MODE",
 	}
-	
+
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
 	}
-	
+
 	config := ConfigFromEnvironment()
-	
+
 	// Should match defaults
 	assert.True(t, config.EnableSPF)
 	assert.True(t, config.EnableDKIM)
@@ -204,9 +204,9 @@ func TestConfigFromEnvironment_DisableFeatures(t *testing.T) {
 		os.Unsetenv("MAILVAULT_DISABLE_REPUTATION")
 		os.Unsetenv("MAILVAULT_DISABLE_CONTENT")
 	}()
-	
+
 	config := ConfigFromEnvironment()
-	
+
 	assert.False(t, config.EnableSPF)
 	assert.False(t, config.EnableDKIM)
 	assert.False(t, config.EnableDMARC)
@@ -222,16 +222,16 @@ func TestConfigFromEnvironment_EnableStrictMode(t *testing.T) {
 		os.Unsetenv("MAILVAULT_REJECT_ON_FAIL")
 		os.Unsetenv("MAILVAULT_QUARANTINE_MODE")
 	}()
-	
+
 	config := ConfigFromEnvironment()
-	
+
 	assert.True(t, config.RejectOnFail)
 	assert.False(t, config.QuarantineMode)
 }
 
 func TestNewPolicyManager(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	assert.NotNil(t, manager)
 	assert.Empty(t, manager.policies)
 	assert.Equal(t, "default", manager.defaultPolicy.Name)
@@ -240,7 +240,7 @@ func TestNewPolicyManager(t *testing.T) {
 
 func TestPolicyManager_AddPolicy(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	policy := Policy{
 		Name:        "strict_policy",
 		Description: "Strict verification for external emails",
@@ -253,29 +253,29 @@ func TestPolicyManager_AddPolicy(t *testing.T) {
 		},
 		Priority: 1,
 	}
-	
+
 	manager.AddPolicy(policy)
-	
+
 	assert.Len(t, manager.policies, 1)
 	assert.Equal(t, "strict_policy", manager.policies[0].Name)
 }
 
 func TestPolicyManager_GetPolicyForEmail_Default(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	emailCtx := EmailContext{
 		From: "test@example.com",
 		To:   []string{"recipient@company.com"},
 	}
-	
+
 	policy := manager.GetPolicyForEmail(emailCtx)
-	
+
 	assert.Equal(t, "default", policy.Name)
 }
 
 func TestPolicyManager_GetPolicyForEmail_MatchingPolicy(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	// Add a policy for external domains
 	externalPolicy := Policy{
 		Name:        "external_policy",
@@ -294,23 +294,23 @@ func TestPolicyManager_GetPolicyForEmail_MatchingPolicy(t *testing.T) {
 		},
 		Priority: 1,
 	}
-	
+
 	manager.AddPolicy(externalPolicy)
-	
+
 	emailCtx := EmailContext{
 		From: "sender@external.com",
 		To:   []string{"recipient@company.com"},
 	}
-	
+
 	policy := manager.GetPolicyForEmail(emailCtx)
-	
+
 	assert.Equal(t, "external_policy", policy.Name)
 	assert.True(t, policy.Config.RejectOnFail)
 }
 
 func TestPolicyManager_EvaluateCondition_FromDomain(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	tests := []struct {
 		name      string
 		condition PolicyCondition
@@ -366,7 +366,7 @@ func TestPolicyManager_EvaluateCondition_FromDomain(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := manager.evaluateCondition(tt.condition, tt.emailCtx)
@@ -377,92 +377,92 @@ func TestPolicyManager_EvaluateCondition_FromDomain(t *testing.T) {
 
 func TestPolicyManager_EvaluateCondition_ToDomain(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	condition := PolicyCondition{
 		Field:    "to_domain",
 		Operator: "equals",
 		Value:    "company.com",
 	}
-	
+
 	emailCtx := EmailContext{
 		From: "sender@external.com",
 		To:   []string{"recipient@company.com"},
 	}
-	
+
 	result := manager.evaluateCondition(condition, emailCtx)
 	assert.True(t, result)
 }
 
 func TestPolicyManager_EvaluateCondition_SenderIP(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	condition := PolicyCondition{
 		Field:    "sender_ip",
 		Operator: "equals",
 		Value:    "192.168.1.100",
 	}
-	
+
 	emailCtx := EmailContext{
 		From:     "sender@example.com",
 		SenderIP: net.ParseIP("192.168.1.100"),
 	}
-	
+
 	result := manager.evaluateCondition(condition, emailCtx)
 	assert.True(t, result)
 }
 
 func TestPolicyManager_EvaluateCondition_Subject(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	condition := PolicyCondition{
 		Field:    "subject",
 		Operator: "contains",
 		Value:    "urgent",
 	}
-	
+
 	emailCtx := EmailContext{
 		Subject: "Urgent: Please review this document",
 	}
-	
+
 	result := manager.evaluateCondition(condition, emailCtx)
 	assert.True(t, result)
 }
 
 func TestPolicyManager_EvaluateCondition_InvalidField(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	condition := PolicyCondition{
 		Field:    "invalid_field",
 		Operator: "equals",
 		Value:    "test",
 	}
-	
+
 	emailCtx := EmailContext{}
-	
+
 	result := manager.evaluateCondition(condition, emailCtx)
 	assert.False(t, result)
 }
 
 func TestPolicyManager_EvaluateCondition_InvalidOperator(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	condition := PolicyCondition{
 		Field:    "from_domain",
 		Operator: "invalid_operator",
 		Value:    "example.com",
 	}
-	
+
 	emailCtx := EmailContext{
 		From: "user@example.com",
 	}
-	
+
 	result := manager.evaluateCondition(condition, emailCtx)
 	assert.False(t, result)
 }
 
 func TestPolicyManager_MultipleConditions(t *testing.T) {
 	manager := NewPolicyManager()
-	
+
 	// Policy with multiple conditions (both must match)
 	policy := Policy{
 		Name: "multi_condition_policy",
@@ -480,24 +480,24 @@ func TestPolicyManager_MultipleConditions(t *testing.T) {
 		},
 		Priority: 1,
 	}
-	
+
 	manager.AddPolicy(policy)
-	
+
 	// Email that matches both conditions
 	emailCtx1 := EmailContext{
 		From:    "user@external.com",
 		Subject: "Urgent request",
 	}
-	
+
 	result1 := manager.GetPolicyForEmail(emailCtx1)
 	assert.Equal(t, "multi_condition_policy", result1.Name)
-	
+
 	// Email that matches only one condition
 	emailCtx2 := EmailContext{
 		From:    "user@external.com",
 		Subject: "Regular request",
 	}
-	
+
 	result2 := manager.GetPolicyForEmail(emailCtx2)
 	assert.Equal(t, "default", result2.Name) // Should fall back to default
 }
@@ -520,17 +520,17 @@ func TestPolicy_JSON_Marshaling(t *testing.T) {
 		},
 		Priority: 5,
 	}
-	
+
 	// Marshal to JSON
 	jsonData, err := json.Marshal(policy)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
-	
+
 	// Unmarshal back
 	var unmarshaledPolicy Policy
 	err = json.Unmarshal(jsonData, &unmarshaledPolicy)
 	assert.NoError(t, err)
-	
+
 	// Verify data integrity
 	assert.Equal(t, policy.Name, unmarshaledPolicy.Name)
 	assert.Equal(t, policy.Description, unmarshaledPolicy.Description)

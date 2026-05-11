@@ -5,10 +5,11 @@ package mocks
 
 import (
 	"context"
-	"github.com/gofrs/uuid/v5"
 	"mailvault/domain/email_provider"
 	"mailvault/domain/entities"
 	"sync"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // ProviderUseCaseMock is a mock implementation of admin.ProviderUseCase.

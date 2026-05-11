@@ -24,10 +24,10 @@ type DNSConfig struct {
 
 // BlacklistConfig holds blacklist configuration
 type BlacklistConfig struct {
-	Enabled    bool     `json:"enabled"`
-	IPLists    []string `json:"ip_lists"`
+	Enabled     bool     `json:"enabled"`
+	IPLists     []string `json:"ip_lists"`
 	DomainLists []string `json:"domain_lists"`
-	CacheTime  int      `json:"cache_time_minutes"`
+	CacheTime   int      `json:"cache_time_minutes"`
 }
 
 // DefaultVerificationConfig returns default verification configuration
@@ -63,11 +63,11 @@ func DefaultVerificationConfig() Config {
 // LoadConfigFromFile loads verification configuration from JSON file
 func LoadConfigFromFile(filename string) (Config, error) {
 	config := DefaultVerificationConfig()
-	
+
 	if filename == "" {
 		return config, nil
 	}
-	
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -75,12 +75,12 @@ func LoadConfigFromFile(filename string) (Config, error) {
 		}
 		return config, err
 	}
-	
+
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return config, err
 	}
-	
+
 	return config, nil
 }
 
@@ -90,17 +90,17 @@ func SaveConfigToFile(config Config, filename string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return os.WriteFile(filename, data, 0644)
 }
 
 // Policy represents a verification policy for different email types
 type Policy struct {
-	Name         string             `json:"name"`
-	Description  string             `json:"description"`
-	Config       VerificationConfig `json:"config"`
-	Conditions   []PolicyCondition  `json:"conditions"`
-	Priority     int                `json:"priority"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Config      VerificationConfig `json:"config"`
+	Conditions  []PolicyCondition  `json:"conditions"`
+	Priority    int                `json:"priority"`
 }
 
 // PolicyCondition defines when a policy should be applied
@@ -112,7 +112,7 @@ type PolicyCondition struct {
 
 // PolicyManager manages verification policies
 type PolicyManager struct {
-	policies     []Policy
+	policies      []Policy
 	defaultPolicy Policy
 }
 
@@ -142,7 +142,7 @@ func (pm *PolicyManager) GetPolicyForEmail(emailCtx EmailContext) Policy {
 			return policy
 		}
 	}
-	
+
 	return pm.defaultPolicy
 }
 
@@ -159,7 +159,7 @@ func (pm *PolicyManager) matchesPolicy(policy Policy, emailCtx EmailContext) boo
 // evaluateCondition evaluates a single policy condition
 func (pm *PolicyManager) evaluateCondition(condition PolicyCondition, emailCtx EmailContext) bool {
 	var fieldValue string
-	
+
 	switch condition.Field {
 	case "from_domain":
 		if domain, err := utils.ExtractDomain(emailCtx.From); err == nil {
@@ -180,7 +180,7 @@ func (pm *PolicyManager) evaluateCondition(condition PolicyCondition, emailCtx E
 	default:
 		return false
 	}
-	
+
 	switch condition.Operator {
 	case "equals":
 		return fieldValue == condition.Value
@@ -198,7 +198,7 @@ func (pm *PolicyManager) evaluateCondition(condition PolicyCondition, emailCtx E
 // Environment-based configuration
 func ConfigFromEnvironment() VerificationConfig {
 	config := DefaultConfig()
-	
+
 	// Allow environment variables to override defaults
 	if os.Getenv("MAILVAULT_DISABLE_SPF") == "true" {
 		config.EnableSPF = false
@@ -215,13 +215,13 @@ func ConfigFromEnvironment() VerificationConfig {
 	if os.Getenv("MAILVAULT_DISABLE_CONTENT") == "true" {
 		config.EnableContent = false
 	}
-	
+
 	if os.Getenv("MAILVAULT_REJECT_ON_FAIL") == "true" {
 		config.RejectOnFail = true
 	}
 	if os.Getenv("MAILVAULT_QUARANTINE_MODE") == "false" {
 		config.QuarantineMode = false
 	}
-	
+
 	return config
 }

@@ -133,20 +133,20 @@ func main() {
 
 	// Handlers V1
 	apiV1 := v1.ApiHandlers{
-		AuthProvider:        authProvider,
-		UserUseCase:         userUseCase,
-		AuthUseCase:         userUseCase,
-		DomainUseCase:       domainUseCase,
-		EmailUseCase:        emailUseCase,
+		AuthProvider:         authProvider,
+		UserUseCase:          userUseCase,
+		AuthUseCase:          userUseCase,
+		DomainUseCase:        domainUseCase,
+		EmailUseCase:         emailUseCase,
 		BillingUseCase:       billingUseCase,
 		WebhookConfigUseCase: webhookConfigUseCase,
 		AuthSecretKey:        cfg.AuthSecretKey,
-		AuthTokenTTL:        cfg.AuthTokenTTL,
-		Logger:              log,
-		StripeSecretKey:     cfg.StripeSecretKey,
-		StripeWebhookSecret: cfg.StripeWebhookSecret,
-		HealthChecker:       dbPool,    // optimized database pool implements the Ping interface
-		MetricsMiddleware:   metricsMw, // Pass metrics middleware for business metrics
+		AuthTokenTTL:         cfg.AuthTokenTTL,
+		Logger:               log,
+		StripeSecretKey:      cfg.StripeSecretKey,
+		StripeWebhookSecret:  cfg.StripeWebhookSecret,
+		HealthChecker:        dbPool,    // optimized database pool implements the Ping interface
+		MetricsMiddleware:    metricsMw, // Pass metrics middleware for business metrics
 	}
 
 	router := api.Router()

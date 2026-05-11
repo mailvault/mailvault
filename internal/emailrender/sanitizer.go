@@ -38,7 +38,7 @@ func NewSanitizer() *Sanitizer {
 	// Allow images but restrict to safe attributes
 	policy.AllowElements("img")
 	policy.AllowAttrs("src", "alt", "title", "width", "height").OnElements("img")
-	
+
 	// Allow inline images (data: URLs)
 	policy.AllowDataURIImages()
 	// Note: cid: URLs for inline images will be handled separately
@@ -72,10 +72,10 @@ func NewSanitizer() *Sanitizer {
 // NewStrictSanitizer creates a very strict sanitizer that only allows basic text formatting
 func NewStrictSanitizer() *Sanitizer {
 	policy := bluemonday.StrictPolicy()
-	
+
 	// Only allow the most basic formatting
 	policy.AllowElements("p", "br", "strong", "b", "em", "i", "u")
-	
+
 	return &Sanitizer{
 		policy: policy,
 	}

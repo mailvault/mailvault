@@ -5,10 +5,11 @@ package mocks
 
 import (
 	"context"
-	"github.com/gofrs/uuid/v5"
 	"mailvault/domain/entities"
 	"mailvault/domain/webhook_config"
 	"sync"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // UseCaseMock is a mock implementation of webhook_config.UseCase.

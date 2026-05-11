@@ -355,8 +355,8 @@ func TestUseCase_ValidateDomain_Failed(t *testing.T) {
 	domainRepo.domains[domainID] = domain
 	validator := &mockDNSValidator{
 		validateFullResult: &FullValidationResult{
-			Domain:       "example.com",
-			OverallValid: false,
+			Domain:        "example.com",
+			OverallValid:  false,
 			MXValidation:  &MXValidationResult{Domain: "example.com", Valid: false, Error: "MX records not found"},
 			TXTValidation: &TXTValidationResult{Domain: "example.com", Valid: false, Error: "TXT record not found"},
 			TotalTime:     200 * time.Millisecond,
@@ -400,15 +400,15 @@ func TestUseCase_ValidateDomain_DNSError(t *testing.T) {
 func TestUseCase_GetValidationStatus(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 	domain := &entities.Domain{
-		ID:                     domainID,
-		Domain:                 "example.com",
-		VerificationStatus:     entities.VerificationStatusVerified,
-		VerificationToken:      "test123",
-		VerificationAttempts:   2,
+		ID:                      domainID,
+		Domain:                  "example.com",
+		VerificationStatus:      entities.VerificationStatusVerified,
+		VerificationToken:       "test123",
+		VerificationAttempts:    2,
 		LastVerificationAttempt: time.Now().Add(-1 * time.Hour),
-		PublicKey:              "testkey",
-		APIKey:                 "testapikey",
-		UserID:                 uuid.Must(uuid.NewV4()),
+		PublicKey:               "testkey",
+		APIKey:                  "testapikey",
+		UserID:                  uuid.Must(uuid.NewV4()),
 	}
 
 	validationRepo := newMockValidationRepository()
@@ -419,16 +419,16 @@ func TestUseCase_GetValidationStatus(t *testing.T) {
 	// Add some validation records
 	validationRepo.records[domainID] = []*ValidationRecord{
 		{
-			ID:             uuid.Must(uuid.NewV4()),
-			DomainID:       domainID,
-			Status:         ValidationRecordStatusSuccess,
-			StartedAt:      time.Now().Add(-2 * time.Hour),
+			ID:        uuid.Must(uuid.NewV4()),
+			DomainID:  domainID,
+			Status:    ValidationRecordStatusSuccess,
+			StartedAt: time.Now().Add(-2 * time.Hour),
 		},
 		{
-			ID:             uuid.Must(uuid.NewV4()),
-			DomainID:       domainID,
-			Status:         ValidationRecordStatusFailed,
-			StartedAt:      time.Now().Add(-1 * time.Hour),
+			ID:        uuid.Must(uuid.NewV4()),
+			DomainID:  domainID,
+			Status:    ValidationRecordStatusFailed,
+			StartedAt: time.Now().Add(-1 * time.Hour),
 		},
 	}
 
@@ -492,9 +492,9 @@ func TestUseCase_GetPendingValidations(t *testing.T) {
 			NextVerificationAttempt: &pastTime,
 		},
 		{
-			ID:                      uuid.Must(uuid.NewV4()),
-			Domain:                  "verified.com",
-			VerificationStatus:      VerificationStatusVerified,
+			ID:                 uuid.Must(uuid.NewV4()),
+			Domain:             "verified.com",
+			VerificationStatus: VerificationStatusVerified,
 		},
 		{
 			ID:                      uuid.Must(uuid.NewV4()),
@@ -519,11 +519,3 @@ func TestUseCase_GetPendingValidations(t *testing.T) {
 	}
 }
 
-// Helper functions
-func stringPtr(s string) *string {
-	return &s
-}
-
-func timePtr(t time.Time) *time.Time {
-	return &t
-}

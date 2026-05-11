@@ -332,7 +332,7 @@ func TestHTTPClient_RetryDelay(t *testing.T) {
 		{3, 4 * time.Second},
 		{4, 8 * time.Second},
 		{5, 16 * time.Second},
-		{6, 30 * time.Second}, // Capped at 30s
+		{6, 30 * time.Second},  // Capped at 30s
 		{10, 30 * time.Second}, // Still capped
 	}
 
@@ -353,23 +353,23 @@ func TestHTTPClient_ShouldRetry(t *testing.T) {
 		expect     bool
 	}{
 		// Should retry
-		{0, 1, true},                                    // Network error
-		{http.StatusRequestTimeout, 1, true},           // 408
-		{http.StatusTooManyRequests, 1, true},          // 429
-		{http.StatusInternalServerError, 1, true},      // 500
-		{http.StatusBadGateway, 1, true},               // 502
-		{http.StatusServiceUnavailable, 1, true},       // 503
-		{http.StatusGatewayTimeout, 1, true},           // 504
+		{0, 1, true},                              // Network error
+		{http.StatusRequestTimeout, 1, true},      // 408
+		{http.StatusTooManyRequests, 1, true},     // 429
+		{http.StatusInternalServerError, 1, true}, // 500
+		{http.StatusBadGateway, 1, true},          // 502
+		{http.StatusServiceUnavailable, 1, true},  // 503
+		{http.StatusGatewayTimeout, 1, true},      // 504
 
 		// Should not retry
-		{http.StatusBadRequest, 1, false},              // 400
-		{http.StatusUnauthorized, 1, false},            // 401
-		{http.StatusForbidden, 1, false},               // 403
-		{http.StatusNotFound, 1, false},                // 404
-		{http.StatusOK, 1, false},                      // 200 (success)
+		{http.StatusBadRequest, 1, false},   // 400
+		{http.StatusUnauthorized, 1, false}, // 401
+		{http.StatusForbidden, 1, false},    // 403
+		{http.StatusNotFound, 1, false},     // 404
+		{http.StatusOK, 1, false},           // 200 (success)
 
 		// Max attempts reached
-		{http.StatusInternalServerError, 5, false},     // At max attempts
+		{http.StatusInternalServerError, 5, false}, // At max attempts
 	}
 
 	for _, tt := range tests {

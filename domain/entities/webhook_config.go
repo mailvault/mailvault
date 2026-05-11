@@ -85,10 +85,10 @@ type WebhookConfiguration struct {
 	Verified    bool   `json:"verified" db:"verified"`
 
 	// Authentication configuration
-	AuthType     WebhookAuthType       `json:"auth_type" db:"auth_type"`
-	AuthSecret   string                `json:"-" db:"auth_secret"` // Never expose in JSON
-	AuthUsername string                `json:"auth_username,omitempty" db:"auth_username"`
-	CustomHeaders map[string]string    `json:"custom_headers,omitempty" db:"custom_headers"`
+	AuthType      WebhookAuthType   `json:"auth_type" db:"auth_type"`
+	AuthSecret    string            `json:"-" db:"auth_secret"` // Never expose in JSON
+	AuthUsername  string            `json:"auth_username,omitempty" db:"auth_username"`
+	CustomHeaders map[string]string `json:"custom_headers,omitempty" db:"custom_headers"`
 
 	// Event filtering
 	EventTypes []string `json:"event_types" db:"event_types"`
@@ -402,16 +402,16 @@ func (w *WebhookConfiguration) ToJSON() ([]byte, error) {
 
 // WebhookConfigurationAudit represents an audit log entry for webhook configuration changes
 type WebhookConfigurationAudit struct {
-	ID               uuid.UUID              `json:"id" db:"id"`
-	WebhookConfigID  uuid.UUID              `json:"webhook_config_id" db:"webhook_config_id"`
-	ChangedByUserID  *uuid.UUID             `json:"changed_by_user_id,omitempty" db:"changed_by_user_id"`
-	Action           string                 `json:"action" db:"action"`
-	OldValues        map[string]interface{} `json:"old_values,omitempty" db:"old_values"`
-	NewValues        map[string]interface{} `json:"new_values,omitempty" db:"new_values"`
-	ChangeReason     string                 `json:"change_reason,omitempty" db:"change_reason"`
-	IPAddress        string                 `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent        string                 `json:"user_agent,omitempty" db:"user_agent"`
-	CreatedAt        time.Time              `json:"created_at" db:"created_at"`
+	ID              uuid.UUID              `json:"id" db:"id"`
+	WebhookConfigID uuid.UUID              `json:"webhook_config_id" db:"webhook_config_id"`
+	ChangedByUserID *uuid.UUID             `json:"changed_by_user_id,omitempty" db:"changed_by_user_id"`
+	Action          string                 `json:"action" db:"action"`
+	OldValues       map[string]interface{} `json:"old_values,omitempty" db:"old_values"`
+	NewValues       map[string]interface{} `json:"new_values,omitempty" db:"new_values"`
+	ChangeReason    string                 `json:"change_reason,omitempty" db:"change_reason"`
+	IPAddress       string                 `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent       string                 `json:"user_agent,omitempty" db:"user_agent"`
+	CreatedAt       time.Time              `json:"created_at" db:"created_at"`
 }
 
 // WebhookHealthCheck represents a health check record
@@ -428,17 +428,17 @@ type WebhookHealthCheck struct {
 
 // WebhookConfigurationTemplate represents a pre-configured webhook template
 type WebhookConfigurationTemplate struct {
-	ID                   uuid.UUID       `json:"id" db:"id"`
-	Name                 string          `json:"name" db:"name"`
-	Description          string          `json:"description" db:"description"`
-	ProviderName         string          `json:"provider_name" db:"provider_name"`
-	DefaultMethod        string          `json:"default_method" db:"default_method"`
-	DefaultAuthType      WebhookAuthType `json:"default_auth_type" db:"default_auth_type"`
-	DefaultHeaders       map[string]string `json:"default_headers,omitempty" db:"default_headers"`
-	DefaultTimeoutSeconds int            `json:"default_timeout_seconds" db:"default_timeout_seconds"`
-	DocumentationURL     string          `json:"documentation_url,omitempty" db:"documentation_url"`
-	IsActive             bool            `json:"is_active" db:"is_active"`
-	UsageCount           int             `json:"usage_count" db:"usage_count"`
-	CreatedAt            time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time       `json:"updated_at" db:"updated_at"`
+	ID                    uuid.UUID         `json:"id" db:"id"`
+	Name                  string            `json:"name" db:"name"`
+	Description           string            `json:"description" db:"description"`
+	ProviderName          string            `json:"provider_name" db:"provider_name"`
+	DefaultMethod         string            `json:"default_method" db:"default_method"`
+	DefaultAuthType       WebhookAuthType   `json:"default_auth_type" db:"default_auth_type"`
+	DefaultHeaders        map[string]string `json:"default_headers,omitempty" db:"default_headers"`
+	DefaultTimeoutSeconds int               `json:"default_timeout_seconds" db:"default_timeout_seconds"`
+	DocumentationURL      string            `json:"documentation_url,omitempty" db:"documentation_url"`
+	IsActive              bool              `json:"is_active" db:"is_active"`
+	UsageCount            int               `json:"usage_count" db:"usage_count"`
+	CreatedAt             time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time         `json:"updated_at" db:"updated_at"`
 }

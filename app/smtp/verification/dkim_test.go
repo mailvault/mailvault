@@ -9,7 +9,7 @@ import (
 
 func TestDKIMVerifier_Verify_NoSignature(t *testing.T) {
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	// Email without DKIM signature
 	emailCtx := EmailContext{
 		From:    "test@example.com",
@@ -27,16 +27,16 @@ func TestDKIMVerifier_Verify_NoSignature(t *testing.T) {
 			{Name: "Subject", Value: "Test Email"},
 		},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.False(t, result.Valid)
 	assert.Empty(t, result.Results) // No DKIM signatures to verify
 }
 
 func TestDKIMVerifier_Verify_MalformedEmail(t *testing.T) {
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	// Malformed email
 	emailCtx := EmailContext{
 		From:    "test@example.com",
@@ -45,9 +45,9 @@ func TestDKIMVerifier_Verify_MalformedEmail(t *testing.T) {
 		Body:    []byte("This is not a proper email format"),
 		Headers: []Header{},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.False(t, result.Valid)
 	assert.Empty(t, result.Results)
 }
@@ -55,7 +55,7 @@ func TestDKIMVerifier_Verify_MalformedEmail(t *testing.T) {
 func TestDKIMVerifier_Verify_WithDKIMSignature(t *testing.T) {
 	skipDKIMNeedsDNSInjection(t)
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	// Email with DKIM signature (this will fail verification since the signature is not real)
 	emailCtx := EmailContext{
 		From:    "test@example.com",
@@ -77,13 +77,13 @@ func TestDKIMVerifier_Verify_WithDKIMSignature(t *testing.T) {
 			{Name: "Subject", Value: "Test Email with DKIM"},
 		},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// The signature should fail because it's not a real signature
 	assert.False(t, result.Valid)
 	assert.NotEmpty(t, result.Results) // Should have at least one result
-	
+
 	if len(result.Results) > 0 {
 		assert.Equal(t, "example.com", result.Results[0].Domain)
 		assert.Equal(t, DKIMFail, result.Results[0].Status)
@@ -105,7 +105,7 @@ func TestDKIMVerifier_DkimErrorToStatus(t *testing.T) {
 		// Note: We can't easily test the specific go-msgauth errors without importing them
 		// In a real implementation, you would test specific error types
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := dkimErrorToStatus(tt.err)
@@ -127,7 +127,7 @@ func TestDKIMStatus_String(t *testing.T) {
 		{DKIMTempError, "temperror"},
 		{DKIMPermError, "permerror"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.status.String())
@@ -138,7 +138,7 @@ func TestDKIMStatus_String(t *testing.T) {
 func TestDKIMVerifier_MultipleSignatures(t *testing.T) {
 	skipDKIMNeedsDNSInjection(t)
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	// Email with multiple DKIM signatures
 	emailCtx := EmailContext{
 		From:    "test@example.com",
@@ -164,13 +164,13 @@ func TestDKIMVerifier_MultipleSignatures(t *testing.T) {
 			{Name: "Subject", Value: "Test Email with Multiple DKIM"},
 		},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// Should have multiple results, all failing because signatures are invalid
 	assert.False(t, result.Valid)
 	assert.True(t, len(result.Results) >= 1) // Should have at least one result
-	
+
 	// Check that we have results for different domains
 	domains := make(map[string]bool)
 	for _, res := range result.Results {
@@ -216,14 +216,14 @@ func TestDKIMResult_Validation(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := DKIMResult{
 				Results: tt.results,
 				Valid:   false, // Initially set to false
 			}
-			
+
 			// Simulate the logic that would set Valid based on results
 			anyPass := false
 			for _, r := range result.Results {
@@ -233,7 +233,7 @@ func TestDKIMResult_Validation(t *testing.T) {
 				}
 			}
 			result.Valid = anyPass
-			
+
 			assert.Equal(t, tt.expected, result.Valid)
 		})
 	}
@@ -241,7 +241,7 @@ func TestDKIMResult_Validation(t *testing.T) {
 
 func TestDKIMVerifier_EmptyBody(t *testing.T) {
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	// Email with empty body
 	emailCtx := EmailContext{
 		From:    "test@example.com",
@@ -250,28 +250,28 @@ func TestDKIMVerifier_EmptyBody(t *testing.T) {
 		Body:    []byte{},
 		Headers: []Header{},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.False(t, result.Valid)
 	assert.Empty(t, result.Results)
 }
 
 func TestDKIMVerifier_LongEmail(t *testing.T) {
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	// Create a long email body
 	longBody := "From: test@example.com\r\n" +
 		"To: recipient@test.com\r\n" +
 		"Subject: Long Email\r\n" +
 		"Date: Mon, 19 Aug 2025 12:00:00 -0300\r\n" +
 		"\r\n"
-	
+
 	// Add a lot of content
 	for i := 0; i < 1000; i++ {
 		longBody += "This is line " + string(rune(i)) + " of a very long email that tests DKIM verification performance.\r\n"
 	}
-	
+
 	emailCtx := EmailContext{
 		From:    "test@example.com",
 		To:      []string{"recipient@test.com"},
@@ -283,9 +283,9 @@ func TestDKIMVerifier_LongEmail(t *testing.T) {
 			{Name: "Subject", Value: "Long Email"},
 		},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// Should handle long emails gracefully
 	assert.False(t, result.Valid) // No signature, so should be false
 	assert.Empty(t, result.Results)
@@ -293,7 +293,7 @@ func TestDKIMVerifier_LongEmail(t *testing.T) {
 
 func BenchmarkDKIMVerify(b *testing.B) {
 	verifier := NewDKIMVerifier("8.8.8.8:53")
-	
+
 	emailCtx := EmailContext{
 		From:    "test@example.com",
 		To:      []string{"recipient@test.com"},
@@ -310,9 +310,9 @@ func BenchmarkDKIMVerify(b *testing.B) {
 			{Name: "Subject", Value: "Benchmark Email"},
 		},
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		verifier.Verify(ctx, emailCtx)

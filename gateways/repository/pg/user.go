@@ -233,7 +233,7 @@ func (r *UserRepository) List(ctx context.Context, page, pageSize int) ([]entiti
 
 func (r *UserRepository) SearchUsers(ctx context.Context, page, pageSize int, search, accountType string) ([]entities.User, int64, error) {
 	offset := (page - 1) * pageSize
-	
+
 	var whereConditions []string
 	var args []interface{}
 	argIndex := 1
@@ -265,7 +265,7 @@ func (r *UserRepository) SearchUsers(ctx context.Context, page, pageSize int, se
 
 	// Add pagination arguments
 	args = append(args, pageSize, offset)
-	
+
 	// Get users with pagination and filtering
 	query := fmt.Sprintf(`
 		SELECT id, email, auth_provider, auth_provider_id, account_type, user_plan, created_at, updated_at

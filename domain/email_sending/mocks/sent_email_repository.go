@@ -5,11 +5,12 @@ package mocks
 
 import (
 	"context"
-	"github.com/gofrs/uuid/v5"
 	"mailvault/domain/email_sending"
 	"mailvault/domain/entities"
 	"sync"
 	"time"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // RepositoryMock is a mock implementation of email_sending.Repository.

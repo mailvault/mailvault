@@ -53,13 +53,13 @@ type AuditConfig struct {
 // DefaultAuditConfig returns production-ready audit configuration
 func DefaultAuditConfig() AuditConfig {
 	return AuditConfig{
-		Enabled:                    true,
-		LogAllRequests:             false,
-		LogRequestBodies:           true,
-		LogResponseBodies:          false,
-		MaxBodySize:                10240, // 10KB
-		EnableCorrelationID:        true,
-		CorrelationIDHeader:        "X-Correlation-ID",
+		Enabled:             true,
+		LogAllRequests:      false,
+		LogRequestBodies:    true,
+		LogResponseBodies:   false,
+		MaxBodySize:         10240, // 10KB
+		EnableCorrelationID: true,
+		CorrelationIDHeader: "X-Correlation-ID",
 		SecuritySensitiveEndpoints: []string{
 			"/api/v1/register",
 			"/api/v1/login",
@@ -118,17 +118,17 @@ type AuditEvent struct {
 	AccountType string `json:"account_type,omitempty"`
 
 	// Response information
-	StatusCode    int           `json:"status_code"`
-	ResponseTime  time.Duration `json:"response_time"`
-	ResponseSize  int           `json:"response_size"`
+	StatusCode   int           `json:"status_code"`
+	ResponseTime time.Duration `json:"response_time"`
+	ResponseSize int           `json:"response_size"`
 
 	// Request/Response bodies (sanitized)
 	RequestBody  interface{} `json:"request_body,omitempty"`
 	ResponseBody interface{} `json:"response_body,omitempty"`
 
 	// Security information
-	SecurityEvent bool   `json:"security_event,omitempty"`
-	RiskLevel     string `json:"risk_level,omitempty"`
+	SecurityEvent bool     `json:"security_event,omitempty"`
+	RiskLevel     string   `json:"risk_level,omitempty"`
 	Violations    []string `json:"violations,omitempty"`
 
 	// Additional context
@@ -513,13 +513,13 @@ func (m *AuditMiddleware) LogBusinessEvent(ctx context.Context, eventType string
 // GetAuditInfo returns audit configuration information
 func (m *AuditMiddleware) GetAuditInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"enabled":              m.config.Enabled,
-		"log_all_requests":     m.config.LogAllRequests,
-		"log_request_bodies":   m.config.LogRequestBodies,
-		"log_response_bodies":  m.config.LogResponseBodies,
-		"max_body_size":        m.config.MaxBodySize,
-		"correlation_enabled":  m.config.EnableCorrelationID,
-		"sensitive_endpoints":  len(m.config.SecuritySensitiveEndpoints),
-		"excluded_endpoints":   len(m.config.ExcludedEndpoints),
+		"enabled":             m.config.Enabled,
+		"log_all_requests":    m.config.LogAllRequests,
+		"log_request_bodies":  m.config.LogRequestBodies,
+		"log_response_bodies": m.config.LogResponseBodies,
+		"max_body_size":       m.config.MaxBodySize,
+		"correlation_enabled": m.config.EnableCorrelationID,
+		"sensitive_endpoints": len(m.config.SecuritySensitiveEndpoints),
+		"excluded_endpoints":  len(m.config.ExcludedEndpoints),
 	}
 }

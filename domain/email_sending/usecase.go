@@ -15,11 +15,11 @@ import (
 
 // UseCase defines the business logic for email sending
 type UseCase struct {
-	repo              Repository
-	providerRepo      email_provider.Repository
-	providerLogRepo   email_provider.LogRepository
-	emailSender       providers.EmailSender
-	logger            *slog.Logger
+	repo            Repository
+	providerRepo    email_provider.Repository
+	providerLogRepo email_provider.LogRepository
+	emailSender     providers.EmailSender
+	logger          *slog.Logger
 }
 
 // NewUseCase creates a new email sending use case
@@ -355,8 +355,8 @@ func (uc *UseCase) buildProviderRequestFromSentEmail(sentEmail *entities.SentEma
 // Request and response structures
 
 type SendEmailRequest struct {
-	DomainID   uuid.UUID `json:"domain_id"`
-	MessageID  string    `json:"message_id"`
+	DomainID  uuid.UUID `json:"domain_id"`
+	MessageID string    `json:"message_id"`
 
 	// Sender information
 	From     string `json:"from"`

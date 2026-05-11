@@ -628,9 +628,8 @@ func (r *SMTPStatsRepository) buildWhereClause(filter entities.SMTPStatsFilter, 
 	if filter.MaxSpamScore != nil {
 		conditions = append(conditions, fmt.Sprintf("spam_score <= $%d", argIndex))
 		args = append(args, *filter.MaxSpamScore)
-		argIndex++
 	}
-	
+
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "AND " + strings.Join(conditions, " AND ")

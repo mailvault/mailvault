@@ -9,8 +9,9 @@ import (
 
 	"mailvault/domain/validation"
 
-	"github.com/gofrs/uuid/v5"
 	"log/slog"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // SimpleValidationUseCase defines the minimal interface used by WorkerManager
@@ -21,12 +22,12 @@ type SimpleValidationUseCase interface {
 
 // ManagerConfig is a simplified configuration for the WorkerManager
 type ManagerConfig struct {
-	WorkerCount        int
-	QueueSize          int
-	PollInterval       time.Duration
-	ProcessingTimeout  time.Duration
-	MaxRetries         int
-	BaseRetryDelay     time.Duration
+	WorkerCount       int
+	QueueSize         int
+	PollInterval      time.Duration
+	ProcessingTimeout time.Duration
+	MaxRetries        int
+	BaseRetryDelay    time.Duration
 }
 
 // WorkerManagerStats contains statistics for the WorkerManager
@@ -40,16 +41,16 @@ type WorkerManagerStats struct {
 
 // WorkerManager is a simplified worker manager for domain validation
 type WorkerManager struct {
-	useCase    SimpleValidationUseCase
-	config     ManagerConfig
-	logger     *slog.Logger
-	queue      chan *validation.ValidationJob
-	running    bool
-	mutex      sync.RWMutex
-	stopCh     chan struct{}
-	wg         sync.WaitGroup
-	ctx        context.Context
-	cancel     context.CancelFunc
+	useCase        SimpleValidationUseCase
+	config         ManagerConfig
+	logger         *slog.Logger
+	queue          chan *validation.ValidationJob
+	running        bool
+	mutex          sync.RWMutex
+	stopCh         chan struct{}
+	wg             sync.WaitGroup
+	ctx            context.Context
+	cancel         context.CancelFunc
 	totalProcessed atomic.Int64
 	totalSuccess   atomic.Int64
 	totalFailed    atomic.Int64

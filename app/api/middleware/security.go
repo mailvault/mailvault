@@ -17,11 +17,11 @@ type SecurityConfig struct {
 	HSTS SecurityHSTSConfig
 
 	// Additional security headers
-	XFrameOptions           string
-	XContentTypeOptions     string
-	XSSProtection           string
-	ReferrerPolicy          string
-	PermissionsPolicy       string
+	XFrameOptions       string
+	XContentTypeOptions string
+	XSSProtection       string
+	ReferrerPolicy      string
+	PermissionsPolicy   string
 
 	// CORS configuration
 	CORS SecurityCORSConfig
@@ -60,7 +60,7 @@ type SecurityCSPConfig struct {
 // SecurityHSTSConfig holds HSTS configuration
 type SecurityHSTSConfig struct {
 	Enabled           bool
-	MaxAge            int    // seconds
+	MaxAge            int // seconds
 	IncludeSubdomains bool
 	Preload           bool
 }
@@ -80,22 +80,22 @@ type SecurityCORSConfig struct {
 func DefaultSecurityConfig() SecurityConfig {
 	return SecurityConfig{
 		CSP: SecurityCSPConfig{
-			Enabled:        true,
-			DefaultSrc:     []string{"'self'"},
-			ScriptSrc:      []string{"'self'", "'unsafe-inline'"},
-			StyleSrc:       []string{"'self'", "'unsafe-inline'"},
-			ImgSrc:         []string{"'self'", "data:", "https:"},
-			ConnectSrc:     []string{"'self'"},
-			FontSrc:        []string{"'self'"},
-			ObjectSrc:      []string{"'none'"},
-			MediaSrc:       []string{"'self'"},
-			FrameSrc:       []string{"'none'"},
-			ChildSrc:       []string{"'none'"},
-			WorkerSrc:      []string{"'self'"},
-			FrameAncestors: []string{"'none'"},
-			FormAction:     []string{"'self'"},
-			BaseURI:        []string{"'self'"},
-			ManifestSrc:    []string{"'self'"},
+			Enabled:         true,
+			DefaultSrc:      []string{"'self'"},
+			ScriptSrc:       []string{"'self'", "'unsafe-inline'"},
+			StyleSrc:        []string{"'self'", "'unsafe-inline'"},
+			ImgSrc:          []string{"'self'", "data:", "https:"},
+			ConnectSrc:      []string{"'self'"},
+			FontSrc:         []string{"'self'"},
+			ObjectSrc:       []string{"'none'"},
+			MediaSrc:        []string{"'self'"},
+			FrameSrc:        []string{"'none'"},
+			ChildSrc:        []string{"'none'"},
+			WorkerSrc:       []string{"'self'"},
+			FrameAncestors:  []string{"'none'"},
+			FormAction:      []string{"'self'"},
+			BaseURI:         []string{"'self'"},
+			ManifestSrc:     []string{"'self'"},
 			UpgradeInsecure: true,
 		},
 		HSTS: SecurityHSTSConfig{
@@ -420,10 +420,10 @@ func parseJSON(r *http.Request, v interface{}) error {
 // SecureHeaders returns a map of recommended security headers
 func (m *SecurityMiddleware) GetSecurityInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"csp_enabled":    m.config.CSP.Enabled,
-		"hsts_enabled":   m.config.HSTS.Enabled,
-		"cors_enabled":   m.config.CORS.Enabled,
-		"dev_mode":       m.config.DevelopmentMode,
+		"csp_enabled":     m.config.CSP.Enabled,
+		"hsts_enabled":    m.config.HSTS.Enabled,
+		"cors_enabled":    m.config.CORS.Enabled,
+		"dev_mode":        m.config.DevelopmentMode,
 		"allowed_origins": m.config.CORS.AllowedOrigins,
 	}
 }

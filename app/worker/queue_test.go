@@ -14,18 +14,18 @@ func TestPriorityQueue_EnqueueDequeue(t *testing.T) {
 
 	// Create test jobs with different priorities
 	job1 := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 10,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   10,
 		DomainName: "low-priority.com",
 	}
 	job2 := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 100,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   100,
 		DomainName: "high-priority.com",
 	}
 	job3 := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 50,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   50,
 		DomainName: "medium-priority.com",
 	}
 
@@ -72,8 +72,8 @@ func TestPriorityQueue_Size(t *testing.T) {
 	// Add jobs
 	for i := 0; i < 5; i++ {
 		job := &validation.ValidationJob{
-			ID:       uuid.Must(uuid.NewV4()),
-			Priority: i,
+			ID:         uuid.Must(uuid.NewV4()),
+			Priority:   i,
 			DomainName: "test.com",
 		}
 		queue.Enqueue(job)
@@ -102,8 +102,8 @@ func TestPriorityQueue_IsEmpty(t *testing.T) {
 	}
 
 	job := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 10,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   10,
 		DomainName: "test.com",
 	}
 	queue.Enqueue(job)
@@ -127,8 +127,8 @@ func TestPriorityQueue_ConcurrentAccess(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			job := &validation.ValidationJob{
-				ID:       uuid.Must(uuid.NewV4()),
-				Priority: i % 10,
+				ID:         uuid.Must(uuid.NewV4()),
+				Priority:   i % 10,
 				DomainName: "test.com",
 			}
 			queue.Enqueue(job)
@@ -165,10 +165,10 @@ func TestJobScheduler_Schedule(t *testing.T) {
 	scheduler := NewJobScheduler(queue)
 
 	job := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 10,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   10,
 		DomainName: "test.com",
-		Attempts: 1,
+		Attempts:   1,
 	}
 
 	// Schedule for immediate execution. The scheduler's ticker (default 10ms)
@@ -196,10 +196,10 @@ func TestJobScheduler_ScheduleDelayed(t *testing.T) {
 	scheduler := NewJobScheduler(queue)
 
 	job := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 10,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   10,
 		DomainName: "test.com",
-		Attempts: 1,
+		Attempts:   1,
 	}
 
 	// Schedule for future execution
@@ -231,10 +231,10 @@ func TestJobScheduler_Stop(t *testing.T) {
 
 	// Schedule a job for the future
 	job := &validation.ValidationJob{
-		ID:       uuid.Must(uuid.NewV4()),
-		Priority: 10,
+		ID:         uuid.Must(uuid.NewV4()),
+		Priority:   10,
 		DomainName: "test.com",
-		Attempts: 1,
+		Attempts:   1,
 	}
 	futureTime := time.Now().Add(200 * time.Millisecond)
 	scheduler.Schedule(job, futureTime)
@@ -259,18 +259,18 @@ func TestJobScheduler_MultipleJobs(t *testing.T) {
 	now := time.Now()
 	jobs := []*validation.ValidationJob{
 		{
-			ID:       uuid.Must(uuid.NewV4()),
-			Priority: 30,
+			ID:         uuid.Must(uuid.NewV4()),
+			Priority:   30,
 			DomainName: "third.com",
 		},
 		{
-			ID:       uuid.Must(uuid.NewV4()),
-			Priority: 10,
+			ID:         uuid.Must(uuid.NewV4()),
+			Priority:   10,
 			DomainName: "first.com",
 		},
 		{
-			ID:       uuid.Must(uuid.NewV4()),
-			Priority: 20,
+			ID:         uuid.Must(uuid.NewV4()),
+			Priority:   20,
 			DomainName: "second.com",
 		},
 	}
@@ -311,8 +311,8 @@ func BenchmarkPriorityQueue_Enqueue(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		job := &validation.ValidationJob{
-			ID:       uuid.Must(uuid.NewV4()),
-			Priority: i % 100,
+			ID:         uuid.Must(uuid.NewV4()),
+			Priority:   i % 100,
 			DomainName: "benchmark.com",
 		}
 		queue.Enqueue(job)
@@ -325,8 +325,8 @@ func BenchmarkPriorityQueue_Dequeue(b *testing.B) {
 	// Pre-populate queue
 	for i := 0; i < b.N; i++ {
 		job := &validation.ValidationJob{
-			ID:       uuid.Must(uuid.NewV4()),
-			Priority: i % 100,
+			ID:         uuid.Must(uuid.NewV4()),
+			Priority:   i % 100,
 			DomainName: "benchmark.com",
 		}
 		queue.Enqueue(job)

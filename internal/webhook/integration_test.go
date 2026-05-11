@@ -59,13 +59,13 @@ func TestWebhookIntegration_EndToEnd(t *testing.T) {
 
 	// Create domain with webhook configuration
 	domain := &entities.Domain{
-		ID:              uuid.Must(uuid.NewV4()),
-		UserID:          uuid.Must(uuid.NewV4()),
-		Domain:          "example.com",
-		PublicKey:       "test-public-key",
-		APIKey:          "test-api-key",
-		StorageEnabled:  true,
-		AutoCreateAddress: true,
+		ID:                 uuid.Must(uuid.NewV4()),
+		UserID:             uuid.Must(uuid.NewV4()),
+		Domain:             "example.com",
+		PublicKey:          "test-public-key",
+		APIKey:             "test-api-key",
+		StorageEnabled:     true,
+		AutoCreateAddress:  true,
 		VerificationStatus: entities.VerificationStatusVerified,
 		WebhookConfig: &entities.WebhookConfig{
 			URL:     server.URL,

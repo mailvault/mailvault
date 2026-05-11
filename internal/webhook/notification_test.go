@@ -92,19 +92,19 @@ func (f *notificationTestFixture) sampleEvent() (*entities.ReceivedEmail, *entit
 
 func enabledWebhookConfig(url string) *entities.WebhookConfiguration {
 	return &entities.WebhookConfiguration{
-		ID:                      uuid.Must(uuid.NewV4()),
-		DomainID:                uuid.Must(uuid.NewV4()),
-		Name:                    "test",
-		URL:                     url,
-		Method:                  "POST",
-		Enabled:                 true,
-		EventTypes:              []string{"*"},
-		TimeoutSeconds:          5,
-		CircuitBreakerEnabled:   false,
-		CircuitBreakerState:     entities.CircuitBreakerStateClosed,
-		HealthStatus:            entities.WebhookHealthStatusHealthy,
-		MaxRetries:              0,
-		AuthType:                entities.WebhookAuthTypeNone,
+		ID:                    uuid.Must(uuid.NewV4()),
+		DomainID:              uuid.Must(uuid.NewV4()),
+		Name:                  "test",
+		URL:                   url,
+		Method:                "POST",
+		Enabled:               true,
+		EventTypes:            []string{"*"},
+		TimeoutSeconds:        5,
+		CircuitBreakerEnabled: false,
+		CircuitBreakerState:   entities.CircuitBreakerStateClosed,
+		HealthStatus:          entities.WebhookHealthStatusHealthy,
+		MaxRetries:            0,
+		AuthType:              entities.WebhookAuthTypeNone,
 	}
 }
 

@@ -39,11 +39,11 @@ type MetricsConfig struct {
 // DefaultMetricsConfig returns production-ready metrics configuration
 func DefaultMetricsConfig() MetricsConfig {
 	return MetricsConfig{
-		Namespace:                "mailvault",
-		Subsystem:                "api",
-		EnableEndpointMetrics:    true,
-		EnableStatusCodeMetrics:  true,
-		EnableRequestSizeMetrics: true,
+		Namespace:                 "mailvault",
+		Subsystem:                 "api",
+		EnableEndpointMetrics:     true,
+		EnableStatusCodeMetrics:   true,
+		EnableRequestSizeMetrics:  true,
 		EnableResponseSizeMetrics: true,
 		DurationBuckets: []float64{
 			0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
@@ -59,21 +59,21 @@ type MetricsMiddleware struct {
 	config MetricsConfig
 
 	// Request metrics
-	requestsTotal       *prometheus.CounterVec
-	requestDuration     *prometheus.HistogramVec
-	requestsInProgress  prometheus.Gauge
-	requestSize         *prometheus.HistogramVec
-	responseSize        *prometheus.HistogramVec
+	requestsTotal      *prometheus.CounterVec
+	requestDuration    *prometheus.HistogramVec
+	requestsInProgress prometheus.Gauge
+	requestSize        *prometheus.HistogramVec
+	responseSize       *prometheus.HistogramVec
 
 	// Business metrics
-	authAttemptsTotal    *prometheus.CounterVec
-	emailsSentTotal      *prometheus.CounterVec
-	domainsTotal         prometheus.Gauge
-	emailAddressesTotal  prometheus.Gauge
-	receivedEmailsTotal  *prometheus.CounterVec
+	authAttemptsTotal   *prometheus.CounterVec
+	emailsSentTotal     *prometheus.CounterVec
+	domainsTotal        prometheus.Gauge
+	emailAddressesTotal prometheus.Gauge
+	receivedEmailsTotal *prometheus.CounterVec
 
 	// Rate limiting metrics
-	rateLimitHitsTotal  *prometheus.CounterVec
+	rateLimitHitsTotal *prometheus.CounterVec
 
 	// Security metrics
 	securityViolationsTotal *prometheus.CounterVec
@@ -431,13 +431,13 @@ func (m *MetricsMiddleware) CollectBusinessMetrics(
 // MetricsInfo returns information about configured metrics
 func (m *MetricsMiddleware) GetMetricsInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"namespace":                   m.config.Namespace,
-		"subsystem":                   m.config.Subsystem,
-		"endpoint_metrics_enabled":    m.config.EnableEndpointMetrics,
-		"status_code_metrics_enabled": m.config.EnableStatusCodeMetrics,
-		"request_size_metrics_enabled": m.config.EnableRequestSizeMetrics,
+		"namespace":                     m.config.Namespace,
+		"subsystem":                     m.config.Subsystem,
+		"endpoint_metrics_enabled":      m.config.EnableEndpointMetrics,
+		"status_code_metrics_enabled":   m.config.EnableStatusCodeMetrics,
+		"request_size_metrics_enabled":  m.config.EnableRequestSizeMetrics,
 		"response_size_metrics_enabled": m.config.EnableResponseSizeMetrics,
-		"duration_buckets":            m.config.DurationBuckets,
-		"size_buckets":                m.config.SizeBuckets,
+		"duration_buckets":              m.config.DurationBuckets,
+		"size_buckets":                  m.config.SizeBuckets,
 	}
 }

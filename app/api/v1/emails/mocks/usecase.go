@@ -5,10 +5,11 @@ package mocks
 
 import (
 	"context"
-	"github.com/gofrs/uuid/v5"
 	"mailvault/domain/email"
 	"mailvault/domain/entities"
 	"sync"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // UseCaseMock is a mock implementation of emails.UseCase.

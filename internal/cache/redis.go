@@ -74,15 +74,15 @@ func NewRedisCache(config RedisConfig) (*RedisCache, error) {
 
 	// Create Redis client
 	client := redis.NewClient(&redis.Options{
-		Addr:         config.Addr,
-		Password:     config.Password,
-		DB:           config.DB,
-		PoolSize:     config.PoolSize,
-		MinIdleConns: config.MinIdleConns,
-		MaxRetries:   config.MaxRetries,
-		DialTimeout:  config.DialTimeout,
-		ReadTimeout:  config.ReadTimeout,
-		WriteTimeout: config.WriteTimeout,
+		Addr:            config.Addr,
+		Password:        config.Password,
+		DB:              config.DB,
+		PoolSize:        config.PoolSize,
+		MinIdleConns:    config.MinIdleConns,
+		MaxRetries:      config.MaxRetries,
+		DialTimeout:     config.DialTimeout,
+		ReadTimeout:     config.ReadTimeout,
+		WriteTimeout:    config.WriteTimeout,
 		ConnMaxIdleTime: config.IdleTimeout,
 	})
 
@@ -366,15 +366,15 @@ func (c *RedisCache) GetStats() map[string]interface{} {
 
 	stats := c.client.PoolStats()
 	return map[string]interface{}{
-		"enabled":      true,
-		"addr":         c.config.Addr,
-		"db":           c.config.DB,
-		"hits":         stats.Hits,
-		"misses":       stats.Misses,
-		"timeouts":     stats.Timeouts,
-		"total_conns":  stats.TotalConns,
-		"idle_conns":   stats.IdleConns,
-		"stale_conns":  stats.StaleConns,
+		"enabled":     true,
+		"addr":        c.config.Addr,
+		"db":          c.config.DB,
+		"hits":        stats.Hits,
+		"misses":      stats.Misses,
+		"timeouts":    stats.Timeouts,
+		"total_conns": stats.TotalConns,
+		"idle_conns":  stats.IdleConns,
+		"stale_conns": stats.StaleConns,
 	}
 }
 

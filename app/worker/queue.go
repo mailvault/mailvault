@@ -271,7 +271,7 @@ type JobScheduler struct {
 
 // ScheduledJob represents a job scheduled for future execution
 type ScheduledJob struct {
-	Job       *validation.ValidationJob
+	Job         *validation.ValidationJob
 	ScheduledAt time.Time
 	RetryCount  int
 	MaxRetries  int

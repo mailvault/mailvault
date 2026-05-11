@@ -1,15 +1,15 @@
 package webhook_configs
 
 import (
-	"fmt"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 
-	"mailvault/app/api/models"
 	"mailvault/app/api"
+	"mailvault/app/api/models"
 	"mailvault/domain/entities"
 	"mailvault/domain/webhook_config"
 
@@ -56,46 +56,46 @@ func NewWebhookConfigHandlers(webhookConfigUseCase UseCase, log *slog.Logger) *W
 
 // CreateWebhookConfigRequest represents the request to create a webhook configuration
 type CreateWebhookConfigRequest struct {
-	Name                         string                     `json:"name" validate:"required,min=1,max=255"`
-	Description                  string                     `json:"description,omitempty" validate:"max=1000"`
-	URL                          string                     `json:"url" validate:"required,url,max=2048"`
-	Method                       string                     `json:"method,omitempty" validate:"omitempty,oneof=POST PUT PATCH"`
-	AuthType                     entities.WebhookAuthType   `json:"auth_type,omitempty" validate:"omitempty,oneof=none basic bearer hmac_sha256"`
-	AuthSecret                   string                     `json:"auth_secret,omitempty" validate:"omitempty,max=512"`
-	AuthUsername                 string                     `json:"auth_username,omitempty" validate:"omitempty,max=255"`
-	CustomHeaders                map[string]string          `json:"custom_headers,omitempty"`
-	EventTypes                   []string                   `json:"event_types,omitempty" validate:"dive,oneof=email.received email.sent email.delivered email.bounced email.rejected *"`
-	TimeoutSeconds               int                        `json:"timeout_seconds,omitempty" validate:"omitempty,min=1,max=300"`
-	MaxRetries                   int                        `json:"max_retries,omitempty" validate:"omitempty,min=0,max=10"`
-	RetryBackoffMultiplier       float64                    `json:"retry_backoff_multiplier,omitempty" validate:"omitempty,min=1.0,max=5.0"`
-	InitialRetryDelaySeconds     int                        `json:"initial_retry_delay_seconds,omitempty" validate:"omitempty,min=0"`
-	RateLimitPerMinute           int                        `json:"rate_limit_per_minute,omitempty" validate:"omitempty,min=1"`
-	RateLimitPerHour             int                        `json:"rate_limit_per_hour,omitempty" validate:"omitempty,min=1"`
-	CircuitBreakerEnabled        bool                       `json:"circuit_breaker_enabled"`
-	CircuitBreakerThreshold      int                        `json:"circuit_breaker_threshold,omitempty" validate:"omitempty,min=1"`
-	CircuitBreakerTimeoutSeconds int                        `json:"circuit_breaker_timeout_seconds,omitempty" validate:"omitempty,min=1"`
+	Name                         string                   `json:"name" validate:"required,min=1,max=255"`
+	Description                  string                   `json:"description,omitempty" validate:"max=1000"`
+	URL                          string                   `json:"url" validate:"required,url,max=2048"`
+	Method                       string                   `json:"method,omitempty" validate:"omitempty,oneof=POST PUT PATCH"`
+	AuthType                     entities.WebhookAuthType `json:"auth_type,omitempty" validate:"omitempty,oneof=none basic bearer hmac_sha256"`
+	AuthSecret                   string                   `json:"auth_secret,omitempty" validate:"omitempty,max=512"`
+	AuthUsername                 string                   `json:"auth_username,omitempty" validate:"omitempty,max=255"`
+	CustomHeaders                map[string]string        `json:"custom_headers,omitempty"`
+	EventTypes                   []string                 `json:"event_types,omitempty" validate:"dive,oneof=email.received email.sent email.delivered email.bounced email.rejected *"`
+	TimeoutSeconds               int                      `json:"timeout_seconds,omitempty" validate:"omitempty,min=1,max=300"`
+	MaxRetries                   int                      `json:"max_retries,omitempty" validate:"omitempty,min=0,max=10"`
+	RetryBackoffMultiplier       float64                  `json:"retry_backoff_multiplier,omitempty" validate:"omitempty,min=1.0,max=5.0"`
+	InitialRetryDelaySeconds     int                      `json:"initial_retry_delay_seconds,omitempty" validate:"omitempty,min=0"`
+	RateLimitPerMinute           int                      `json:"rate_limit_per_minute,omitempty" validate:"omitempty,min=1"`
+	RateLimitPerHour             int                      `json:"rate_limit_per_hour,omitempty" validate:"omitempty,min=1"`
+	CircuitBreakerEnabled        bool                     `json:"circuit_breaker_enabled"`
+	CircuitBreakerThreshold      int                      `json:"circuit_breaker_threshold,omitempty" validate:"omitempty,min=1"`
+	CircuitBreakerTimeoutSeconds int                      `json:"circuit_breaker_timeout_seconds,omitempty" validate:"omitempty,min=1"`
 }
 
 // UpdateWebhookConfigRequest represents the request to update a webhook configuration
 type UpdateWebhookConfigRequest struct {
-	Name                         *string                    `json:"name,omitempty" validate:"omitempty,min=1,max=255"`
-	Description                  *string                    `json:"description,omitempty" validate:"omitempty,max=1000"`
-	URL                          *string                    `json:"url,omitempty" validate:"omitempty,url,max=2048"`
-	Method                       *string                    `json:"method,omitempty" validate:"omitempty,oneof=POST PUT PATCH"`
-	AuthType                     *entities.WebhookAuthType  `json:"auth_type,omitempty" validate:"omitempty,oneof=none basic bearer hmac_sha256"`
-	AuthSecret                   *string                    `json:"auth_secret,omitempty" validate:"omitempty,max=512"`
-	AuthUsername                 *string                    `json:"auth_username,omitempty" validate:"omitempty,max=255"`
-	CustomHeaders                map[string]string          `json:"custom_headers,omitempty"`
-	EventTypes                   []string                   `json:"event_types,omitempty" validate:"omitempty,dive,oneof=email.received email.sent email.delivered email.bounced email.rejected *"`
-	TimeoutSeconds               *int                       `json:"timeout_seconds,omitempty" validate:"omitempty,min=1,max=300"`
-	MaxRetries                   *int                       `json:"max_retries,omitempty" validate:"omitempty,min=0,max=10"`
-	RetryBackoffMultiplier       *float64                   `json:"retry_backoff_multiplier,omitempty" validate:"omitempty,min=1.0,max=5.0"`
-	InitialRetryDelaySeconds     *int                       `json:"initial_retry_delay_seconds,omitempty" validate:"omitempty,min=0"`
-	RateLimitPerMinute           *int                       `json:"rate_limit_per_minute,omitempty" validate:"omitempty,min=1"`
-	RateLimitPerHour             *int                       `json:"rate_limit_per_hour,omitempty" validate:"omitempty,min=1"`
-	CircuitBreakerEnabled        *bool                      `json:"circuit_breaker_enabled,omitempty"`
-	CircuitBreakerThreshold      *int                       `json:"circuit_breaker_threshold,omitempty" validate:"omitempty,min=1"`
-	CircuitBreakerTimeoutSeconds *int                       `json:"circuit_breaker_timeout_seconds,omitempty" validate:"omitempty,min=1"`
+	Name                         *string                   `json:"name,omitempty" validate:"omitempty,min=1,max=255"`
+	Description                  *string                   `json:"description,omitempty" validate:"omitempty,max=1000"`
+	URL                          *string                   `json:"url,omitempty" validate:"omitempty,url,max=2048"`
+	Method                       *string                   `json:"method,omitempty" validate:"omitempty,oneof=POST PUT PATCH"`
+	AuthType                     *entities.WebhookAuthType `json:"auth_type,omitempty" validate:"omitempty,oneof=none basic bearer hmac_sha256"`
+	AuthSecret                   *string                   `json:"auth_secret,omitempty" validate:"omitempty,max=512"`
+	AuthUsername                 *string                   `json:"auth_username,omitempty" validate:"omitempty,max=255"`
+	CustomHeaders                map[string]string         `json:"custom_headers,omitempty"`
+	EventTypes                   []string                  `json:"event_types,omitempty" validate:"omitempty,dive,oneof=email.received email.sent email.delivered email.bounced email.rejected *"`
+	TimeoutSeconds               *int                      `json:"timeout_seconds,omitempty" validate:"omitempty,min=1,max=300"`
+	MaxRetries                   *int                      `json:"max_retries,omitempty" validate:"omitempty,min=0,max=10"`
+	RetryBackoffMultiplier       *float64                  `json:"retry_backoff_multiplier,omitempty" validate:"omitempty,min=1.0,max=5.0"`
+	InitialRetryDelaySeconds     *int                      `json:"initial_retry_delay_seconds,omitempty" validate:"omitempty,min=0"`
+	RateLimitPerMinute           *int                      `json:"rate_limit_per_minute,omitempty" validate:"omitempty,min=1"`
+	RateLimitPerHour             *int                      `json:"rate_limit_per_hour,omitempty" validate:"omitempty,min=1"`
+	CircuitBreakerEnabled        *bool                     `json:"circuit_breaker_enabled,omitempty"`
+	CircuitBreakerThreshold      *int                      `json:"circuit_breaker_threshold,omitempty" validate:"omitempty,min=1"`
+	CircuitBreakerTimeoutSeconds *int                      `json:"circuit_breaker_timeout_seconds,omitempty" validate:"omitempty,min=1"`
 }
 
 // CreateFromTemplateRequest represents the request to create from a template
@@ -109,41 +109,41 @@ type CreateFromTemplateRequest struct {
 
 // WebhookConfigResponse represents a webhook configuration in responses
 type WebhookConfigResponse struct {
-	ID                           string                            `json:"id"`
-	DomainID                     string                            `json:"domain_id"`
-	Name                         string                            `json:"name"`
-	Description                  string                            `json:"description,omitempty"`
-	URL                          string                            `json:"url"`
-	Method                       string                            `json:"method"`
-	Enabled                      bool                              `json:"enabled"`
-	Verified                     bool                              `json:"verified"`
-	AuthType                     entities.WebhookAuthType          `json:"auth_type"`
-	AuthUsername                 string                            `json:"auth_username,omitempty"`
-	CustomHeaders                map[string]string                 `json:"custom_headers,omitempty"`
-	EventTypes                   []string                          `json:"event_types"`
-	TimeoutSeconds               int                               `json:"timeout_seconds"`
-	MaxRetries                   int                               `json:"max_retries"`
-	RetryBackoffMultiplier       float64                           `json:"retry_backoff_multiplier"`
-	InitialRetryDelaySeconds     int                               `json:"initial_retry_delay_seconds"`
-	RateLimitPerMinute           int                               `json:"rate_limit_per_minute"`
-	RateLimitPerHour             int                               `json:"rate_limit_per_hour"`
-	CircuitBreakerEnabled        bool                              `json:"circuit_breaker_enabled"`
-	CircuitBreakerThreshold      int                               `json:"circuit_breaker_threshold"`
-	CircuitBreakerTimeoutSeconds int                               `json:"circuit_breaker_timeout_seconds"`
-	CircuitBreakerState          entities.CircuitBreakerState      `json:"circuit_breaker_state"`
-	CircuitBreakerOpenedAt       string                            `json:"circuit_breaker_opened_at,omitempty"`
-	HealthStatus                 entities.WebhookHealthStatus      `json:"health_status"`
-	LastHealthCheckAt            string                            `json:"last_health_check_at,omitempty"`
-	LastSuccessAt                string                            `json:"last_success_at,omitempty"`
-	LastFailureAt                string                            `json:"last_failure_at,omitempty"`
-	ConsecutiveFailures          int                               `json:"consecutive_failures"`
-	TotalSuccessCount            int64                             `json:"total_success_count"`
-	TotalFailureCount            int64                             `json:"total_failure_count"`
-	SuccessRate                  float64                           `json:"success_rate"`
-	AverageResponseTimeMs        int                               `json:"average_response_time_ms,omitempty"`
-	LastUsedAt                   string                            `json:"last_used_at,omitempty"`
-	CreatedAt                    string                            `json:"created_at"`
-	UpdatedAt                    string                            `json:"updated_at"`
+	ID                           string                       `json:"id"`
+	DomainID                     string                       `json:"domain_id"`
+	Name                         string                       `json:"name"`
+	Description                  string                       `json:"description,omitempty"`
+	URL                          string                       `json:"url"`
+	Method                       string                       `json:"method"`
+	Enabled                      bool                         `json:"enabled"`
+	Verified                     bool                         `json:"verified"`
+	AuthType                     entities.WebhookAuthType     `json:"auth_type"`
+	AuthUsername                 string                       `json:"auth_username,omitempty"`
+	CustomHeaders                map[string]string            `json:"custom_headers,omitempty"`
+	EventTypes                   []string                     `json:"event_types"`
+	TimeoutSeconds               int                          `json:"timeout_seconds"`
+	MaxRetries                   int                          `json:"max_retries"`
+	RetryBackoffMultiplier       float64                      `json:"retry_backoff_multiplier"`
+	InitialRetryDelaySeconds     int                          `json:"initial_retry_delay_seconds"`
+	RateLimitPerMinute           int                          `json:"rate_limit_per_minute"`
+	RateLimitPerHour             int                          `json:"rate_limit_per_hour"`
+	CircuitBreakerEnabled        bool                         `json:"circuit_breaker_enabled"`
+	CircuitBreakerThreshold      int                          `json:"circuit_breaker_threshold"`
+	CircuitBreakerTimeoutSeconds int                          `json:"circuit_breaker_timeout_seconds"`
+	CircuitBreakerState          entities.CircuitBreakerState `json:"circuit_breaker_state"`
+	CircuitBreakerOpenedAt       string                       `json:"circuit_breaker_opened_at,omitempty"`
+	HealthStatus                 entities.WebhookHealthStatus `json:"health_status"`
+	LastHealthCheckAt            string                       `json:"last_health_check_at,omitempty"`
+	LastSuccessAt                string                       `json:"last_success_at,omitempty"`
+	LastFailureAt                string                       `json:"last_failure_at,omitempty"`
+	ConsecutiveFailures          int                          `json:"consecutive_failures"`
+	TotalSuccessCount            int64                        `json:"total_success_count"`
+	TotalFailureCount            int64                        `json:"total_failure_count"`
+	SuccessRate                  float64                      `json:"success_rate"`
+	AverageResponseTimeMs        int                          `json:"average_response_time_ms,omitempty"`
+	LastUsedAt                   string                       `json:"last_used_at,omitempty"`
+	CreatedAt                    string                       `json:"created_at"`
+	UpdatedAt                    string                       `json:"updated_at"`
 }
 
 // CreateWebhookConfig godoc

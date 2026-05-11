@@ -12,10 +12,10 @@ import (
 
 // UpdateDomainRequest represents domain update request
 type UpdateDomainRequest struct {
-	PublicKey          *string                      `json:"public_key,omitempty"`
-	StorageEnabled     *bool                        `json:"storage_enabled,omitempty"`
-	AutoCreateAddress  *bool                        `json:"auto_create_address,omitempty"`
-	VerificationStatus entities.VerificationStatus  `json:"verification_status,omitempty"`
+	PublicKey          *string                     `json:"public_key,omitempty"`
+	StorageEnabled     *bool                       `json:"storage_enabled,omitempty"`
+	AutoCreateAddress  *bool                       `json:"auto_create_address,omitempty"`
+	VerificationStatus entities.VerificationStatus `json:"verification_status,omitempty"`
 }
 
 // UpdateDomain updates an existing domain

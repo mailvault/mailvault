@@ -32,50 +32,50 @@ func newDMARCVerifierWithMock() (*DMARCVerifier, *MockDMARCExchanger) {
 
 func TestDMARCVerifier_Verify_InvalidFromHeader(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	emailCtx := EmailContext{
 		From: "invalid-email-format",
 		To:   []string{"recipient@test.com"},
 	}
-	
+
 	spfResult := SPFResult{Result: SPFPass}
 	dkimResult := DKIMResult{Valid: true}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
-	
+
 	assert.Equal(t, DMARCPermError, result.Result)
 	assert.Contains(t, result.Error, "invalid From header format")
 }
 
 func TestDMARCVerifier_Verify_NoDMARCPolicy(t *testing.T) {
 	verifier, mockExchanger := newDMARCVerifierWithMock()
-	
+
 	// Mock DNS response with no DMARC record
 	resp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
 		Answer: []dns.RR{},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From: "test@example.com",
 		To:   []string{"recipient@test.com"},
 	}
-	
+
 	spfResult := SPFResult{Result: SPFPass}
 	dkimResult := DKIMResult{Valid: true}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
-	
+
 	assert.Equal(t, DMARCNone, result.Result)
 	mockExchanger.AssertExpectations(t)
 }
 
 func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 	verifier, mockExchanger := newDMARCVerifierWithMock()
-	
+
 	// Mock DNS response with DMARC policy
 	txtRecord := &dns.TXT{
 		Hdr: dns.RR_Header{Name: "_dmarc.example.com.", Rrtype: dns.TypeTXT},
@@ -85,18 +85,18 @@ func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
 		Answer: []dns.RR{txtRecord},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From: "test@example.com",
 		To:   []string{"recipient@test.com"},
 	}
-	
+
 	// SPF passes and aligns
 	spfResult := SPFResult{Result: SPFPass}
-	
+
 	// DKIM also passes with aligned domain
 	dkimResult := DKIMResult{
 		Valid: true,
@@ -104,9 +104,9 @@ func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 			{Domain: "example.com", Status: DKIMPass},
 		},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
-	
+
 	assert.Equal(t, DMARCPass, result.Result)
 	assert.Equal(t, "quarantine", result.Policy)
 	assert.True(t, result.SPFAlign)
@@ -116,7 +116,7 @@ func TestDMARCVerifier_Verify_DMARCPass(t *testing.T) {
 
 func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
 	verifier, mockExchanger := newDMARCVerifierWithMock()
-	
+
 	// Mock DNS response with DMARC policy
 	txtRecord := &dns.TXT{
 		Hdr: dns.RR_Header{Name: "_dmarc.example.com.", Rrtype: dns.TypeTXT},
@@ -126,18 +126,18 @@ func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
 		Answer: []dns.RR{txtRecord},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From: "test@example.com",
 		To:   []string{"recipient@test.com"},
 	}
-	
+
 	// SPF fails
 	spfResult := SPFResult{Result: SPFFail}
-	
+
 	// DKIM fails
 	dkimResult := DKIMResult{
 		Valid: false,
@@ -145,9 +145,9 @@ func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
 			{Domain: "example.com", Status: DKIMFail},
 		},
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx, spfResult, dkimResult)
-	
+
 	assert.Equal(t, DMARCFail, result.Result)
 	assert.Equal(t, "reject", result.Policy)
 	assert.False(t, result.SPFAlign)
@@ -157,11 +157,11 @@ func TestDMARCVerifier_Verify_DMARCFail(t *testing.T) {
 
 func TestDMARCVerifier_CheckSPFAlignment_Strict(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	policy := &msdmarc.Record{
 		SPFAlignment: msdmarc.AlignmentStrict,
 	}
-	
+
 	tests := []struct {
 		name       string
 		fromDomain string
@@ -193,13 +193,13 @@ func TestDMARCVerifier_CheckSPFAlignment_Strict(t *testing.T) {
 			expected:   false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			emailCtx := EmailContext{
 				From: "test@" + tt.fromDomain,
 			}
-			
+
 			result := verifier.checkSPFAlignment(emailCtx, tt.spfResult, policy, tt.fromDomain)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -208,17 +208,17 @@ func TestDMARCVerifier_CheckSPFAlignment_Strict(t *testing.T) {
 
 func TestDMARCVerifier_CheckSPFAlignment_Relaxed(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	policy := &msdmarc.Record{
 		SPFAlignment: msdmarc.AlignmentRelaxed,
 	}
-	
+
 	tests := []struct {
-		name           string
-		fromDomain     string
-		returnPath     string
-		spfResult      SPFResult
-		expected       bool
+		name       string
+		fromDomain string
+		returnPath string
+		spfResult  SPFResult
+		expected   bool
 	}{
 		{
 			name:       "SPF pass with organizational domain match",
@@ -235,13 +235,13 @@ func TestDMARCVerifier_CheckSPFAlignment_Relaxed(t *testing.T) {
 			expected:   false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			emailCtx := EmailContext{
 				From: "test@" + tt.fromDomain,
 			}
-			
+
 			result := verifier.checkSPFAlignment(emailCtx, tt.spfResult, policy, tt.fromDomain)
 			// Note: This test is simplified since getReturnPathDomain uses From field
 			// In a real implementation, you'd mock the Return-Path extraction
@@ -252,11 +252,11 @@ func TestDMARCVerifier_CheckSPFAlignment_Relaxed(t *testing.T) {
 
 func TestDMARCVerifier_CheckDKIMAlignment_Strict(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	policy := &msdmarc.Record{
 		DKIMAlignment: msdmarc.AlignmentStrict,
 	}
-	
+
 	tests := []struct {
 		name       string
 		fromDomain string
@@ -309,7 +309,7 @@ func TestDMARCVerifier_CheckDKIMAlignment_Strict(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.checkDKIMAlignment(tt.dkimResult, policy, tt.fromDomain)
@@ -320,11 +320,11 @@ func TestDMARCVerifier_CheckDKIMAlignment_Strict(t *testing.T) {
 
 func TestDMARCVerifier_CheckDKIMAlignment_Relaxed(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	policy := &msdmarc.Record{
 		DKIMAlignment: msdmarc.AlignmentRelaxed,
 	}
-	
+
 	tests := []struct {
 		name       string
 		fromDomain string
@@ -354,7 +354,7 @@ func TestDMARCVerifier_CheckDKIMAlignment_Relaxed(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.checkDKIMAlignment(tt.dkimResult, policy, tt.fromDomain)
@@ -365,7 +365,7 @@ func TestDMARCVerifier_CheckDKIMAlignment_Relaxed(t *testing.T) {
 
 func TestDMARCVerifier_OrganizationalDomainsMatch(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	tests := []struct {
 		domain1  string
 		domain2  string
@@ -378,7 +378,7 @@ func TestDMARCVerifier_OrganizationalDomainsMatch(t *testing.T) {
 		{"example.co.uk", "mail.example.co.uk", true}, // Public-suffix-aware: both share org domain example.co.uk
 		{"test.com", "test.org", false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.domain1+"_vs_"+tt.domain2, func(t *testing.T) {
 			result := verifier.organizationalDomainsMatch(tt.domain1, tt.domain2)
@@ -389,7 +389,7 @@ func TestDMARCVerifier_OrganizationalDomainsMatch(t *testing.T) {
 
 func TestDMARCVerifier_GetOrganizationalDomain(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	tests := []struct {
 		input    string
 		expected string
@@ -400,7 +400,7 @@ func TestDMARCVerifier_GetOrganizationalDomain(t *testing.T) {
 		{"test", "test"},
 		{"", ""},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			result := verifier.getOrganizationalDomain(tt.input)
@@ -411,9 +411,9 @@ func TestDMARCVerifier_GetOrganizationalDomain(t *testing.T) {
 
 func TestDMARCVerifier_EvaluateDMARCPolicy(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	policy := &msdmarc.Record{}
-	
+
 	tests := []struct {
 		name        string
 		spfResult   SPFResult
@@ -463,7 +463,7 @@ func TestDMARCVerifier_EvaluateDMARCPolicy(t *testing.T) {
 			expected:    DMARCFail,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.evaluateDMARCPolicy(policy, tt.spfResult, tt.dkimResult, tt.spfAligned, tt.dkimAligned)
@@ -474,12 +474,12 @@ func TestDMARCVerifier_EvaluateDMARCPolicy(t *testing.T) {
 
 func TestDMARCVerifier_GetPolicyAction(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	tests := []struct {
-		name         string
-		policy       *msdmarc.Record
-		dmarcResult  DMARCStatus
-		expected     Action
+		name        string
+		policy      *msdmarc.Record
+		dmarcResult DMARCStatus
+		expected    Action
 	}{
 		{
 			name:        "DMARC passes",
@@ -512,7 +512,7 @@ func TestDMARCVerifier_GetPolicyAction(t *testing.T) {
 			expected:    ActionAccept,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.GetPolicyAction(tt.policy, tt.dmarcResult)
@@ -523,13 +523,13 @@ func TestDMARCVerifier_GetPolicyAction(t *testing.T) {
 
 func TestDMARCVerifier_GetPolicyAction_WithPercentage(t *testing.T) {
 	verifier := NewDMARCVerifier("8.8.8.8:53")
-	
+
 	pct := 50
 	policy := &msdmarc.Record{
 		Policy:  msdmarc.PolicyReject,
 		Percent: &pct,
 	}
-	
+
 	result := verifier.GetPolicyAction(policy, DMARCFail)
 	// In the current implementation, percentage is not fully implemented
 	// but it should still return the policy action
@@ -538,7 +538,7 @@ func TestDMARCVerifier_GetPolicyAction_WithPercentage(t *testing.T) {
 
 func BenchmarkDMARCVerify(b *testing.B) {
 	verifier, mockExchanger := newDMARCVerifierWithMock()
-	
+
 	// Mock DNS response
 	txtRecord := &dns.TXT{
 		Hdr: dns.RR_Header{Name: "_dmarc.example.com.", Rrtype: dns.TypeTXT},
@@ -548,15 +548,15 @@ func BenchmarkDMARCVerify(b *testing.B) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
 		Answer: []dns.RR{txtRecord},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(resp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From: "test@example.com",
 		To:   []string{"recipient@test.com"},
 	}
-	
+
 	spfResult := SPFResult{Result: SPFPass}
 	dkimResult := DKIMResult{
 		Valid: true,
@@ -564,9 +564,9 @@ func BenchmarkDMARCVerify(b *testing.B) {
 			{Domain: "example.com", Status: DKIMPass},
 		},
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		verifier.Verify(ctx, emailCtx, spfResult, dkimResult)

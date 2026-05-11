@@ -16,9 +16,9 @@ import (
 func TestNewIncomingEmailEvent(t *testing.T) {
 	// Create test data
 	domain := &entities.Domain{
-		ID:              uuid.Must(uuid.NewV4()),
-		Domain:          "example.com",
-		StorageEnabled:  true,
+		ID:                uuid.Must(uuid.NewV4()),
+		Domain:            "example.com",
+		StorageEnabled:    true,
 		AutoCreateAddress: false,
 	}
 

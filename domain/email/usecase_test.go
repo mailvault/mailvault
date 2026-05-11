@@ -441,4 +441,3 @@ func TestGetReceivedEmails(t *testing.T) {
 		assert.Equal(t, 1000, mockReceivedRepo.GetByEmailAddressIDCalls()[0].Limit)
 	})
 }
-

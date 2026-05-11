@@ -48,32 +48,32 @@ type WorkerMetrics struct {
 	config WorkerMetricsConfig
 
 	// Job processing metrics
-	jobsProcessedTotal     *prometheus.CounterVec
-	jobsSuccessfulTotal    *prometheus.CounterVec
-	jobsFailedTotal        *prometheus.CounterVec
-	jobsRetriedTotal       *prometheus.CounterVec
-	jobProcessingDuration  *prometheus.HistogramVec
-	jobsInProgress         prometheus.Gauge
+	jobsProcessedTotal    *prometheus.CounterVec
+	jobsSuccessfulTotal   *prometheus.CounterVec
+	jobsFailedTotal       *prometheus.CounterVec
+	jobsRetriedTotal      *prometheus.CounterVec
+	jobProcessingDuration *prometheus.HistogramVec
+	jobsInProgress        prometheus.Gauge
 
 	// Queue metrics
-	queueSize              prometheus.Gauge
-	queuePushTotal         *prometheus.CounterVec
-	queuePopTotal          *prometheus.CounterVec
-	scheduledJobsTotal     prometheus.Gauge
+	queueSize          prometheus.Gauge
+	queuePushTotal     *prometheus.CounterVec
+	queuePopTotal      *prometheus.CounterVec
+	scheduledJobsTotal prometheus.Gauge
 
 	// Worker pool metrics
-	workersActive          prometheus.Gauge
-	workersTotal           prometheus.Gauge
+	workersActive prometheus.Gauge
+	workersTotal  prometheus.Gauge
 
 	// DNS validation metrics
-	dnsQueriesTotal        *prometheus.CounterVec
-	dnsQueryDuration       *prometheus.HistogramVec
+	dnsQueriesTotal         *prometheus.CounterVec
+	dnsQueryDuration        *prometheus.HistogramVec
 	validationAttemptsTotal *prometheus.CounterVec
-	domainsValidatedTotal  *prometheus.CounterVec
+	domainsValidatedTotal   *prometheus.CounterVec
 
 	// Manager metrics
-	managerUptime          prometheus.Gauge
-	managerStatsUpdates    prometheus.Counter
+	managerUptime       prometheus.Gauge
+	managerStatsUpdates prometheus.Counter
 
 	// Registry for metrics
 	registry *prometheus.Registry
@@ -403,11 +403,11 @@ func (m *WorkerMetrics) CollectManagerStats(stats DetailedStats, managerStartTim
 // GetMetricsInfo returns information about configured metrics
 func (m *WorkerMetrics) GetMetricsInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"namespace":            m.config.Namespace,
-		"subsystem":            m.config.Subsystem,
-		"job_metrics_enabled":  m.config.EnableJobMetrics,
+		"namespace":             m.config.Namespace,
+		"subsystem":             m.config.Subsystem,
+		"job_metrics_enabled":   m.config.EnableJobMetrics,
 		"queue_metrics_enabled": m.config.EnableQueueMetrics,
-		"dns_metrics_enabled":  m.config.EnableDNSMetrics,
-		"duration_buckets":     m.config.DurationBuckets,
+		"dns_metrics_enabled":   m.config.EnableDNSMetrics,
+		"duration_buckets":      m.config.DurationBuckets,
 	}
 }

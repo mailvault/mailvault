@@ -19,14 +19,14 @@ type RepositoryCache struct {
 // CacheConfig holds repository caching configuration
 type CacheConfig struct {
 	// TTL for different entity types
-	UserTTL         time.Duration
-	DomainTTL       time.Duration
-	EmailAddressTTL time.Duration
+	UserTTL          time.Duration
+	DomainTTL        time.Duration
+	EmailAddressTTL  time.Duration
 	ReceivedEmailTTL time.Duration
 
 	// Enable/disable caching for different entity types
-	CacheUsers         bool
-	CacheDomains       bool
+	CacheUsers          bool
+	CacheDomains        bool
 	CacheEmailAddresses bool
 	CacheReceivedEmails bool
 
@@ -38,16 +38,16 @@ type CacheConfig struct {
 // DefaultCacheConfig returns production-ready cache configuration
 func DefaultCacheConfig() CacheConfig {
 	return CacheConfig{
-		UserTTL:         30 * time.Minute, // Users don't change often
-		DomainTTL:       15 * time.Minute, // Domains change occasionally
-		EmailAddressTTL: 10 * time.Minute, // Email addresses change more often
-		ReceivedEmailTTL: 5 * time.Minute, // Recent emails for quick access
-		CacheUsers:         true,
-		CacheDomains:       true,
+		UserTTL:             30 * time.Minute, // Users don't change often
+		DomainTTL:           15 * time.Minute, // Domains change occasionally
+		EmailAddressTTL:     10 * time.Minute, // Email addresses change more often
+		ReceivedEmailTTL:    5 * time.Minute,  // Recent emails for quick access
+		CacheUsers:          true,
+		CacheDomains:        true,
 		CacheEmailAddresses: true,
 		CacheReceivedEmails: false, // Don't cache received emails by default
-		CacheQueries:       true,
-		QueryTTL:          5 * time.Minute,
+		CacheQueries:        true,
+		QueryTTL:            5 * time.Minute,
 	}
 }
 

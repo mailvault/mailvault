@@ -5,9 +5,10 @@ package mocks
 
 import (
 	"context"
-	"github.com/gofrs/uuid/v5"
 	"mailvault/domain/entities"
 	"sync"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // UserUseCaseMock is a mock implementation of admin.UserUseCase.

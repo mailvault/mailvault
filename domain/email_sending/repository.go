@@ -48,26 +48,26 @@ type Repository interface {
 // Filter structures
 
 type SentEmailFilters struct {
-	DomainID        *uuid.UUID                `json:"domain_id,omitempty"`
-	Status          *entities.EmailSendStatus `json:"status,omitempty"`
-	Statuses        []entities.EmailSendStatus `json:"statuses,omitempty"`
-	FromAddress     *string                   `json:"from_address,omitempty"`
-	ToAddress       *string                   `json:"to_address,omitempty"`
-	Subject         *string                   `json:"subject,omitempty"`
-	MessageID       *string                   `json:"message_id,omitempty"`
-	CreatedFrom     *time.Time                `json:"created_from,omitempty"`
-	CreatedTo       *time.Time                `json:"created_to,omitempty"`
-	SentFrom        *time.Time                `json:"sent_from,omitempty"`
-	SentTo          *time.Time                `json:"sent_to,omitempty"`
-	HasError        *bool                     `json:"has_error,omitempty"`
-	NeedsRetry      *bool                     `json:"needs_retry,omitempty"`
-	PendingWebhook  *bool                     `json:"pending_webhook,omitempty"`
-	IncludeBody     bool                      `json:"include_body"`
-	IncludeWebhook  bool                      `json:"include_webhook"`
-	OrderBy         string                    `json:"order_by"`
-	OrderDir        string                    `json:"order_dir"`
-	Limit           *int                      `json:"limit,omitempty"`
-	Offset          *int                      `json:"offset,omitempty"`
+	DomainID       *uuid.UUID                 `json:"domain_id,omitempty"`
+	Status         *entities.EmailSendStatus  `json:"status,omitempty"`
+	Statuses       []entities.EmailSendStatus `json:"statuses,omitempty"`
+	FromAddress    *string                    `json:"from_address,omitempty"`
+	ToAddress      *string                    `json:"to_address,omitempty"`
+	Subject        *string                    `json:"subject,omitempty"`
+	MessageID      *string                    `json:"message_id,omitempty"`
+	CreatedFrom    *time.Time                 `json:"created_from,omitempty"`
+	CreatedTo      *time.Time                 `json:"created_to,omitempty"`
+	SentFrom       *time.Time                 `json:"sent_from,omitempty"`
+	SentTo         *time.Time                 `json:"sent_to,omitempty"`
+	HasError       *bool                      `json:"has_error,omitempty"`
+	NeedsRetry     *bool                      `json:"needs_retry,omitempty"`
+	PendingWebhook *bool                      `json:"pending_webhook,omitempty"`
+	IncludeBody    bool                       `json:"include_body"`
+	IncludeWebhook bool                       `json:"include_webhook"`
+	OrderBy        string                     `json:"order_by"`
+	OrderDir       string                     `json:"order_dir"`
+	Limit          *int                       `json:"limit,omitempty"`
+	Offset         *int                       `json:"offset,omitempty"`
 }
 
 type SentEmailStatsFilters struct {

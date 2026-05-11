@@ -25,7 +25,7 @@ type mockValidationUseCase struct {
 	validateDomainCalls       []uuid.UUID
 	mutex                     sync.Mutex
 	// overrideFunc allows tests to override ValidateDomain behavior
-	overrideFunc              mockValidateDomainFunc
+	overrideFunc mockValidateDomainFunc
 }
 
 func (m *mockValidationUseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) (*validation.FullValidationResult, error) {
@@ -69,7 +69,7 @@ func TestWorkerManager_StartStop(t *testing.T) {
 	useCase := &mockValidationUseCase{}
 
 	config := ManagerConfig{
-		WorkerCount:        2,
+		WorkerCount:       2,
 		QueueSize:         10,
 		PollInterval:      100 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -107,7 +107,7 @@ func TestWorkerManager_ProcessJob(t *testing.T) {
 	useCase := &mockValidationUseCase{}
 
 	config := ManagerConfig{
-		WorkerCount:        1,
+		WorkerCount:       1,
 		QueueSize:         10,
 		PollInterval:      100 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -158,7 +158,7 @@ func TestWorkerManager_ProcessJobWithRetry(t *testing.T) {
 	}
 
 	config := ManagerConfig{
-		WorkerCount:        1,
+		WorkerCount:       1,
 		QueueSize:         10,
 		PollInterval:      10 * time.Millisecond,
 		ProcessingTimeout: 100 * time.Millisecond,
@@ -205,7 +205,7 @@ func TestWorkerManager_QueueMultipleJobs(t *testing.T) {
 	useCase := &mockValidationUseCase{}
 
 	config := ManagerConfig{
-		WorkerCount:        2,
+		WorkerCount:       2,
 		QueueSize:         10,
 		PollInterval:      50 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -270,7 +270,7 @@ func TestWorkerManager_GetStats(t *testing.T) {
 	useCase := &mockValidationUseCase{}
 
 	config := ManagerConfig{
-		WorkerCount:        2,
+		WorkerCount:       2,
 		QueueSize:         10,
 		PollInterval:      50 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -348,7 +348,7 @@ func TestWorkerManager_DiscoverPendingValidations(t *testing.T) {
 	}
 
 	config := ManagerConfig{
-		WorkerCount:        1,
+		WorkerCount:       1,
 		QueueSize:         10,
 		PollInterval:      50 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -384,7 +384,7 @@ func TestWorkerManager_QueueFullError(t *testing.T) {
 	useCase := &mockValidationUseCase{}
 
 	config := ManagerConfig{
-		WorkerCount:        1,
+		WorkerCount:       1,
 		QueueSize:         1, // Very small queue
 		PollInterval:      100 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -452,7 +452,7 @@ func TestWorkerManager_StopWhileProcessing(t *testing.T) {
 	}
 
 	config := ManagerConfig{
-		WorkerCount:        1,
+		WorkerCount:       1,
 		QueueSize:         10,
 		PollInterval:      10 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,
@@ -498,7 +498,7 @@ func BenchmarkWorkerManager_QueueJob(b *testing.B) {
 	useCase := &mockValidationUseCase{}
 
 	config := ManagerConfig{
-		WorkerCount:        4,
+		WorkerCount:       4,
 		QueueSize:         1000,
 		PollInterval:      100 * time.Millisecond,
 		ProcessingTimeout: 5 * time.Second,

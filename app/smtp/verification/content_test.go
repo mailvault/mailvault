@@ -11,7 +11,7 @@ import (
 
 func TestContentVerifier_Verify_LegitimateEmail(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	emailCtx := EmailContext{
 		Subject: "Weekly team meeting",
 		Body: []byte("From: manager@company.com\r\n" +
@@ -26,16 +26,16 @@ func TestContentVerifier_Verify_LegitimateEmail(t *testing.T) {
 			"Best regards,\r\n" +
 			"Manager"),
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.Less(t, result.SpamScore, 0.5, "Legitimate email should have low spam score")
 	assert.Contains(t, []string{"legitimate", "questionable"}, result.Classification)
 }
 
 func TestContentVerifier_Verify_SpamEmail(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	emailCtx := EmailContext{
 		Subject: "FREE VIAGRA!!! GUARANTEED 100% FREE!!!",
 		Body: []byte("From: spammer@spam.com\r\n" +
@@ -48,13 +48,13 @@ func TestContentVerifier_Verify_SpamEmail(t *testing.T) {
 			"VIAGRA, CIALIS available! Nigerian prince needs help! " +
 			"Wire transfer required! Urgent business proposal!"),
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.Greater(t, result.SpamScore, 0.7, "Spam email should have high spam score")
 	assert.Equal(t, "spam", result.Classification)
 	assert.NotEmpty(t, result.SpamIndicators, "Should have spam indicators")
-	
+
 	// Check for specific indicators
 	indicators := strings.Join(result.SpamIndicators, " ")
 	assert.Contains(t, indicators, "Pharmaceutical spam")
@@ -65,14 +65,14 @@ func TestContentVerifier_Verify_SpamEmail(t *testing.T) {
 
 func TestContentVerifier_Verify_MalformedEmail(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	emailCtx := EmailContext{
 		Subject: "Test",
 		Body:    []byte("This is not a proper email format - no headers"),
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// Should handle malformed emails gracefully
 	assert.NotEqual(t, "", result.Classification)
 	assert.Contains(t, result.Error, "failed to parse email")
@@ -81,7 +81,7 @@ func TestContentVerifier_Verify_MalformedEmail(t *testing.T) {
 
 func TestContentVerifier_Verify_EmptyContent(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	emailCtx := EmailContext{
 		Subject: "",
 		Body: []byte("From: test@example.com\r\n" +
@@ -89,9 +89,9 @@ func TestContentVerifier_Verify_EmptyContent(t *testing.T) {
 			"Subject: \r\n" +
 			"\r\n"),
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// Empty content should be flagged as questionable
 	assert.Greater(t, result.SpamScore, 0.0)
 	assert.Contains(t, result.SpamIndicators, "Very short message")
@@ -99,12 +99,12 @@ func TestContentVerifier_Verify_EmptyContent(t *testing.T) {
 
 func TestContentVerifier_AnalyzeText_SpamPatterns(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
-		name          string
-		text          string
-		expectScore   bool
-		expectedDesc  string
+		name         string
+		text         string
+		expectScore  bool
+		expectedDesc string
 	}{
 		{
 			name:         "Pharmaceutical spam",
@@ -136,15 +136,15 @@ func TestContentVerifier_AnalyzeText_SpamPatterns(t *testing.T) {
 			expectScore: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score, indicators := verifier.analyzeText(tt.text)
-			
+
 			if tt.expectScore {
 				assert.Greater(t, score, 0.0, "Should have positive spam score")
 				assert.NotEmpty(t, indicators, "Should have indicators")
-				
+
 				if tt.expectedDesc != "" {
 					found := false
 					for _, indicator := range indicators {
@@ -164,7 +164,7 @@ func TestContentVerifier_AnalyzeText_SpamPatterns(t *testing.T) {
 
 func TestContentVerifier_CheckSpamWords(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		text     string
@@ -196,7 +196,7 @@ func TestContentVerifier_CheckSpamWords(t *testing.T) {
 			expected: 0.0,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score := verifier.checkSpamWords(tt.text)
@@ -207,7 +207,7 @@ func TestContentVerifier_CheckSpamWords(t *testing.T) {
 
 func TestContentVerifier_CheckSuspiciousPhrases(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		text     string
@@ -234,11 +234,11 @@ func TestContentVerifier_CheckSuspiciousPhrases(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score := verifier.checkSuspiciousPhrases(tt.text)
-			
+
 			if tt.expected {
 				assert.Greater(t, score, 0.0, "Should detect suspicious phrases")
 			} else {
@@ -250,7 +250,7 @@ func TestContentVerifier_CheckSuspiciousPhrases(t *testing.T) {
 
 func TestContentVerifier_HasExcessiveCapitals(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		text     string
@@ -282,7 +282,7 @@ func TestContentVerifier_HasExcessiveCapitals(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.hasExcessiveCapitals(tt.text)
@@ -293,7 +293,7 @@ func TestContentVerifier_HasExcessiveCapitals(t *testing.T) {
 
 func TestContentVerifier_HasSuspiciousEncoding(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		text     string
@@ -320,7 +320,7 @@ func TestContentVerifier_HasSuspiciousEncoding(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.hasSuspiciousEncoding(tt.text)
@@ -331,7 +331,7 @@ func TestContentVerifier_HasSuspiciousEncoding(t *testing.T) {
 
 func TestContentVerifier_CalculateHTMLRatio(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		content  string
@@ -358,11 +358,11 @@ func TestContentVerifier_CalculateHTMLRatio(t *testing.T) {
 			expected: 0.0,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.calculateHTMLRatio(tt.content)
-			
+
 			if tt.name == "Mostly HTML" {
 				assert.Greater(t, result, 0.5, "Should have high HTML ratio")
 			} else {
@@ -374,7 +374,7 @@ func TestContentVerifier_CalculateHTMLRatio(t *testing.T) {
 
 func TestContentVerifier_HasHiddenText(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		content  string
@@ -411,7 +411,7 @@ func TestContentVerifier_HasHiddenText(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.hasHiddenText(tt.content)
@@ -422,7 +422,7 @@ func TestContentVerifier_HasHiddenText(t *testing.T) {
 
 func TestContentVerifier_HasForgedHeaders(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		headers  map[string]string
@@ -456,7 +456,7 @@ func TestContentVerifier_HasForgedHeaders(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock message with specified headers
@@ -465,10 +465,10 @@ func TestContentVerifier_HasForgedHeaders(t *testing.T) {
 				content += key + ": " + value + "\r\n"
 			}
 			content += "\r\nTest body"
-			
+
 			msg, err := mail.ReadMessage(strings.NewReader(content))
 			assert.NoError(t, err)
-			
+
 			result := verifier.hasForgedHeaders(msg)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -477,7 +477,7 @@ func TestContentVerifier_HasForgedHeaders(t *testing.T) {
 
 func TestContentVerifier_HasSuspiciousRouting(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		received []string
@@ -511,7 +511,7 @@ func TestContentVerifier_HasSuspiciousRouting(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock message with specified Received headers
@@ -520,10 +520,10 @@ func TestContentVerifier_HasSuspiciousRouting(t *testing.T) {
 				content += "Received: " + received + "\r\n"
 			}
 			content += "\r\nTest body"
-			
+
 			msg, err := mail.ReadMessage(strings.NewReader(content))
 			assert.NoError(t, err)
-			
+
 			result := verifier.hasSuspiciousRouting(msg)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -532,7 +532,7 @@ func TestContentVerifier_HasSuspiciousRouting(t *testing.T) {
 
 func TestContentVerifier_ExtractTextContent(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		name     string
 		body     []byte
@@ -571,7 +571,7 @@ func TestContentVerifier_ExtractTextContent(t *testing.T) {
 			expected: "From: test@example.com\r\nSubject: Test\r\n",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := verifier.extractTextContent(tt.body)
@@ -582,7 +582,7 @@ func TestContentVerifier_ExtractTextContent(t *testing.T) {
 
 func TestContentVerifier_ClassifyContent(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	tests := []struct {
 		score    float64
 		expected string
@@ -596,7 +596,7 @@ func TestContentVerifier_ClassifyContent(t *testing.T) {
 		{0.8, "spam"},
 		{1.0, "spam"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.expected+"_"+string(rune(int(tt.score*10))), func(t *testing.T) {
 			result := verifier.classifyContent(tt.score)
@@ -607,7 +607,7 @@ func TestContentVerifier_ClassifyContent(t *testing.T) {
 
 func TestContentVerifier_ApplyHeuristics(t *testing.T) {
 	verifier := NewContentVerifier()
-	
+
 	// Create a message with proper headers
 	content := "From: test@example.com\r\n" +
 		"To: recipient@example.com\r\n" +
@@ -617,18 +617,18 @@ func TestContentVerifier_ApplyHeuristics(t *testing.T) {
 		"\r\n" +
 		"<p style=\"color: white;\">Hidden text</p>" +
 		"NORMAL TEXT WITH EXCESSIVE CAPITALS AND HTML CONTENT"
-	
+
 	msg, err := mail.ReadMessage(strings.NewReader(content))
 	assert.NoError(t, err)
-	
+
 	subject := "TEST SUBJECT WITH CAPITALS"
 	body := `BODY WITH LOTS OF CAPITAL LETTERS AND HTML <p style="color: white;">Hidden bait</p><div>content</div>`
-	
+
 	score, indicators := verifier.applyHeuristics(subject, body, msg)
-	
+
 	assert.Greater(t, score, 0.0, "Should have positive score for suspicious content")
 	assert.NotEmpty(t, indicators, "Should have heuristic indicators")
-	
+
 	indicatorStr := strings.Join(indicators, " ")
 	assert.Contains(t, indicatorStr, "Excessive capitalization")
 	assert.Contains(t, indicatorStr, "Hidden text detected")
@@ -636,7 +636,7 @@ func TestContentVerifier_ApplyHeuristics(t *testing.T) {
 
 func BenchmarkContentVerify(b *testing.B) {
 	verifier := NewContentVerifier()
-	
+
 	emailCtx := EmailContext{
 		Subject: "Test email for benchmark",
 		Body: []byte("From: test@example.com\r\n" +
@@ -649,9 +649,9 @@ func BenchmarkContentVerify(b *testing.B) {
 			"It contains normal business language and should be classified " +
 			"as legitimate content. The analyzer should process this efficiently."),
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		verifier.Verify(ctx, emailCtx)

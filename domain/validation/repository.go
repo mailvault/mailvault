@@ -44,38 +44,38 @@ type Repository interface {
 
 // DomainValidationInfo contains domain information needed for validation
 type DomainValidationInfo struct {
-	ID                      uuid.UUID             `json:"id"`
-	UserID                  uuid.UUID             `json:"user_id"`
-	Domain                  string                `json:"domain"`
-	VerificationStatus      VerificationStatus    `json:"verification_status"`
-	VerificationToken       *string               `json:"verification_token,omitempty"`
-	VerificationAttempts    int                   `json:"verification_attempts"`
-	LastVerificationAttempt *time.Time            `json:"last_verification_attempt,omitempty"`
-	NextVerificationAttempt *time.Time            `json:"next_verification_attempt,omitempty"`
-	VerificationError       *string               `json:"verification_error,omitempty"`
-	CreatedAt               time.Time             `json:"created_at"`
-	UpdatedAt               time.Time             `json:"updated_at"`
+	ID                      uuid.UUID          `json:"id"`
+	UserID                  uuid.UUID          `json:"user_id"`
+	Domain                  string             `json:"domain"`
+	VerificationStatus      VerificationStatus `json:"verification_status"`
+	VerificationToken       *string            `json:"verification_token,omitempty"`
+	VerificationAttempts    int                `json:"verification_attempts"`
+	LastVerificationAttempt *time.Time         `json:"last_verification_attempt,omitempty"`
+	NextVerificationAttempt *time.Time         `json:"next_verification_attempt,omitempty"`
+	VerificationError       *string            `json:"verification_error,omitempty"`
+	CreatedAt               time.Time          `json:"created_at"`
+	UpdatedAt               time.Time          `json:"updated_at"`
 }
 
 // ValidationStats contains statistics about domain validations
 type ValidationStats struct {
-	TotalAttempts     int64                            `json:"total_attempts"`
-	SuccessfulAttempts int64                           `json:"successful_attempts"`
-	FailedAttempts    int64                            `json:"failed_attempts"`
-	TimeoutAttempts   int64                            `json:"timeout_attempts"`
-	ErrorAttempts     int64                            `json:"error_attempts"`
-	SuccessRate       float64                          `json:"success_rate"`
-	AverageTime       time.Duration                    `json:"average_time"`
-	ByType            map[ValidationType]*TypeStats     `json:"by_type"`
-	ByStatus          map[ValidationRecordStatus]int64  `json:"by_status"`
+	TotalAttempts      int64                            `json:"total_attempts"`
+	SuccessfulAttempts int64                            `json:"successful_attempts"`
+	FailedAttempts     int64                            `json:"failed_attempts"`
+	TimeoutAttempts    int64                            `json:"timeout_attempts"`
+	ErrorAttempts      int64                            `json:"error_attempts"`
+	SuccessRate        float64                          `json:"success_rate"`
+	AverageTime        time.Duration                    `json:"average_time"`
+	ByType             map[ValidationType]*TypeStats    `json:"by_type"`
+	ByStatus           map[ValidationRecordStatus]int64 `json:"by_status"`
 }
 
 // TypeStats contains statistics for a specific validation type
 type TypeStats struct {
-	TotalAttempts     int64         `json:"total_attempts"`
-	SuccessfulAttempts int64        `json:"successful_attempts"`
-	SuccessRate       float64       `json:"success_rate"`
-	AverageTime       time.Duration `json:"average_time"`
+	TotalAttempts      int64         `json:"total_attempts"`
+	SuccessfulAttempts int64         `json:"successful_attempts"`
+	SuccessRate        float64       `json:"success_rate"`
+	AverageTime        time.Duration `json:"average_time"`
 }
 
 // TimeRange represents a time range for queries
@@ -86,13 +86,13 @@ type TimeRange struct {
 
 // FilterOptions provides filtering options for validation queries
 type FilterOptions struct {
-	DomainID        *uuid.UUID              `json:"domain_id,omitempty"`
-	ValidationType  *ValidationType         `json:"validation_type,omitempty"`
-	Status          *ValidationRecordStatus `json:"status,omitempty"`
-	TimeRange       *TimeRange              `json:"time_range,omitempty"`
-	Limit           int                     `json:"limit,omitempty"`
-	Offset          int                     `json:"offset,omitempty"`
-	OrderBy         string                  `json:"order_by,omitempty"` // e.g., "created_at DESC"
+	DomainID       *uuid.UUID              `json:"domain_id,omitempty"`
+	ValidationType *ValidationType         `json:"validation_type,omitempty"`
+	Status         *ValidationRecordStatus `json:"status,omitempty"`
+	TimeRange      *TimeRange              `json:"time_range,omitempty"`
+	Limit          int                     `json:"limit,omitempty"`
+	Offset         int                     `json:"offset,omitempty"`
+	OrderBy        string                  `json:"order_by,omitempty"` // e.g., "created_at DESC"
 }
 
 // GetDomainValidationInfo returns basic validation info for a domain
@@ -111,7 +111,7 @@ func (dvi *DomainValidationInfo) IsVerified() bool {
 // IsPending returns true if verification is pending
 func (dvi *DomainValidationInfo) IsPending() bool {
 	return dvi.VerificationStatus == VerificationStatusPending ||
-		   dvi.VerificationStatus == VerificationStatusValidating
+		dvi.VerificationStatus == VerificationStatusValidating
 }
 
 // CanRetry returns true if the domain can be retried for verification

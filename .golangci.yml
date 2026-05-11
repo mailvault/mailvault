@@ -1,0 +1,23 @@
+# golangci-lint v2 config.
+#
+# Baseline scope: high-signal correctness linters that already pass.
+# TODO ratchet: errcheck, staticcheck, gofmt/goimports. These have known
+# findings (especially gateways/repository/pg builders and string context
+# keys) that need targeted cleanup before they can be enforced on PR.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - govet
+    - ineffassign
+    - unused
+    - misspell
+    - bodyclose
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

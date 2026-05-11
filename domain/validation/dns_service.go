@@ -81,7 +81,7 @@ type FullValidationResult struct {
 func (v *DNSValidator) ValidateMXRecords(ctx context.Context, domain string, expectedServers []string) (*MXValidationResult, error) {
 	startTime := time.Now()
 
-	v.logger.Info( "Starting MX record validation",
+	v.logger.Info("Starting MX record validation",
 		"domain", domain,
 		"expected_servers", expectedServers,
 	)
@@ -100,7 +100,7 @@ func (v *DNSValidator) ValidateMXRecords(ctx context.Context, domain string, exp
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to lookup MX records: %v", err)
 		result.QueryTime = time.Since(startTime)
-		v.logger.Error( "MX record lookup failed",
+		v.logger.Error("MX record lookup failed",
 			"domain", domain,
 			"error", err,
 			"query_time", result.QueryTime,
@@ -152,7 +152,7 @@ func (v *DNSValidator) ValidateMXRecords(ctx context.Context, domain string, exp
 	result.MissingServers = missingServers
 	result.ExtraServers = extraServers
 
-	v.logger.Info( "MX record validation completed",
+	v.logger.Info("MX record validation completed",
 		"domain", domain,
 		"valid", result.Valid,
 		"found_count", len(result.FoundRecords),
@@ -168,7 +168,7 @@ func (v *DNSValidator) ValidateMXRecords(ctx context.Context, domain string, exp
 func (v *DNSValidator) ValidateTXTRecord(ctx context.Context, domain string, expectedRecord string) (*TXTValidationResult, error) {
 	startTime := time.Now()
 
-	v.logger.Info( "Starting TXT record validation",
+	v.logger.Info("Starting TXT record validation",
 		"domain", domain,
 		"expected_record", expectedRecord,
 	)
@@ -187,7 +187,7 @@ func (v *DNSValidator) ValidateTXTRecord(ctx context.Context, domain string, exp
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to lookup TXT records: %v", err)
 		result.QueryTime = time.Since(startTime)
-		v.logger.Error( "TXT record lookup failed",
+		v.logger.Error("TXT record lookup failed",
 			"domain", domain,
 			"error", err,
 			"query_time", result.QueryTime,
@@ -208,7 +208,7 @@ func (v *DNSValidator) ValidateTXTRecord(ctx context.Context, domain string, exp
 		}
 	}
 
-	v.logger.Info( "TXT record validation completed",
+	v.logger.Info("TXT record validation completed",
 		"domain", domain,
 		"valid", result.Valid,
 		"found_count", len(txtRecords),
@@ -223,7 +223,7 @@ func (v *DNSValidator) ValidateTXTRecord(ctx context.Context, domain string, exp
 func (v *DNSValidator) ValidateFullDomain(ctx context.Context, domain string, verificationToken string, config *ValidationConfig) (*FullValidationResult, error) {
 	startTime := time.Now()
 
-	v.logger.Info( "Starting full domain validation",
+	v.logger.Info("Starting full domain validation",
 		"domain", domain,
 		"verification_token", verificationToken,
 	)
@@ -261,11 +261,11 @@ func (v *DNSValidator) ValidateFullDomain(ctx context.Context, domain string, ve
 
 	// Determine overall validity
 	result.OverallValid = (result.MXValidation != nil && result.MXValidation.Valid) &&
-		                  (result.TXTValidation != nil && result.TXTValidation.Valid)
+		(result.TXTValidation != nil && result.TXTValidation.Valid)
 
 	result.TotalTime = time.Since(startTime)
 
-	v.logger.Info( "Full domain validation completed",
+	v.logger.Info("Full domain validation completed",
 		"domain", domain,
 		"overall_valid", result.OverallValid,
 		"mx_valid", result.MXValidation != nil && result.MXValidation.Valid,

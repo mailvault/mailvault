@@ -51,16 +51,16 @@ type UpdateEmailAddressInput struct {
 }
 
 type ProcessIncomingEmailInput struct {
-	EmailAddressID      uuid.UUID                       `json:"email_address_id"`
-	FromAddress         string                          `json:"from_address"`
-	Subject             string                          `json:"subject"`
-	Body                string                          `json:"body"`
-	DomainID            uuid.UUID                       `json:"domain_id"`
+	EmailAddressID      uuid.UUID                        `json:"email_address_id"`
+	FromAddress         string                           `json:"from_address"`
+	Subject             string                           `json:"subject"`
+	Body                string                           `json:"body"`
+	DomainID            uuid.UUID                        `json:"domain_id"`
 	VerificationResults *verification.VerificationResult `json:"verification_results,omitempty"`
-	IsQuarantined       bool                            `json:"is_quarantined"`
-	Domain              *entities.Domain                `json:"domain,omitempty"`
-	EmailAddress        *entities.EmailAddress          `json:"email_address,omitempty"`
-	AutoCreated         bool                            `json:"auto_created"`
+	IsQuarantined       bool                             `json:"is_quarantined"`
+	Domain              *entities.Domain                 `json:"domain,omitempty"`
+	EmailAddress        *entities.EmailAddress           `json:"email_address,omitempty"`
+	AutoCreated         bool                             `json:"auto_created"`
 }
 
 type GetReceivedEmailsFilter struct {
@@ -538,4 +538,3 @@ func isValidEmail(email string) bool {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
 }
-

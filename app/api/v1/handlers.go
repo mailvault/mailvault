@@ -27,21 +27,21 @@ import (
 )
 
 type ApiHandlers struct {
-	AuthProvider     authDomain.Provider
-	UserUseCase      users.UseCase
-	AuthUseCase      auth.UseCase
-	DomainUseCase    domains.UseCase
-	EmailUseCase     emails.UseCase
-	ProviderUseCase  providers.UseCase
-	EmailProviderUC  admin.ProviderUseCase           // Direct access to email provider domain use case for admin
-	WebhookUseCase   webhooks.ProviderWebhookUseCase // For processing provider webhooks
-	SMTPStatsUseCase *smtp_stats.UseCase
-	UserAdminUseCase *userDomain.UseCase
+	AuthProvider         authDomain.Provider
+	UserUseCase          users.UseCase
+	AuthUseCase          auth.UseCase
+	DomainUseCase        domains.UseCase
+	EmailUseCase         emails.UseCase
+	ProviderUseCase      providers.UseCase
+	EmailProviderUC      admin.ProviderUseCase           // Direct access to email provider domain use case for admin
+	WebhookUseCase       webhooks.ProviderWebhookUseCase // For processing provider webhooks
+	SMTPStatsUseCase     *smtp_stats.UseCase
+	UserAdminUseCase     *userDomain.UseCase
 	BillingUseCase       apibilling.UseCase
 	WebhookConfigUseCase webhook_configs.UseCase
 	AuthSecretKey        string
-	AuthTokenTTL     string
-	Logger           *slog.Logger
+	AuthTokenTTL         string
+	Logger               *slog.Logger
 	// Stripe configuration (forwarded to billing handlers)
 	StripeSecretKey     string
 	StripeWebhookSecret string

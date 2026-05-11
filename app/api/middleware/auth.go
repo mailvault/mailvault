@@ -223,10 +223,10 @@ func GetUserFromContext(ctx context.Context) (*UserClaims, bool) {
 	if !ok {
 		return nil, false
 	}
-	
+
 	email, _ := ctx.Value("user_email").(string)
 	accountType, _ := ctx.Value("account_type").(string)
-	
+
 	return &UserClaims{
 		UserID:      userID,
 		Email:       email,

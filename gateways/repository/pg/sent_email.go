@@ -660,7 +660,6 @@ func (r *SentEmailRepository) buildWhereClause(filters *email_sending.SentEmailF
 	if filters.SentTo != nil {
 		conditions = append(conditions, fmt.Sprintf("se.sent_at <= $%d", argIndex))
 		args = append(args, *filters.SentTo)
-		argIndex++
 	}
 
 	if filters.HasError != nil && *filters.HasError {
@@ -772,7 +771,6 @@ func (r *SentEmailRepository) buildStatsWhereClause(filters *email_sending.SentE
 	if filters.Until != nil {
 		conditions = append(conditions, fmt.Sprintf("created_at <= $%d", argIndex))
 		args = append(args, *filters.Until)
-		argIndex++
 	}
 
 	whereClause := ""

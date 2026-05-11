@@ -27,7 +27,7 @@ func htmlToMarkdown(htmlContent string) string {
 	}
 
 	converter := md.NewConverter("", true, nil)
-	
+
 	// Configure options for email-friendly markdown
 	converter.Use(plugin.GitHubFlavored())
 	converter.Use(plugin.Table())
@@ -97,16 +97,16 @@ func stripHTMLTagsImproved(htmlContent string) string {
 
 	// Replace block elements with appropriate line breaks
 	blockElements := map[string]string{
-		"p":  "\n\n",
-		"div": "\n",
-		"br": "\n",
-		"h1": "\n\n",
-		"h2": "\n\n",
-		"h3": "\n\n",
-		"h4": "\n\n",
-		"h5": "\n\n",
-		"h6": "\n\n",
-		"hr": "\n---\n",
+		"p":          "\n\n",
+		"div":        "\n",
+		"br":         "\n",
+		"h1":         "\n\n",
+		"h2":         "\n\n",
+		"h3":         "\n\n",
+		"h4":         "\n\n",
+		"h5":         "\n\n",
+		"h6":         "\n\n",
+		"hr":         "\n---\n",
 		"blockquote": "\n> ",
 	}
 
@@ -127,42 +127,6 @@ func stripHTMLTagsImproved(htmlContent string) string {
 	text = cleanupWhitespace(text)
 
 	return strings.TrimSpace(text)
-}
-
-// stripHTMLTags removes HTML tags from text (basic fallback)
-func stripHTMLTags(htmlContent string) string {
-	// This is a very basic implementation
-	// In a production environment, you might want to use a proper HTML parser
-	text := htmlContent
-
-	// Remove script and style content entirely
-	text = removeTagContent(text, "script")
-	text = removeTagContent(text, "style")
-
-	// Replace common block elements with line breaks
-	blockElements := []string{"div", "p", "br", "h1", "h2", "h3", "h4", "h5", "h6", "li"}
-	for _, tag := range blockElements {
-		text = strings.ReplaceAll(text, fmt.Sprintf("<%s>", tag), "\n")
-		text = strings.ReplaceAll(text, fmt.Sprintf("</%s>", tag), "\n")
-		text = strings.ReplaceAll(text, fmt.Sprintf("<%s/>", tag), "\n")
-	}
-
-	// Remove all remaining HTML tags
-	inTag := false
-	var result strings.Builder
-	for _, char := range text {
-		if char == '<' {
-			inTag = true
-		} else if char == '>' {
-			inTag = false
-		} else if !inTag {
-			result.WriteRune(char)
-		}
-	}
-
-	// Clean up multiple line breaks
-	cleaned := strings.ReplaceAll(result.String(), "\n\n\n", "\n\n")
-	return strings.TrimSpace(cleaned)
 }
 
 // handleHTMLTables converts HTML tables to simple text format
@@ -255,48 +219,46 @@ func cleanupWhitespace(text string) string {
 func removeTagContent(text, tag string) string {
 	openTag := fmt.Sprintf("<%s", tag)
 	closeTag := fmt.Sprintf("</%s>", tag)
-	
+
 	for {
 		start := strings.Index(strings.ToLower(text), openTag)
 		if start == -1 {
 			break
 		}
-		
+
 		// Find the end of the opening tag
 		tagEnd := strings.Index(text[start:], ">")
 		if tagEnd == -1 {
 			break
 		}
 		tagEnd += start + 1
-		
+
 		// Find the closing tag
 		end := strings.Index(strings.ToLower(text[tagEnd:]), closeTag)
 		if end == -1 {
 			break
 		}
 		end += tagEnd + len(closeTag)
-		
+
 		// Remove the content
 		text = text[:start] + text[end:]
 	}
-	
+
 	return text
 }
-
 
 // truncateContent truncates content to a reasonable display length
 func truncateContent(content string, maxLength int) string {
 	if len(content) <= maxLength {
 		return content
 	}
-	
+
 	// Try to truncate at a word boundary
 	truncated := content[:maxLength]
 	lastSpace := strings.LastIndex(truncated, " ")
 	if lastSpace > maxLength/2 {
 		truncated = truncated[:lastSpace]
 	}
-	
+
 	return truncated + "..."
 }
-

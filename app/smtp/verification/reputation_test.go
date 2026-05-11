@@ -52,21 +52,21 @@ func TestReputationVerifier_Verify_NoSenderIP(t *testing.T) {
 
 func TestReputationVerifier_Verify_PrivateIP(t *testing.T) {
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+
 	emailCtx := EmailContext{
 		From:     "test@example.com",
 		SenderIP: net.ParseIP("192.168.1.100"),
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.Equal(t, IPReputationGood, result.IPReputation)
 	assert.Greater(t, result.Score, 0.5) // Should be slightly positive
 }
 
 func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock DNS responses for blacklist queries (all return positive)
 	positiveResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
@@ -74,17 +74,17 @@ func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
 			&dns.A{Hdr: dns.RR_Header{Name: "test", Rrtype: dns.TypeA}, A: net.ParseIP("127.0.0.2")},
 		},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(positiveResp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From:     "test@example.com",
 		SenderIP: net.ParseIP("1.2.3.4"), // Public IP
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.Equal(t, IPReputationBad, result.IPReputation)
 	assert.NotEmpty(t, result.Blacklisted)
 	assert.Less(t, result.Score, 0.5) // Should be negative
@@ -93,23 +93,23 @@ func TestReputationVerifier_Verify_BlacklistedIP(t *testing.T) {
 
 func TestReputationVerifier_Verify_CleanIP(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock DNS responses for blacklist queries (all return negative)
 	negativeResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
 		Answer: []dns.RR{},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(negativeResp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From:     "test@example.com",
 		SenderIP: net.ParseIP("8.8.8.8"), // Google DNS, should be clean
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	assert.Equal(t, IPReputationGood, result.IPReputation)
 	assert.Empty(t, result.Blacklisted)
 	assert.Greater(t, result.Score, 0.5) // Should be positive
@@ -118,7 +118,7 @@ func TestReputationVerifier_Verify_CleanIP(t *testing.T) {
 
 func TestReputationVerifier_IsPrivateIP(t *testing.T) {
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+
 	tests := []struct {
 		name     string
 		ip       string
@@ -133,12 +133,12 @@ func TestReputationVerifier_IsPrivateIP(t *testing.T) {
 		{"Public Cloudflare DNS", "1.1.1.1", false},
 		{"IPv6 loopback", "::1", false}, // Not handled in simplified implementation
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ip := net.ParseIP(tt.ip)
 			assert.NotNil(t, ip, "Should parse IP successfully")
-			
+
 			result := verifier.isPrivateIP(ip)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -147,7 +147,7 @@ func TestReputationVerifier_IsPrivateIP(t *testing.T) {
 
 func TestReputationVerifier_ReverseIP(t *testing.T) {
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+
 	tests := []struct {
 		name     string
 		ip       string
@@ -158,12 +158,12 @@ func TestReputationVerifier_ReverseIP(t *testing.T) {
 		{"IPv4 private", "192.168.1.100", "100.1.168.192"},
 		{"IPv6", "2001:db8::1", ""}, // Not implemented in simplified version
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ip := net.ParseIP(tt.ip)
 			assert.NotNil(t, ip, "Should parse IP successfully")
-			
+
 			result := verifier.reverseIP(ip)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -172,7 +172,7 @@ func TestReputationVerifier_ReverseIP(t *testing.T) {
 
 func TestReputationVerifier_HasSuspiciousTLD(t *testing.T) {
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+
 	tests := []struct {
 		domain   string
 		expected bool
@@ -188,7 +188,7 @@ func TestReputationVerifier_HasSuspiciousTLD(t *testing.T) {
 		{"crypto.bit", true},
 		{"UPPERCASE.TK", true}, // Should handle case insensitivity
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.domain, func(t *testing.T) {
 			result := verifier.hasSuspiciousTLD(tt.domain)
@@ -199,39 +199,39 @@ func TestReputationVerifier_HasSuspiciousTLD(t *testing.T) {
 
 func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	tests := []struct {
-		name              string
-		blacklistCount    int
-		expectedStatus    IPReputationStatus
+		name                string
+		blacklistCount      int
+		expectedStatus      IPReputationStatus
 		expectNegativeScore bool
 	}{
 		{
-			name:              "No blacklists",
-			blacklistCount:    0,
-			expectedStatus:    IPReputationGood,
+			name:                "No blacklists",
+			blacklistCount:      0,
+			expectedStatus:      IPReputationGood,
 			expectNegativeScore: false,
 		},
 		{
-			name:              "One blacklist",
-			blacklistCount:    1,
-			expectedStatus:    IPReputationSuspicious,
+			name:                "One blacklist",
+			blacklistCount:      1,
+			expectedStatus:      IPReputationSuspicious,
 			expectNegativeScore: true,
 		},
 		{
-			name:              "Two blacklists",
-			blacklistCount:    2,
-			expectedStatus:    IPReputationSuspicious,
+			name:                "Two blacklists",
+			blacklistCount:      2,
+			expectedStatus:      IPReputationSuspicious,
 			expectNegativeScore: true,
 		},
 		{
-			name:              "Three blacklists",
-			blacklistCount:    3,
-			expectedStatus:    IPReputationBad,
+			name:                "Three blacklists",
+			blacklistCount:      3,
+			expectedStatus:      IPReputationBad,
 			expectNegativeScore: true,
 		},
 	}
-	
+
 	positiveResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
 		Answer: []dns.RR{
@@ -274,18 +274,18 @@ func TestReputationVerifier_CheckIPReputation_Gradual(t *testing.T) {
 
 func TestReputationVerifier_CheckDomainReputation(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock all DNS queries to return negative (clean)
 	negativeResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
 		Answer: []dns.RR{},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(negativeResp, time.Duration(0), nil)
-	
+
 	result := verifier.checkDomainReputation(context.Background(), "example.com")
-	
+
 	assert.Equal(t, DomainReputationGood, result.status)
 	assert.Empty(t, result.blacklists)
 	mockExchanger.AssertExpectations(t)
@@ -302,7 +302,7 @@ func TestReputationVerifier_ExtractDomainFromEmail(t *testing.T) {
 		{"invalid-email", ""},
 		{"", ""},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.email, func(t *testing.T) {
 			result := extractDomainFromEmail(tt.email)
@@ -313,15 +313,15 @@ func TestReputationVerifier_ExtractDomainFromEmail(t *testing.T) {
 
 func TestReputationVerifier_ScoreNormalization(t *testing.T) {
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+
 	// Test with extreme values to ensure score normalization
 	emailCtx := EmailContext{
 		From:     "test@example.com",
 		SenderIP: net.ParseIP("192.168.1.1"), // Private IP, will add 0.1
 	}
-	
+
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// Score should be normalized to 0-1 range
 	assert.GreaterOrEqual(t, result.Score, 0.0)
 	assert.LessOrEqual(t, result.Score, 1.0)
@@ -337,7 +337,7 @@ func TestIPReputationStatus_String(t *testing.T) {
 		{IPReputationSuspicious, "suspicious"},
 		{IPReputationBad, "bad"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.status.String())
@@ -355,7 +355,7 @@ func TestDomainReputationStatus_String(t *testing.T) {
 		{DomainReputationSuspicious, "suspicious"},
 		{DomainReputationBad, "bad"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.status.String())
@@ -365,7 +365,7 @@ func TestDomainReputationStatus_String(t *testing.T) {
 
 func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock MX record response
 	mxResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
@@ -373,7 +373,7 @@ func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
 			&dns.MX{Hdr: dns.RR_Header{Name: "example.com.", Rrtype: dns.TypeMX}, Mx: "mail.example.com.", Preference: 10},
 		},
 	}
-	
+
 	// Mock A record response (single A record)
 	aResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
@@ -381,17 +381,17 @@ func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
 			&dns.A{Hdr: dns.RR_Header{Name: "example.com.", Rrtype: dns.TypeA}, A: net.ParseIP("1.2.3.4")},
 		},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.MatchedBy(func(msg *dns.Msg) bool {
 		return msg.Question[0].Qtype == dns.TypeMX
 	}), mock.Anything).Return(mxResp, time.Duration(0), nil)
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.MatchedBy(func(msg *dns.Msg) bool {
 		return msg.Question[0].Qtype == dns.TypeA
 	}), mock.Anything).Return(aResp, time.Duration(0), nil)
-	
+
 	score := verifier.checkDomainAge(context.Background(), "example.com")
-	
+
 	// Should get positive score for having MX records
 	assert.Greater(t, score, 0.0)
 	mockExchanger.AssertExpectations(t)
@@ -399,13 +399,13 @@ func TestReputationVerifier_CheckDomainAge_MXRecords(t *testing.T) {
 
 func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock no MX records
 	noMXResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
 		Answer: []dns.RR{},
 	}
-	
+
 	// Mock single A record
 	aResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
@@ -413,7 +413,7 @@ func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
 			&dns.A{Hdr: dns.RR_Header{Name: "suspicious.tk.", Rrtype: dns.TypeA}, A: net.ParseIP("1.2.3.4")},
 		},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything,
 		mock.MatchedBy(func(msg *dns.Msg) bool { return msg.Question[0].Qtype == dns.TypeMX }),
 		mock.Anything).
@@ -422,9 +422,9 @@ func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
 		mock.MatchedBy(func(msg *dns.Msg) bool { return msg.Question[0].Qtype != dns.TypeMX }),
 		mock.Anything).
 		Return(aResp, time.Duration(0), nil)
-	
+
 	score := verifier.checkDomainAge(context.Background(), "suspicious.tk")
-	
+
 	// Should get negative score for suspicious TLD
 	assert.Less(t, score, 0.0)
 	mockExchanger.AssertExpectations(t)
@@ -432,7 +432,7 @@ func TestReputationVerifier_CheckDomainAge_SuspiciousTLD(t *testing.T) {
 
 func TestReputationVerifier_HasMultipleARecords(t *testing.T) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock multiple A records response
 	multipleAResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
@@ -441,50 +441,50 @@ func TestReputationVerifier_HasMultipleARecords(t *testing.T) {
 			&dns.A{Hdr: dns.RR_Header{Name: "example.com.", Rrtype: dns.TypeA}, A: net.ParseIP("5.6.7.8")},
 		},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(multipleAResp, time.Duration(0), nil)
-	
+
 	result := verifier.hasMultipleARecords(context.Background(), "example.com")
-	
+
 	assert.True(t, result)
 	mockExchanger.AssertExpectations(t)
 }
 
 func TestReputationVerifier_Error_Handling(t *testing.T) {
 	verifier := NewReputationVerifier("8.8.8.8:53")
-	
+
 	emailCtx := EmailContext{
 		From:     "invalid-email-format",
 		SenderIP: net.ParseIP("1.2.3.4"),
 	}
-	
+
 	// Should handle invalid email gracefully
 	result := verifier.Verify(context.Background(), emailCtx)
-	
+
 	// Should handle gracefully without crashing, but might not have specific error
 	assert.Equal(t, DomainReputationUnknown, result.DomainReputation)
 }
 
 func BenchmarkReputationVerify(b *testing.B) {
 	verifier, mockExchanger := newReputationVerifierWithMock()
-	
+
 	// Mock all responses to be negative (clean)
 	negativeResp := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
 		Answer: []dns.RR{},
 	}
-	
+
 	mockExchanger.On("ExchangeContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(negativeResp, time.Duration(0), nil)
-	
+
 	emailCtx := EmailContext{
 		From:     "test@example.com",
 		SenderIP: net.ParseIP("8.8.8.8"),
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		verifier.Verify(ctx, emailCtx)

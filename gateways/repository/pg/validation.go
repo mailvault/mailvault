@@ -330,7 +330,6 @@ func (r *ValidationRepository) GetValidationStats(ctx context.Context, domainID 
 	if timeRange != nil {
 		whereClause += fmt.Sprintf(" AND created_at >= $%d AND created_at <= $%d", argIndex, argIndex+1)
 		args = append(args, timeRange.Start, timeRange.End)
-		argIndex += 2
 	}
 
 	query := fmt.Sprintf(`

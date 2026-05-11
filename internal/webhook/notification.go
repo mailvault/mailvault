@@ -167,16 +167,6 @@ func (s *IncomingEmailNotificationService) NotifyIncomingEmail(
 	return nil
 }
 
-// sendWebhookSync sends webhook synchronously (legacy method for backward compatibility)
-func (s *IncomingEmailNotificationService) sendWebhookSync(
-	ctx context.Context,
-	webhookReq WebhookRequest,
-	event *IncomingEmailEvent,
-	domainName string,
-) error {
-	return s.sendWebhookSyncWithConfig(ctx, webhookReq, event, domainName, nil)
-}
-
 // sendWebhookSyncWithConfig sends webhook synchronously and updates webhook configuration metrics
 func (s *IncomingEmailNotificationService) sendWebhookSyncWithConfig(
 	ctx context.Context,

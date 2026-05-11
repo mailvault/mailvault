@@ -11,14 +11,14 @@ import (
 type EmailSendStatus string
 
 const (
-	EmailSendStatusPending    EmailSendStatus = "pending"    // Email queued but not yet processed
-	EmailSendStatusQueued     EmailSendStatus = "queued"     // Email in worker queue for sending
-	EmailSendStatusSending    EmailSendStatus = "sending"    // Email currently being sent
-	EmailSendStatusSent       EmailSendStatus = "sent"       // Email successfully sent to SMTP server
-	EmailSendStatusDelivered  EmailSendStatus = "delivered"  // Email successfully delivered (if tracking available)
-	EmailSendStatusBounced    EmailSendStatus = "bounced"    // Email bounced back
-	EmailSendStatusFailed     EmailSendStatus = "failed"     // Email sending failed
-	EmailSendStatusCancelled  EmailSendStatus = "cancelled"  // Email sending cancelled
+	EmailSendStatusPending   EmailSendStatus = "pending"   // Email queued but not yet processed
+	EmailSendStatusQueued    EmailSendStatus = "queued"    // Email in worker queue for sending
+	EmailSendStatusSending   EmailSendStatus = "sending"   // Email currently being sent
+	EmailSendStatusSent      EmailSendStatus = "sent"      // Email successfully sent to SMTP server
+	EmailSendStatusDelivered EmailSendStatus = "delivered" // Email successfully delivered (if tracking available)
+	EmailSendStatusBounced   EmailSendStatus = "bounced"   // Email bounced back
+	EmailSendStatusFailed    EmailSendStatus = "failed"    // Email sending failed
+	EmailSendStatusCancelled EmailSendStatus = "cancelled" // Email sending cancelled
 )
 
 // IsValid checks if the email send status is valid
@@ -89,12 +89,12 @@ type SentEmail struct {
 	MaxRetries   int     `json:"max_retries" db:"max_retries"`
 
 	// Timestamps
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
-	QueuedAt     *time.Time `json:"queued_at,omitempty" db:"queued_at"`
-	SentAt       *time.Time `json:"sent_at,omitempty" db:"sent_at"`
-	DeliveredAt  *time.Time `json:"delivered_at,omitempty" db:"delivered_at"`
-	FailedAt     *time.Time `json:"failed_at,omitempty" db:"failed_at"`
-	NextRetryAt  *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	QueuedAt    *time.Time `json:"queued_at,omitempty" db:"queued_at"`
+	SentAt      *time.Time `json:"sent_at,omitempty" db:"sent_at"`
+	DeliveredAt *time.Time `json:"delivered_at,omitempty" db:"delivered_at"`
+	FailedAt    *time.Time `json:"failed_at,omitempty" db:"failed_at"`
+	NextRetryAt *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
 
 	// SMTP delivery details
 	SMTPResponse  *string `json:"smtp_response,omitempty" db:"smtp_response"`

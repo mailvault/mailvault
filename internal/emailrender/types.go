@@ -53,7 +53,7 @@ type Attachment struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	Size        int64  `json:"size"`
-	Content     []byte `json:"-"` // Not serialized in JSON for API responses
+	Content     []byte `json:"-"`             // Not serialized in JSON for API responses
 	CID         string `json:"cid,omitempty"` // Content-ID for inline attachments
 }
 
@@ -63,13 +63,13 @@ type InlineImage struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	Size        int64  `json:"size"`
-	Content     []byte `json:"-"` // Not serialized in JSON
+	Content     []byte `json:"-"`   // Not serialized in JSON
 	CID         string `json:"cid"` // Content-ID for referencing in HTML
 }
 
 // ContentFormat represents the format of email content for API responses
 type ContentFormat struct {
-	Type    string `json:"type"`    // "text/plain", "text/html", "text/markdown"
+	Type    string `json:"type"` // "text/plain", "text/html", "text/markdown"
 	Content string `json:"content"`
 	Size    int    `json:"size"`
 }
@@ -86,10 +86,10 @@ type EmailResponse struct {
 	Content          []ContentFormat `json:"content"`
 
 	// Metadata
-	IsMultipart     bool `json:"is_multipart"`
-	HasAttachments  bool `json:"has_attachments"`
-	AttachmentCount int  `json:"attachment_count"`
-	InlineImageCount int `json:"inline_image_count"`
+	IsMultipart      bool `json:"is_multipart"`
+	HasAttachments   bool `json:"has_attachments"`
+	AttachmentCount  int  `json:"attachment_count"`
+	InlineImageCount int  `json:"inline_image_count"`
 
 	// Attachments metadata (content served separately)
 	Attachments []AttachmentInfo `json:"attachments,omitempty"`
@@ -107,10 +107,10 @@ type AttachmentInfo struct {
 
 // ParseOptions represents options for email parsing
 type ParseOptions struct {
-	ExtractAttachments bool `json:"extract_attachments"`
-	ExtractInlineImages bool `json:"extract_inline_images"`
-	MaxAttachmentSize  int64 `json:"max_attachment_size"` // In bytes, 0 = no limit
-	SanitizeHTML       bool `json:"sanitize_html"`
+	ExtractAttachments  bool  `json:"extract_attachments"`
+	ExtractInlineImages bool  `json:"extract_inline_images"`
+	MaxAttachmentSize   int64 `json:"max_attachment_size"` // In bytes, 0 = no limit
+	SanitizeHTML        bool  `json:"sanitize_html"`
 }
 
 // DefaultParseOptions returns sensible defaults for email parsing

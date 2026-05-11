@@ -38,14 +38,14 @@ func (p *Parser) ParseEmail(rawEmail []byte) (*ParsedEmail, error) {
 
 	// Extract basic information
 	parsed := &ParsedEmail{
-		Headers:      make(map[string]string),
-		Subject:      envelope.GetHeader("Subject"),
-		From:         envelope.GetHeader("From"),
-		MessageID:    envelope.GetHeader("Message-ID"),
-		ContentType:  envelope.GetHeader("Content-Type"),
-		PlainText:    envelope.Text,
-		HTML:         envelope.HTML,
-		TotalSize:    len(rawEmail),
+		Headers:     make(map[string]string),
+		Subject:     envelope.GetHeader("Subject"),
+		From:        envelope.GetHeader("From"),
+		MessageID:   envelope.GetHeader("Message-ID"),
+		ContentType: envelope.GetHeader("Content-Type"),
+		PlainText:   envelope.Text,
+		HTML:        envelope.HTML,
+		TotalSize:   len(rawEmail),
 	}
 
 	// Parse date

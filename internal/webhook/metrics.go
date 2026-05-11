@@ -13,16 +13,16 @@ type MetricsCollector struct {
 
 // WebhookMetrics represents metrics for a specific webhook type
 type WebhookMetrics struct {
-	TotalAttempts   int64         `json:"total_attempts"`
-	Successful      int64         `json:"successful"`
-	Failed          int64         `json:"failed"`
-	TotalRetries    int64         `json:"total_retries"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	TotalLatency    time.Duration `json:"total_latency"`
-	LatencyCount    int64         `json:"latency_count"`
-	FailureReasons  map[string]int64 `json:"failure_reasons"`
-	DomainMetrics   map[string]*DomainMetrics `json:"domain_metrics"`
-	LastUpdated     time.Time     `json:"last_updated"`
+	TotalAttempts  int64                     `json:"total_attempts"`
+	Successful     int64                     `json:"successful"`
+	Failed         int64                     `json:"failed"`
+	TotalRetries   int64                     `json:"total_retries"`
+	AverageLatency time.Duration             `json:"average_latency"`
+	TotalLatency   time.Duration             `json:"total_latency"`
+	LatencyCount   int64                     `json:"latency_count"`
+	FailureReasons map[string]int64          `json:"failure_reasons"`
+	DomainMetrics  map[string]*DomainMetrics `json:"domain_metrics"`
+	LastUpdated    time.Time                 `json:"last_updated"`
 }
 
 // DomainMetrics represents metrics for a specific domain

@@ -43,70 +43,70 @@ type UseCase interface {
 
 // CreateWebhookConfigInput represents the input for creating a webhook configuration
 type CreateWebhookConfigInput struct {
-	DomainID              uuid.UUID
-	UserID                uuid.UUID
-	Name                  string
-	Description           string
-	URL                   string
-	Method                string
-	AuthType              entities.WebhookAuthType
-	AuthSecret            string
-	AuthUsername          string
-	CustomHeaders         map[string]string
-	EventTypes            []string
-	TimeoutSeconds        int
-	MaxRetries            int
-	RetryBackoffMultiplier float64
-	InitialRetryDelaySeconds int
-	RateLimitPerMinute    int
-	RateLimitPerHour      int
-	CircuitBreakerEnabled bool
-	CircuitBreakerThreshold int
+	DomainID                     uuid.UUID
+	UserID                       uuid.UUID
+	Name                         string
+	Description                  string
+	URL                          string
+	Method                       string
+	AuthType                     entities.WebhookAuthType
+	AuthSecret                   string
+	AuthUsername                 string
+	CustomHeaders                map[string]string
+	EventTypes                   []string
+	TimeoutSeconds               int
+	MaxRetries                   int
+	RetryBackoffMultiplier       float64
+	InitialRetryDelaySeconds     int
+	RateLimitPerMinute           int
+	RateLimitPerHour             int
+	CircuitBreakerEnabled        bool
+	CircuitBreakerThreshold      int
 	CircuitBreakerTimeoutSeconds int
 }
 
 // UpdateWebhookConfigInput represents the input for updating a webhook configuration
 type UpdateWebhookConfigInput struct {
-	ID                    uuid.UUID
-	UserID                uuid.UUID
-	Name                  *string
-	Description           *string
-	URL                   *string
-	Method                *string
-	AuthType              *entities.WebhookAuthType
-	AuthSecret            *string
-	AuthUsername          *string
-	CustomHeaders         map[string]string
-	EventTypes            []string
-	TimeoutSeconds        *int
-	MaxRetries            *int
-	RetryBackoffMultiplier *float64
-	InitialRetryDelaySeconds *int
-	RateLimitPerMinute    *int
-	RateLimitPerHour      *int
-	CircuitBreakerEnabled *bool
-	CircuitBreakerThreshold *int
+	ID                           uuid.UUID
+	UserID                       uuid.UUID
+	Name                         *string
+	Description                  *string
+	URL                          *string
+	Method                       *string
+	AuthType                     *entities.WebhookAuthType
+	AuthSecret                   *string
+	AuthUsername                 *string
+	CustomHeaders                map[string]string
+	EventTypes                   []string
+	TimeoutSeconds               *int
+	MaxRetries                   *int
+	RetryBackoffMultiplier       *float64
+	InitialRetryDelaySeconds     *int
+	RateLimitPerMinute           *int
+	RateLimitPerHour             *int
+	CircuitBreakerEnabled        *bool
+	CircuitBreakerThreshold      *int
 	CircuitBreakerTimeoutSeconds *int
 }
 
 // CreateFromTemplateInput represents input for creating from a template
 type CreateFromTemplateInput struct {
-	TemplateID  uuid.UUID
-	DomainID    uuid.UUID
-	UserID      uuid.UUID
-	Name        string
-	URL         string
-	AuthSecret  string
-	EventTypes  []string
+	TemplateID uuid.UUID
+	DomainID   uuid.UUID
+	UserID     uuid.UUID
+	Name       string
+	URL        string
+	AuthSecret string
+	EventTypes []string
 }
 
 // TestWebhookResult represents the result of testing a webhook
 type TestWebhookResult struct {
-	Success            bool
-	StatusCode         int
-	ResponseTimeMs     int64  // Response time in milliseconds
-	ErrorMessage       string
-	ResponseBody       string
+	Success        bool
+	StatusCode     int
+	ResponseTimeMs int64 // Response time in milliseconds
+	ErrorMessage   string
+	ResponseBody   string
 }
 
 // WebhookMetrics represents webhook performance metrics
@@ -129,10 +129,10 @@ type DomainRepository interface {
 }
 
 type webhookConfigService struct {
-	repo             Repository
-	domainRepo       DomainRepository
-	httpClient       *http.Client
-	logger           *slog.Logger
+	repo       Repository
+	domainRepo DomainRepository
+	httpClient *http.Client
+	logger     *slog.Logger
 }
 
 // NewUseCase creates a new webhook configuration use case
@@ -690,15 +690,15 @@ func (s *webhookConfigService) CreateFromTemplate(ctx context.Context, input Cre
 
 	// Create configuration from template
 	createInput := CreateWebhookConfigInput{
-		DomainID:      input.DomainID,
-		UserID:        input.UserID,
-		Name:          input.Name,
-		URL:           input.URL,
-		Method:        template.DefaultMethod,
-		AuthType:      template.DefaultAuthType,
-		AuthSecret:    input.AuthSecret,
-		CustomHeaders: template.DefaultHeaders,
-		EventTypes:    input.EventTypes,
+		DomainID:       input.DomainID,
+		UserID:         input.UserID,
+		Name:           input.Name,
+		URL:            input.URL,
+		Method:         template.DefaultMethod,
+		AuthType:       template.DefaultAuthType,
+		AuthSecret:     input.AuthSecret,
+		CustomHeaders:  template.DefaultHeaders,
+		EventTypes:     input.EventTypes,
 		TimeoutSeconds: template.DefaultTimeoutSeconds,
 	}
 

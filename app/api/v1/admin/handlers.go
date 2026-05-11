@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"mailvault/domain/entities"
-	"mailvault/domain/email_provider"
 	"mailvault/app/api"
 	"mailvault/app/api/middleware"
+	"mailvault/domain/email_provider"
+	"mailvault/domain/entities"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -47,12 +47,12 @@ type ProviderUseCase interface {
 }
 
 type AdminHandler struct {
-	smtpStatsUC  SMTPStatsUseCase
-	userUC       UserUseCase
-	providerUC   ProviderUseCase
-	authMw       *middleware.AuthMiddleware
-	validator    *validator.Validate
-	logger       *slog.Logger
+	smtpStatsUC SMTPStatsUseCase
+	userUC      UserUseCase
+	providerUC  ProviderUseCase
+	authMw      *middleware.AuthMiddleware
+	validator   *validator.Validate
+	logger      *slog.Logger
 }
 
 func NewAdminHandler(
@@ -255,16 +255,16 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
-		response := map[string]interface{}{
-			"data": users,
-			"pagination": map[string]interface{}{
-				"total":       total,
-				"page":        page,
-				"page_size":   pageSize,
-				"total_pages": totalPages,
-			},
-		}
-		api.SuccessResponse(w, r, response)
+	response := map[string]interface{}{
+		"data": users,
+		"pagination": map[string]interface{}{
+			"total":       total,
+			"page":        page,
+			"page_size":   pageSize,
+			"total_pages": totalPages,
+		},
+	}
+	api.SuccessResponse(w, r, response)
 }
 
 // GetUser returns a specific user by ID
@@ -728,11 +728,11 @@ func (h *AdminHandler) calculateSystemOverview(smtpOverview *entities.SMTPStatsO
 			"end":   filters.EndDate.Format(time.RFC3339),
 		},
 		"incoming_emails": map[string]interface{}{
-			"total_processed":   smtpOverview.TotalProcessed,
-			"accepted":          smtpOverview.AcceptedCount,
-			"rejected":          smtpOverview.RejectedCount,
-			"quarantined":       smtpOverview.QuarantinedCount,
-			"temp_failures":     smtpOverview.TempFailCount,
+			"total_processed":    smtpOverview.TotalProcessed,
+			"accepted":           smtpOverview.AcceptedCount,
+			"rejected":           smtpOverview.RejectedCount,
+			"quarantined":        smtpOverview.QuarantinedCount,
+			"temp_failures":      smtpOverview.TempFailCount,
 			"average_spam_score": smtpOverview.AverageSpamScore,
 			"action_breakdown":   smtpOverview.ActionBreakdown,
 		},
@@ -756,11 +756,11 @@ func (h *AdminHandler) calculateProviderAnalytics(stats []*entities.EmailProvide
 			"start": filters.StartDate.Format(time.RFC3339),
 			"end":   filters.EndDate.Format(time.RFC3339),
 		},
-		"providers": stats,
-		"summary": h.calculateProvidersOverview(stats),
+		"providers":           stats,
+		"summary":             h.calculateProvidersOverview(stats),
 		"performance_ranking": h.rankProvidersByPerformance(stats),
-		"cost_analysis": h.calculateCostAnalysis(stats),
-		"reliability_scores": h.calculateReliabilityScores(stats),
+		"cost_analysis":       h.calculateCostAnalysis(stats),
+		"reliability_scores":  h.calculateReliabilityScores(stats),
 	}
 
 	return analytics
@@ -774,14 +774,14 @@ func (h *AdminHandler) calculateEmailAnalytics(smtpOverview *entities.SMTPStatsO
 			"end":   filters.EndDate.Format(time.RFC3339),
 		},
 		"incoming": map[string]interface{}{
-			"overview":     smtpOverview,
+			"overview":    smtpOverview,
 			"time_series": timeSeries,
 			"trends":      h.calculateIncomingTrends(timeSeries),
 		},
 		"outgoing": map[string]interface{}{
-			"overview": h.calculateProvidersOverview(providerStats),
+			"overview":    h.calculateProvidersOverview(providerStats),
 			"by_provider": providerStats,
-			"trends": h.calculateOutgoingTrends(providerStats),
+			"trends":      h.calculateOutgoingTrends(providerStats),
 		},
 		"flow_analysis": h.calculateEmailFlow(smtpOverview, providerStats),
 	}
@@ -792,16 +792,16 @@ func (h *AdminHandler) calculateEmailAnalytics(smtpOverview *entities.SMTPStatsO
 // calculateSystemStatus determines overall system health
 func (h *AdminHandler) calculateSystemStatus(stats []*entities.EmailProviderStats, filters *TimeRangeFilter) map[string]interface{} {
 	status := map[string]interface{}{
-		"timestamp": time.Now().Format(time.RFC3339),
+		"timestamp":      time.Now().Format(time.RFC3339),
 		"overall_status": "healthy",
 		"providers": map[string]interface{}{
-			"total":        len(stats),
-			"healthy":      h.countHealthyProviders(stats),
-			"unhealthy":    h.countUnhealthyProviders(stats),
+			"total":       len(stats),
+			"healthy":     h.countHealthyProviders(stats),
+			"unhealthy":   h.countUnhealthyProviders(stats),
 			"maintenance": 0,
 		},
 		"metrics": h.calculateLiveMetrics(stats, filters),
-		"alerts": h.generateSystemAlerts(stats, filters),
+		"alerts":  h.generateSystemAlerts(stats, filters),
 	}
 
 	// Determine overall status based on provider health
@@ -855,8 +855,8 @@ func (h *AdminHandler) countUnhealthyProviders(stats []*entities.EmailProviderSt
 
 func (h *AdminHandler) calculateOverallHealth(smtpOverview *entities.SMTPStatsOverview, providerStats []*entities.EmailProviderStats) map[string]interface{} {
 	health := map[string]interface{}{
-		"score": 100.0,
-		"status": "healthy",
+		"score":   100.0,
+		"status":  "healthy",
 		"factors": map[string]interface{}{},
 	}
 
@@ -888,9 +888,9 @@ func (h *AdminHandler) rankProvidersByPerformance(stats []*entities.EmailProvide
 	for i, stat := range stats {
 		performanceScore := (stat.SuccessRate*0.4 + stat.HealthScore*0.3 + (100-stat.AvgResponseTime/10)*0.3)
 		ranking[i] = map[string]interface{}{
-			"provider_id":        stat.ProviderID.String(),
-			"provider_name":      stat.ProviderName,
-			"provider_type":      string(stat.ProviderType),
+			"provider_id":       stat.ProviderID.String(),
+			"provider_name":     stat.ProviderName,
+			"provider_type":     string(stat.ProviderType),
 			"performance_score": performanceScore,
 			"success_rate":      stat.SuccessRate,
 			"health_score":      stat.HealthScore,
@@ -903,8 +903,8 @@ func (h *AdminHandler) rankProvidersByPerformance(stats []*entities.EmailProvide
 func (h *AdminHandler) calculateCostAnalysis(stats []*entities.EmailProviderStats) map[string]interface{} {
 	analysis := map[string]interface{}{
 		"total_estimated_cost": 0.0,
-		"cost_per_email":      0.0,
-		"by_provider":         []map[string]interface{}{},
+		"cost_per_email":       0.0,
+		"by_provider":          []map[string]interface{}{},
 	}
 
 	totalCost := 0.0
@@ -948,7 +948,7 @@ func (h *AdminHandler) calculateReliabilityScores(stats []*entities.EmailProvide
 		reliabilityScore := (stat.SuccessRate*0.5 + stat.HealthScore*0.3 + (100-stat.BounceRate)*0.2)
 
 		scores[i] = map[string]interface{}{
-			"provider_name":      stat.ProviderName,
+			"provider_name":     stat.ProviderName,
 			"reliability_score": reliabilityScore,
 			"success_rate":      stat.SuccessRate,
 			"health_score":      stat.HealthScore,
@@ -996,8 +996,8 @@ func (h *AdminHandler) calculateOutgoingTrends(stats []*entities.EmailProviderSt
 	}
 
 	return map[string]interface{}{
-		"total_sent":    totalSent,
-		"success_rate":  successRate,
+		"total_sent":   totalSent,
+		"success_rate": successRate,
 		"trend_status": "stable", // Would need historical data for real trends
 	}
 }
@@ -1012,7 +1012,7 @@ func (h *AdminHandler) calculateEmailFlow(smtpOverview *entities.SMTPStatsOvervi
 	return map[string]interface{}{
 		"incoming_volume": totalIncoming,
 		"outgoing_volume": totalOutgoing,
-		"flow_ratio":     func() float64 {
+		"flow_ratio": func() float64 {
 			if totalIncoming > 0 {
 				return float64(totalOutgoing) / float64(totalIncoming)
 			}
@@ -1045,10 +1045,10 @@ func (h *AdminHandler) calculateLiveMetrics(stats []*entities.EmailProviderStats
 	}
 
 	return map[string]interface{}{
-		"timestamp":         time.Now().Format(time.RFC3339),
-		"emails_sent":       totalSent,
+		"timestamp":        time.Now().Format(time.RFC3339),
+		"emails_sent":      totalSent,
 		"emails_delivered": totalDelivered,
-		"emails_failed":     totalFailed,
+		"emails_failed":    totalFailed,
 		"success_rate": func() float64 {
 			if totalSent > 0 {
 				return float64(totalDelivered) / float64(totalSent) * 100
@@ -1067,52 +1067,52 @@ func (h *AdminHandler) generateSystemAlerts(stats []*entities.EmailProviderStats
 		// Health score alerts
 		if stat.HealthScore < 50 {
 			alerts = append(alerts, map[string]interface{}{
-				"type":         "critical",
-				"category":     "provider_health",
-				"message":      fmt.Sprintf("Provider %s has low health score: %.1f%%", stat.ProviderName, stat.HealthScore),
-				"provider_id":  stat.ProviderID.String(),
+				"type":          "critical",
+				"category":      "provider_health",
+				"message":       fmt.Sprintf("Provider %s has low health score: %.1f%%", stat.ProviderName, stat.HealthScore),
+				"provider_id":   stat.ProviderID.String(),
 				"provider_name": stat.ProviderName,
-				"severity":     "high",
-				"timestamp":    time.Now().Format(time.RFC3339),
+				"severity":      "high",
+				"timestamp":     time.Now().Format(time.RFC3339),
 			})
 		}
 
 		// Success rate alerts
 		if stat.SuccessRate < 70 {
 			alerts = append(alerts, map[string]interface{}{
-				"type":         "warning",
-				"category":     "delivery_rate",
-				"message":      fmt.Sprintf("Provider %s has low success rate: %.1f%%", stat.ProviderName, stat.SuccessRate),
-				"provider_id":  stat.ProviderID.String(),
+				"type":          "warning",
+				"category":      "delivery_rate",
+				"message":       fmt.Sprintf("Provider %s has low success rate: %.1f%%", stat.ProviderName, stat.SuccessRate),
+				"provider_id":   stat.ProviderID.String(),
 				"provider_name": stat.ProviderName,
-				"severity":     "medium",
-				"timestamp":    time.Now().Format(time.RFC3339),
+				"severity":      "medium",
+				"timestamp":     time.Now().Format(time.RFC3339),
 			})
 		}
 
 		// High bounce rate alerts
 		if stat.BounceRate > 10 {
 			alerts = append(alerts, map[string]interface{}{
-				"type":         "warning",
-				"category":     "bounce_rate",
-				"message":      fmt.Sprintf("Provider %s has high bounce rate: %.1f%%", stat.ProviderName, stat.BounceRate),
-				"provider_id":  stat.ProviderID.String(),
+				"type":          "warning",
+				"category":      "bounce_rate",
+				"message":       fmt.Sprintf("Provider %s has high bounce rate: %.1f%%", stat.ProviderName, stat.BounceRate),
+				"provider_id":   stat.ProviderID.String(),
 				"provider_name": stat.ProviderName,
-				"severity":     "medium",
-				"timestamp":    time.Now().Format(time.RFC3339),
+				"severity":      "medium",
+				"timestamp":     time.Now().Format(time.RFC3339),
 			})
 		}
 
 		// Response time alerts
 		if stat.AvgResponseTime > 5000 { // 5 seconds
 			alerts = append(alerts, map[string]interface{}{
-				"type":         "info",
-				"category":     "performance",
-				"message":      fmt.Sprintf("Provider %s has slow response time: %.0fms", stat.ProviderName, stat.AvgResponseTime),
-				"provider_id":  stat.ProviderID.String(),
+				"type":          "info",
+				"category":      "performance",
+				"message":       fmt.Sprintf("Provider %s has slow response time: %.0fms", stat.ProviderName, stat.AvgResponseTime),
+				"provider_id":   stat.ProviderID.String(),
 				"provider_name": stat.ProviderName,
-				"severity":     "low",
-				"timestamp":    time.Now().Format(time.RFC3339),
+				"severity":      "low",
+				"timestamp":     time.Now().Format(time.RFC3339),
 			})
 		}
 	}
@@ -1172,13 +1172,13 @@ func (h *AdminHandler) parseProviderFilters(r *http.Request) *email_provider.Pro
 // calculateProvidersOverview calculates aggregated statistics from provider stats
 func (h *AdminHandler) calculateProvidersOverview(stats []*entities.EmailProviderStats) map[string]interface{} {
 	overview := map[string]interface{}{
-		"total_providers": len(stats),
-		"active_providers": 0,
-		"total_emails_sent": int64(0),
+		"total_providers":        len(stats),
+		"active_providers":       0,
+		"total_emails_sent":      int64(0),
 		"total_emails_delivered": int64(0),
-		"total_emails_failed": int64(0),
-		"overall_success_rate": 0.0,
-		"provider_types": make(map[string]int),
+		"total_emails_failed":    int64(0),
+		"overall_success_rate":   0.0,
+		"provider_types":         make(map[string]int),
 	}
 
 	if len(stats) == 0 {

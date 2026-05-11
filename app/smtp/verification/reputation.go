@@ -25,7 +25,7 @@ func NewReputationVerifier(resolver string) *ReputationVerifier {
 	if resolver == "" {
 		resolver = "8.8.8.8:53"
 	}
-	
+
 	return &ReputationVerifier{
 		client: &dns.Client{
 			Timeout: 5 * time.Second,
@@ -36,13 +36,13 @@ func NewReputationVerifier(resolver string) *ReputationVerifier {
 		resolver: resolver,
 		timeout:  5 * time.Second,
 		blacklists: []string{
-			"zen.spamhaus.org",      // Spamhaus ZEN (combines SBL, CSS, PBL)
-			"bl.spamcop.net",        // SpamCop
-			"dnsbl.sorbs.net",       // SORBS
+			"zen.spamhaus.org",       // Spamhaus ZEN (combines SBL, CSS, PBL)
+			"bl.spamcop.net",         // SpamCop
+			"dnsbl.sorbs.net",        // SORBS
 			"b.barracudacentral.org", // Barracuda
-			"cbl.abuseat.org",       // Composite Blocking List
-			"psbl.surriel.com",      // Passive Spam Block List
-			"ubl.unsubscore.com",    // Lashback UBL
+			"cbl.abuseat.org",        // Composite Blocking List
+			"psbl.surriel.com",       // Passive Spam Block List
+			"ubl.unsubscore.com",     // Lashback UBL
 		},
 	}
 }
@@ -145,13 +145,13 @@ func (v *ReputationVerifier) checkDomainReputation(ctx context.Context, domain s
 	}
 
 	blacklistCount := 0
-	
+
 	// Check domain blacklists
 	domainBlacklists := []string{
-		"dbl.spamhaus.org",    // Spamhaus Domain Block List
-		"surbl.org",           // SURBL
-		"uribl.com",           // URIBL
-		"multi.surbl.org",     // Multi SURBL
+		"dbl.spamhaus.org", // Spamhaus Domain Block List
+		"surbl.org",        // SURBL
+		"uribl.com",        // URIBL
+		"multi.surbl.org",  // Multi SURBL
 	}
 
 	for _, blacklist := range domainBlacklists {
@@ -224,28 +224,28 @@ func (v *ReputationVerifier) checkDomainBlacklist(ctx context.Context, domain, b
 func (v *ReputationVerifier) checkDomainAge(ctx context.Context, domain string) float64 {
 	// This is a simplified implementation
 	// In production, you might query WHOIS data or use domain intelligence APIs
-	
+
 	// For now, we'll do some basic heuristics:
 	// - Check if domain has MX records (established email setup)
 	// - Check if domain has multiple A records (load balancing/CDN)
-	
+
 	score := 0.0
-	
+
 	// Check MX records
 	if v.hasMXRecords(ctx, domain) {
 		score += 0.1
 	}
-	
+
 	// Check multiple A records
 	if v.hasMultipleARecords(ctx, domain) {
 		score += 0.05
 	}
-	
+
 	// Check for suspicious TLDs
 	if v.hasSuspiciousTLD(domain) {
 		score -= 0.2
 	}
-	
+
 	return score
 }
 
@@ -278,17 +278,17 @@ func (v *ReputationVerifier) hasMultipleARecords(ctx context.Context, domain str
 // hasSuspiciousTLD checks if domain uses a suspicious top-level domain
 func (v *ReputationVerifier) hasSuspiciousTLD(domain string) bool {
 	suspiciousTLDs := []string{
-		".tk", ".ml", ".ga", ".cf",  // Free TLDs often used for spam
-		".bit", ".onion",            // Alternative DNS/dark web
+		".tk", ".ml", ".ga", ".cf", // Free TLDs often used for spam
+		".bit", ".onion", // Alternative DNS/dark web
 	}
-	
+
 	domain = strings.ToLower(domain)
 	for _, tld := range suspiciousTLDs {
 		if strings.HasSuffix(domain, tld) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -316,7 +316,7 @@ func (v *ReputationVerifier) isPrivateIP(ip net.IP) bool {
 		"127.0.0.0/8",    // Loopback
 		"169.254.0.0/16", // Link-local
 	}
-	
+
 	for _, rangeStr := range privateRanges {
 		_, cidr, err := net.ParseCIDR(rangeStr)
 		if err != nil {
@@ -326,6 +326,6 @@ func (v *ReputationVerifier) isPrivateIP(ip net.IP) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }

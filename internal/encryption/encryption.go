@@ -20,11 +20,11 @@ const (
 )
 
 var (
-	ErrInvalidKeySize    = errors.New("invalid key size")
-	ErrInvalidNonceSize  = errors.New("invalid nonce size")
-	ErrInvalidPublicKey  = errors.New("invalid public key format")
-	ErrDecryptionFailed  = errors.New("decryption failed")
-	ErrEncryptionFailed  = errors.New("encryption failed")
+	ErrInvalidKeySize   = errors.New("invalid key size")
+	ErrInvalidNonceSize = errors.New("invalid nonce size")
+	ErrInvalidPublicKey = errors.New("invalid public key format")
+	ErrDecryptionFailed = errors.New("decryption failed")
+	ErrEncryptionFailed = errors.New("encryption failed")
 )
 
 // KeyPair represents an X25519 key pair

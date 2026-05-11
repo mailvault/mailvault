@@ -7,21 +7,22 @@ import (
 
 	"mailvault/domain/validation"
 
-	"github.com/gofrs/uuid/v5"
 	"log/slog"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // ValidationWorker performs domain validation tasks
 type ValidationWorker struct {
 	id                string
-	queue            Queue
+	queue             Queue
 	validationUseCase ValidationUseCase
-	dnsService       validation.DNSService
-	config           validation.ValidationConfig
-	logger           *slog.Logger
-	stopCh           chan struct{}
-	doneCh           chan struct{}
-	running          bool
+	dnsService        validation.DNSService
+	config            validation.ValidationConfig
+	logger            *slog.Logger
+	stopCh            chan struct{}
+	doneCh            chan struct{}
+	running           bool
 }
 
 // ValidationUseCase defines the interface for validation business logic
@@ -45,20 +46,20 @@ func NewValidationWorker(
 ) *ValidationWorker {
 	return &ValidationWorker{
 		id:                id,
-		queue:            queue,
+		queue:             queue,
 		validationUseCase: validationUseCase,
-		dnsService:       dnsService,
-		config:           config,
-		logger:           logger,
-		stopCh:           make(chan struct{}),
-		doneCh:           make(chan struct{}),
+		dnsService:        dnsService,
+		config:            config,
+		logger:            logger,
+		stopCh:            make(chan struct{}),
+		doneCh:            make(chan struct{}),
 	}
 }
 
 // Start starts the worker
 func (w *ValidationWorker) Start(ctx context.Context) {
 	w.running = true
-	w.logger.Info( "Starting validation worker", "worker_id", w.id)
+	w.logger.Info("Starting validation worker", "worker_id", w.id)
 
 	go w.run(ctx)
 }
@@ -69,7 +70,7 @@ func (w *ValidationWorker) Stop() {
 		return
 	}
 
-	w.logger.Info( "Stopping validation worker", "worker_id", w.id)
+	w.logger.Info("Stopping validation worker", "worker_id", w.id)
 	close(w.stopCh)
 	<-w.doneCh
 	w.running = false
@@ -87,24 +88,24 @@ func (w *ValidationWorker) run(ctx context.Context) {
 	for {
 		select {
 		case <-w.stopCh:
-			w.logger.Info( "Worker stopped", "worker_id", w.id)
+			w.logger.Info("Worker stopped", "worker_id", w.id)
 			return
 		case <-ctx.Done():
-			w.logger.Info( "Worker context cancelled", "worker_id", w.id)
+			w.logger.Info("Worker context cancelled", "worker_id", w.id)
 			return
 		default:
 			// Try to get a job from the queue
 			job, err := w.queue.Pop(ctx)
 			if err != nil {
 				if err == context.Canceled || err == context.DeadlineExceeded {
-					w.logger.Info( "Worker context done", "worker_id", w.id)
+					w.logger.Info("Worker context done", "worker_id", w.id)
 					return
 				}
 				if err == ErrQueueClosed {
-					w.logger.Info( "Queue closed, worker stopping", "worker_id", w.id)
+					w.logger.Info("Queue closed, worker stopping", "worker_id", w.id)
 					return
 				}
-				w.logger.Error( "Error getting job from queue",
+				w.logger.Error("Error getting job from queue",
 					"worker_id", w.id,
 					"error", err,
 				)
@@ -122,7 +123,7 @@ func (w *ValidationWorker) run(ctx context.Context) {
 func (w *ValidationWorker) processJob(ctx context.Context, job *validation.ValidationJob) {
 	startTime := time.Now()
 
-	w.logger.Info( "Processing validation job",
+	w.logger.Info("Processing validation job",
 		"worker_id", w.id,
 		"job_id", job.ID,
 		"domain_id", job.DomainID,
@@ -153,7 +154,7 @@ func (w *ValidationWorker) processJob(ctx context.Context, job *validation.Valid
 	duration := time.Since(startTime)
 
 	if err != nil {
-		w.logger.Error( "Validation job failed",
+		w.logger.Error("Validation job failed",
 			"worker_id", w.id,
 			"job_id", job.ID,
 			"domain_id", job.DomainID,
@@ -171,7 +172,7 @@ func (w *ValidationWorker) processJob(ctx context.Context, job *validation.Valid
 		// Handle retry logic
 		w.handleJobRetry(ctx, job)
 	} else {
-		w.logger.Info( "Validation job completed successfully",
+		w.logger.Info("Validation job completed successfully",
 			"worker_id", w.id,
 			"job_id", job.ID,
 			"domain_id", job.DomainID,
@@ -186,7 +187,7 @@ func (w *ValidationWorker) processJob(ctx context.Context, job *validation.Valid
 // handleJobRetry handles retry logic for failed jobs
 func (w *ValidationWorker) handleJobRetry(ctx context.Context, job *validation.ValidationJob) {
 	if job.Attempts >= w.config.MaxRetries {
-		w.logger.Warn( "Max retries reached for validation job",
+		w.logger.Warn("Max retries reached for validation job",
 			"worker_id", w.id,
 			"job_id", job.ID,
 			"domain_id", job.DomainID,
@@ -200,7 +201,7 @@ func (w *ValidationWorker) handleJobRetry(ctx context.Context, job *validation.V
 		errorMsg := fmt.Sprintf("Max retries reached (%d): %s", job.Attempts, job.LastError)
 		err := w.validationUseCase.UpdateValidationStatus(ctx, job.DomainID, validation.VerificationStatusFailed, &errorMsg)
 		if err != nil {
-			w.logger.Error( "Failed to update domain validation status to failed",
+			w.logger.Error("Failed to update domain validation status to failed",
 				"worker_id", w.id,
 				"domain_id", job.DomainID,
 				"error", err,
@@ -213,7 +214,7 @@ func (w *ValidationWorker) handleJobRetry(ctx context.Context, job *validation.V
 	retryDelay := CalculateRetryDelay(job.Attempts, w.config.RetryDelay)
 	retryTime := time.Now().Add(retryDelay)
 
-	w.logger.Info( "Scheduling validation job for retry",
+	w.logger.Info("Scheduling validation job for retry",
 		"worker_id", w.id,
 		"job_id", job.ID,
 		"domain_id", job.DomainID,
@@ -232,12 +233,12 @@ func (w *ValidationWorker) handleJobRetry(ctx context.Context, job *validation.V
 // WorkerPool manages a pool of validation workers
 type WorkerPool struct {
 	workers           []*ValidationWorker
-	queue            Queue
+	queue             Queue
 	validationUseCase ValidationUseCase
-	dnsService       validation.DNSService
-	config           validation.ValidationConfig
-	logger           *slog.Logger
-	size             int
+	dnsService        validation.DNSService
+	config            validation.ValidationConfig
+	logger            *slog.Logger
+	size              int
 }
 
 // NewWorkerPool creates a new worker pool
@@ -264,18 +265,18 @@ func NewWorkerPool(
 
 	return &WorkerPool{
 		workers:           workers,
-		queue:            queue,
+		queue:             queue,
 		validationUseCase: validationUseCase,
-		dnsService:       dnsService,
-		config:           config,
-		logger:           logger,
-		size:             size,
+		dnsService:        dnsService,
+		config:            config,
+		logger:            logger,
+		size:              size,
 	}
 }
 
 // Start starts all workers in the pool
 func (wp *WorkerPool) Start(ctx context.Context) {
-	wp.logger.Info( "Starting worker pool", "pool_size", wp.size)
+	wp.logger.Info("Starting worker pool", "pool_size", wp.size)
 
 	for _, worker := range wp.workers {
 		worker.Start(ctx)
@@ -284,7 +285,7 @@ func (wp *WorkerPool) Start(ctx context.Context) {
 
 // Stop stops all workers in the pool
 func (wp *WorkerPool) Stop() {
-	wp.logger.Info( "Stopping worker pool", "pool_size", wp.size)
+	wp.logger.Info("Stopping worker pool", "pool_size", wp.size)
 
 	for _, worker := range wp.workers {
 		worker.Stop()

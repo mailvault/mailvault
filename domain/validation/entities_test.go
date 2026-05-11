@@ -34,9 +34,9 @@ func TestVerificationStatus_IsValid(t *testing.T) {
 
 func TestValidationType_IsValid(t *testing.T) {
 	tests := []struct {
-		name        string
+		name           string
 		validationType ValidationType
-		valid       bool
+		valid          bool
 	}{
 		{"mx_record", ValidationTypeMXRecord, true},
 		{"txt_record", ValidationTypeTXTRecord, true},
@@ -292,7 +292,6 @@ func TestCalculateRetryDelay(t *testing.T) {
 		})
 	}
 }
-
 
 func TestDomainValidationInfo_Methods(t *testing.T) {
 	token := "test123"

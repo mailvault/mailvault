@@ -9,6 +9,7 @@ import (
 	"mailvault/app/smtp/verification"
 	"mailvault/domain/entities"
 	"mailvault/internal/utils"
+
 	"github.com/gofrs/uuid/v5"
 )
 
@@ -35,45 +36,45 @@ func (uc *UseCase) RecordVerificationResult(
 ) error {
 	// Extract sender domain from email address
 	senderDomain := extractDomainFromEmail(fromAddress)
-	
+
 	// Create the statistic record
 	stat := &entities.SMTPVerificationStat{
-		ID:              uuid.Must(uuid.NewV4()),
-		DomainID:        domainID,
-		EmailAddressID:  emailAddressID,
-		VerifiedAt:      time.Now(),
-		SenderIP:        senderIP,
-		SenderDomain:    senderDomain,
-		FromAddress:     fromAddress,
-		
+		ID:             uuid.Must(uuid.NewV4()),
+		DomainID:       domainID,
+		EmailAddressID: emailAddressID,
+		VerifiedAt:     time.Now(),
+		SenderIP:       senderIP,
+		SenderDomain:   senderDomain,
+		FromAddress:    fromAddress,
+
 		// SPF results
 		SPFResult:    verificationResult.SPF.Result.String(),
 		SPFMechanism: verificationResult.SPF.Mechanism,
-		
-		// DKIM results  
+
+		// DKIM results
 		DKIMValid:    verificationResult.DKIM.Valid,
 		DKIMDomain:   extractDKIMDomain(verificationResult.DKIM),
 		DKIMSelector: extractDKIMSelector(verificationResult.DKIM),
-		
+
 		// DMARC results
-		DMARCResult:         verificationResult.DMARC.Result.String(),
-		DMARCPolicy:         verificationResult.DMARC.Policy,
-		DMARCAlignmentSPF:   verificationResult.DMARC.SPFAlign,
-		DMARCAlignmentDKIM:  verificationResult.DMARC.DKIMAlign,
-		
+		DMARCResult:        verificationResult.DMARC.Result.String(),
+		DMARCPolicy:        verificationResult.DMARC.Policy,
+		DMARCAlignmentSPF:  verificationResult.DMARC.SPFAlign,
+		DMARCAlignmentDKIM: verificationResult.DMARC.DKIMAlign,
+
 		// Content analysis
 		SpamScore:      verificationResult.Content.SpamScore,
 		ContentVerdict: determineContentVerdict(verificationResult.Content.SpamScore),
-		
+
 		// Reputation
 		ReputationScore: verificationResult.Reputation.Score,
 		IsBlacklisted:   len(verificationResult.Reputation.Blacklisted) > 0,
-		
+
 		// Final action
 		FinalAction:   finalAction.String(),
 		IsQuarantined: finalAction == verification.ActionQuarantine,
 	}
-	
+
 	return uc.repo.CreateStat(ctx, stat)
 }
 
@@ -90,10 +91,10 @@ func (uc *UseCase) GetDomainStats(
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 50
 	}
-	
+
 	offset := (page - 1) * pageSize
 	filter.DomainID = &domainID
-	
+
 	return uc.repo.GetStatsForDomain(ctx, domainID, filter, pageSize, offset)
 }
 
@@ -110,10 +111,10 @@ func (uc *UseCase) GetEmailAddressStats(
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 50
 	}
-	
+
 	offset := (page - 1) * pageSize
 	filter.EmailAddressID = &emailAddressID
-	
+
 	return uc.repo.GetStatsForEmailAddress(ctx, emailAddressID, filter, pageSize, offset)
 }
 
@@ -132,60 +133,60 @@ func (uc *UseCase) GetTimeSeriesData(
 	validGranularities := map[string]bool{
 		"hour": true, "day": true, "week": true, "month": true,
 	}
-	
+
 	if !validGranularities[granularity] {
 		granularity = "day"
 	}
-	
+
 	return uc.repo.GetTimeSeriesData(ctx, filter, granularity)
 }
 
 // GetDistributions retrieves all distribution data for dashboard
 func (uc *UseCase) GetDistributions(ctx context.Context, filter entities.SMTPStatsFilter) (map[string]interface{}, error) {
 	distributions := make(map[string]interface{})
-	
+
 	// Get action distribution
 	actionDist, err := uc.repo.GetActionDistribution(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("getting action distribution: %w", err)
 	}
 	distributions["actions"] = actionDist
-	
+
 	// Get reputation distribution
 	repDist, err := uc.repo.GetReputationDistribution(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("getting reputation distribution: %w", err)
 	}
 	distributions["reputation"] = repDist
-	
+
 	// Get content distribution
 	contentDist, err := uc.repo.GetContentDistribution(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("getting content distribution: %w", err)
 	}
 	distributions["content"] = contentDist
-	
+
 	// Get SPF distribution
 	spfDist, err := uc.repo.GetSPFDistribution(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("getting SPF distribution: %w", err)
 	}
 	distributions["spf"] = spfDist
-	
+
 	// Get DKIM distribution
 	dkimDist, err := uc.repo.GetDKIMDistribution(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("getting DKIM distribution: %w", err)
 	}
 	distributions["dkim"] = dkimDist
-	
+
 	// Get DMARC distribution
 	dmarcDist, err := uc.repo.GetDMARCDistribution(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("getting DMARC distribution: %w", err)
 	}
 	distributions["dmarc"] = dmarcDist
-	
+
 	return distributions, nil
 }
 
@@ -194,23 +195,23 @@ func (uc *UseCase) GetTopSenders(ctx context.Context, filter entities.SMTPStatsF
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
-	
+
 	senders := make(map[string]interface{})
-	
+
 	// Get top sender domains
 	topDomains, err := uc.repo.GetTopSenderDomains(ctx, filter, limit)
 	if err != nil {
 		return nil, fmt.Errorf("getting top sender domains: %w", err)
 	}
 	senders["domains"] = topDomains
-	
+
 	// Get top sender IPs
 	topIPs, err := uc.repo.GetTopSenderIPs(ctx, filter, limit)
 	if err != nil {
 		return nil, fmt.Errorf("getting top sender IPs: %w", err)
 	}
 	senders["ips"] = topIPs
-	
+
 	return senders, nil
 }
 
@@ -219,7 +220,7 @@ func (uc *UseCase) CleanupOldStats(ctx context.Context, retentionPeriod time.Dur
 	if retentionPeriod < 24*time.Hour {
 		return 0, fmt.Errorf("retention period must be at least 24 hours")
 	}
-	
+
 	return uc.repo.DeleteOldStats(ctx, retentionPeriod)
 }
 

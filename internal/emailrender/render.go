@@ -99,7 +99,7 @@ func (r *RenderEngine) CreateEmailResponse(receivedEmail *entities.ReceivedEmail
 		From:    parsed.From,
 		Date:    parsed.Date,
 
-		AvailableFormats:  parsed.GetAvailableFormats(),
+		AvailableFormats: parsed.GetAvailableFormats(),
 		Content:          parsed.GetAllContentFormats(),
 		IsMultipart:      parsed.IsMultipart,
 		HasAttachments:   parsed.HasAttachments(),
@@ -222,7 +222,7 @@ func (r *RenderEngine) formatPlainTextForCLI(text string, maxWidth int) string {
 			// Wrap long lines
 			words := strings.Fields(line)
 			currentLine := ""
-			
+
 			for _, word := range words {
 				if len(currentLine)+len(word)+1 <= maxWidth {
 					if currentLine != "" {
@@ -236,7 +236,7 @@ func (r *RenderEngine) formatPlainTextForCLI(text string, maxWidth int) string {
 					currentLine = word
 				}
 			}
-			
+
 			if currentLine != "" {
 				builder.WriteString(currentLine + "\n")
 			}

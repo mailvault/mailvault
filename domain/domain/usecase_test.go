@@ -64,7 +64,7 @@ func TestCreateDomain(t *testing.T) {
 		assert.Contains(t, result.APIKey, "pm_")
 		assert.NotEmpty(t, result.ID)
 		assert.NotEmpty(t, result.VerificationToken) // Verification token should be generated immediately
-		assert.Len(t, result.VerificationToken, 32)    // Should be 32 hex characters
+		assert.Len(t, result.VerificationToken, 32)  // Should be 32 hex characters
 
 		// Verify calls
 		assert.Len(t, mockRepo.GetByDomainCalls(), 1)
@@ -354,15 +354,15 @@ func TestUpdateDomain(t *testing.T) {
 		uc := NewUseCase(mockRepo, mockUserRepo)
 
 		existingDomain := &entities.Domain{
-			ID:             domainID,
-			UserID:         uuid.Must(uuid.NewV4()),
-			Domain:         "example.com",
-			PublicKey:      "old-key",
-			APIKey:         "pm_test_api_key",
+			ID:                 domainID,
+			UserID:             uuid.Must(uuid.NewV4()),
+			Domain:             "example.com",
+			PublicKey:          "old-key",
+			APIKey:             "pm_test_api_key",
 			VerificationStatus: entities.VerificationStatusPending,
-			StorageEnabled: true,
-			CreatedAt:      time.Now().UTC(),
-			UpdatedAt:      time.Now().UTC(),
+			StorageEnabled:     true,
+			CreatedAt:          time.Now().UTC(),
+			UpdatedAt:          time.Now().UTC(),
 		}
 
 		newPublicKey := "new-public-key"
@@ -509,7 +509,7 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 		mockRepo := &mocks.RepositoryMock{}
 		mockUserRepo := &userMocks.RepositoryMock{}
 		uc := NewUseCase(mockRepo, mockUserRepo)
-		
+
 		autoCreateAddress := true
 
 		// Setup mocks
@@ -533,9 +533,9 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 
 		// Execute
 		result, err := uc.CreateDomain(ctx, CreateDomainInput{
-			UserID:           userID,
-			Domain:           domain,
-			PublicKey:        publicKey,
+			UserID:            userID,
+			Domain:            domain,
+			PublicKey:         publicKey,
 			AutoCreateAddress: &autoCreateAddress,
 		})
 
@@ -549,7 +549,7 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 		mockRepo := &mocks.RepositoryMock{}
 		mockUserRepo := &userMocks.RepositoryMock{}
 		uc := NewUseCase(mockRepo, mockUserRepo)
-		
+
 		autoCreateAddress := false
 
 		// Setup mocks
@@ -573,9 +573,9 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 
 		// Execute
 		result, err := uc.CreateDomain(ctx, CreateDomainInput{
-			UserID:           userID,
-			Domain:           domain,
-			PublicKey:        publicKey,
+			UserID:            userID,
+			Domain:            domain,
+			PublicKey:         publicKey,
 			AutoCreateAddress: &autoCreateAddress,
 		})
 
@@ -633,16 +633,16 @@ func TestUpdateDomainAutoCreateAddress(t *testing.T) {
 		uc := NewUseCase(mockRepo, mockUserRepo)
 
 		existingDomain := &entities.Domain{
-			ID:               domainID,
-			UserID:           uuid.Must(uuid.NewV4()),
-			Domain:           "example.com",
-			PublicKey:        "test-key",
-			APIKey:           "pm_test_api_key",
+			ID:                 domainID,
+			UserID:             uuid.Must(uuid.NewV4()),
+			Domain:             "example.com",
+			PublicKey:          "test-key",
+			APIKey:             "pm_test_api_key",
 			VerificationStatus: entities.VerificationStatusVerified,
-			StorageEnabled:   true,
-			AutoCreateAddress: false, // Initially disabled
-			CreatedAt:        time.Now().UTC(),
-			UpdatedAt:        time.Now().UTC(),
+			StorageEnabled:     true,
+			AutoCreateAddress:  false, // Initially disabled
+			CreatedAt:          time.Now().UTC(),
+			UpdatedAt:          time.Now().UTC(),
 		}
 
 		autoCreateAddress := true // Enable auto-create

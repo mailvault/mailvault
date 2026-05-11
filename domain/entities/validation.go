@@ -9,14 +9,13 @@ import (
 
 // VerificationStatus is already defined in domain.go
 
-
 // ValidationType represents the type of validation being performed
 type ValidationType string
 
 const (
-	ValidationTypeMXRecord      ValidationType = "mx_record"
-	ValidationTypeTXTRecord     ValidationType = "txt_record"
-	ValidationTypeOwnership     ValidationType = "ownership"
+	ValidationTypeMXRecord       ValidationType = "mx_record"
+	ValidationTypeTXTRecord      ValidationType = "txt_record"
+	ValidationTypeOwnership      ValidationType = "ownership"
 	ValidationTypeFullValidation ValidationType = "full_validation"
 )
 
@@ -24,7 +23,7 @@ const (
 func (vt ValidationType) IsValid() bool {
 	switch vt {
 	case ValidationTypeMXRecord, ValidationTypeTXTRecord,
-		 ValidationTypeOwnership, ValidationTypeFullValidation:
+		ValidationTypeOwnership, ValidationTypeFullValidation:
 		return true
 	default:
 		return false
@@ -52,8 +51,8 @@ const (
 func (vrs ValidationRecordStatus) IsValid() bool {
 	switch vrs {
 	case ValidationRecordStatusPending, ValidationRecordStatusRunning,
-		 ValidationRecordStatusSuccess, ValidationRecordStatusFailed,
-		 ValidationRecordStatusTimeout, ValidationRecordStatusError:
+		ValidationRecordStatusSuccess, ValidationRecordStatusFailed,
+		ValidationRecordStatusTimeout, ValidationRecordStatusError:
 		return true
 	default:
 		return false
@@ -67,28 +66,28 @@ func (vrs ValidationRecordStatus) String() string {
 
 // ValidationRecord represents a single validation attempt for a domain
 type ValidationRecord struct {
-	ID              uuid.UUID              `json:"id" db:"id"`
-	DomainID        uuid.UUID              `json:"domain_id" db:"domain_id"`
-	ValidationType  ValidationType         `json:"validation_type" db:"validation_type"`
-	Status          ValidationRecordStatus `json:"status" db:"status"`
-	Details         ValidationDetails      `json:"details" db:"details"`
-	StartedAt       time.Time              `json:"started_at" db:"started_at"`
-	CompletedAt     *time.Time             `json:"completed_at,omitempty" db:"completed_at"`
-	ErrorMessage    *string                `json:"error_message,omitempty" db:"error_message"`
-	CreatedAt       time.Time              `json:"created_at" db:"created_at"`
+	ID             uuid.UUID              `json:"id" db:"id"`
+	DomainID       uuid.UUID              `json:"domain_id" db:"domain_id"`
+	ValidationType ValidationType         `json:"validation_type" db:"validation_type"`
+	Status         ValidationRecordStatus `json:"status" db:"status"`
+	Details        ValidationDetails      `json:"details" db:"details"`
+	StartedAt      time.Time              `json:"started_at" db:"started_at"`
+	CompletedAt    *time.Time             `json:"completed_at,omitempty" db:"completed_at"`
+	ErrorMessage   *string                `json:"error_message,omitempty" db:"error_message"`
+	CreatedAt      time.Time              `json:"created_at" db:"created_at"`
 }
 
 // ValidationDetails contains detailed information about a validation attempt
 type ValidationDetails struct {
 	// MX Record validation details
-	ExpectedMXServers []string `json:"expected_mx_servers,omitempty"`
-	FoundMXRecords    []MXRecord `json:"found_mx_records,omitempty"`
-	MXValidationPassed bool     `json:"mx_validation_passed,omitempty"`
+	ExpectedMXServers  []string   `json:"expected_mx_servers,omitempty"`
+	FoundMXRecords     []MXRecord `json:"found_mx_records,omitempty"`
+	MXValidationPassed bool       `json:"mx_validation_passed,omitempty"`
 
 	// TXT Record validation details
-	ExpectedTXTRecord string   `json:"expected_txt_record,omitempty"`
-	FoundTXTRecords   []string `json:"found_txt_records,omitempty"`
-	TXTValidationPassed bool   `json:"txt_validation_passed,omitempty"`
+	ExpectedTXTRecord   string   `json:"expected_txt_record,omitempty"`
+	FoundTXTRecords     []string `json:"found_txt_records,omitempty"`
+	TXTValidationPassed bool     `json:"txt_validation_passed,omitempty"`
 
 	// General validation details
 	DNSServer    string        `json:"dns_server,omitempty"`
@@ -122,8 +121,8 @@ type ValidationConfig struct {
 	MXCheckTimeout    time.Duration `json:"mx_check_timeout"`
 
 	// TXT validation settings
-	TXTRecordPrefix   string        `json:"txt_record_prefix"`
-	TXTCheckTimeout   time.Duration `json:"txt_check_timeout"`
+	TXTRecordPrefix string        `json:"txt_record_prefix"`
+	TXTCheckTimeout time.Duration `json:"txt_check_timeout"`
 
 	// General settings
 	MaxRetries        int           `json:"max_retries"`
@@ -132,7 +131,7 @@ type ValidationConfig struct {
 	ValidationTimeout time.Duration `json:"validation_timeout"`
 
 	// Token settings
-	TokenExpiry       time.Duration `json:"token_expiry"`
+	TokenExpiry time.Duration `json:"token_expiry"`
 }
 
 // DefaultValidationConfig returns a default validation configuration
@@ -153,9 +152,9 @@ func DefaultValidationConfig() ValidationConfig {
 // IsComplete returns true if the validation record is completed (success, failed, timeout, or error)
 func (vr *ValidationRecord) IsComplete() bool {
 	return vr.Status == ValidationRecordStatusSuccess ||
-		   vr.Status == ValidationRecordStatusFailed ||
-		   vr.Status == ValidationRecordStatusTimeout ||
-		   vr.Status == ValidationRecordStatusError
+		vr.Status == ValidationRecordStatusFailed ||
+		vr.Status == ValidationRecordStatusTimeout ||
+		vr.Status == ValidationRecordStatusError
 }
 
 // IsSuccessful returns true if the validation record was successful

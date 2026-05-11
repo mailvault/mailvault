@@ -10,59 +10,59 @@ import (
 
 // AsyncWebhookWorker handles asynchronous webhook delivery with retry logic
 type AsyncWebhookWorker struct {
-	config           AsyncWorkerConfig
-	webhookQueue     chan WebhookJob
-	retryQueue       chan WebhookJob
-	workers          []worker
-	retryTimer       *time.Timer
-	stopCh           chan struct{}
-	wg               sync.WaitGroup
-	mu               sync.RWMutex
-	stats            WorkerStats
-	running          bool
+	config       AsyncWorkerConfig
+	webhookQueue chan WebhookJob
+	retryQueue   chan WebhookJob
+	workers      []worker
+	retryTimer   *time.Timer
+	stopCh       chan struct{}
+	wg           sync.WaitGroup
+	mu           sync.RWMutex
+	stats        WorkerStats
+	running      bool
 }
 
 // AsyncWorkerConfig configures the async webhook worker
 type AsyncWorkerConfig struct {
-	BufferSize       int                // Size of webhook queue buffer
-	WorkerCount      int                // Number of concurrent workers
-	RetryInterval    time.Duration      // Interval between retry attempts
-	MaxRetryAge      time.Duration      // Maximum age before giving up on retries
-	Logger           *slog.Logger       // Logger instance
-	HTTPClient       *HTTPClient        // HTTP client for webhook delivery
-	MetricsCollector *MetricsCollector  // Metrics collector
+	BufferSize       int               // Size of webhook queue buffer
+	WorkerCount      int               // Number of concurrent workers
+	RetryInterval    time.Duration     // Interval between retry attempts
+	MaxRetryAge      time.Duration     // Maximum age before giving up on retries
+	Logger           *slog.Logger      // Logger instance
+	HTTPClient       *HTTPClient       // HTTP client for webhook delivery
+	MetricsCollector *MetricsCollector // Metrics collector
 }
 
 // WebhookJob represents a webhook delivery job
 type WebhookJob struct {
-	Request       WebhookRequest     `json:"request"`
+	Request       WebhookRequest      `json:"request"`
 	Event         *IncomingEmailEvent `json:"event"`
-	CreatedAt     time.Time          `json:"created_at"`
-	LastAttemptAt time.Time          `json:"last_attempt_at"`
-	Attempts      int                `json:"attempts"`
-	MaxRetries    int                `json:"max_retries"`
-	NextRetryAt   time.Time          `json:"next_retry_at"`
+	CreatedAt     time.Time           `json:"created_at"`
+	LastAttemptAt time.Time           `json:"last_attempt_at"`
+	Attempts      int                 `json:"attempts"`
+	MaxRetries    int                 `json:"max_retries"`
+	NextRetryAt   time.Time           `json:"next_retry_at"`
 }
 
 // worker represents a webhook worker goroutine
 type worker struct {
-	id       int
-	stopCh   chan struct{}
-	jobsCh   chan WebhookJob
-	retryCh  chan WebhookJob
-	client   *HTTPClient
-	logger   *slog.Logger
-	metrics  *MetricsCollector
+	id      int
+	stopCh  chan struct{}
+	jobsCh  chan WebhookJob
+	retryCh chan WebhookJob
+	client  *HTTPClient
+	logger  *slog.Logger
+	metrics *MetricsCollector
 }
 
 // WorkerStats represents worker statistics
 type WorkerStats struct {
-	QueueSize       int   `json:"queue_size"`
-	PendingRetries  int   `json:"pending_retries"`
-	ActiveWorkers   int   `json:"active_workers"`
-	TotalProcessed  int64 `json:"total_processed"`
-	TotalRetries    int64 `json:"total_retries"`
-	TotalAbandoned  int64 `json:"total_abandoned"`
+	QueueSize      int   `json:"queue_size"`
+	PendingRetries int   `json:"pending_retries"`
+	ActiveWorkers  int   `json:"active_workers"`
+	TotalProcessed int64 `json:"total_processed"`
+	TotalRetries   int64 `json:"total_retries"`
+	TotalAbandoned int64 `json:"total_abandoned"`
 }
 
 // NewAsyncWebhookWorker creates a new async webhook worker
@@ -97,13 +97,13 @@ func (w *AsyncWebhookWorker) Start(ctx context.Context) error {
 	w.workers = make([]worker, w.config.WorkerCount)
 	for i := 0; i < w.config.WorkerCount; i++ {
 		w.workers[i] = worker{
-			id:       i,
-			stopCh:   make(chan struct{}),
-			jobsCh:   w.webhookQueue,
-			retryCh:  w.retryQueue,
-			client:   w.config.HTTPClient,
-			logger:   w.config.Logger,
-			metrics:  w.config.MetricsCollector,
+			id:      i,
+			stopCh:  make(chan struct{}),
+			jobsCh:  w.webhookQueue,
+			retryCh: w.retryQueue,
+			client:  w.config.HTTPClient,
+			logger:  w.config.Logger,
+			metrics: w.config.MetricsCollector,
 		}
 
 		w.wg.Add(1)
@@ -159,10 +159,10 @@ func (w *AsyncWebhookWorker) Stop(ctx context.Context) error {
 // EnqueueWebhook enqueues a webhook for async delivery
 func (w *AsyncWebhookWorker) EnqueueWebhook(ctx context.Context, request WebhookRequest, event *IncomingEmailEvent) error {
 	job := WebhookJob{
-		Request:     request,
-		Event:       event,
-		CreatedAt:   time.Now(),
-		MaxRetries:  w.config.HTTPClient.maxRetries,
+		Request:    request,
+		Event:      event,
+		CreatedAt:  time.Now(),
+		MaxRetries: w.config.HTTPClient.maxRetries,
 	}
 
 	select {

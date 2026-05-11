@@ -29,11 +29,11 @@ func NewUseCase(repo Repository, userRepo user.Repository) *UseCase {
 }
 
 type CreateDomainInput struct {
-	UserID            uuid.UUID              `json:"user_id"`
-	Domain            string                 `json:"domain"`
-	PublicKey         string                 `json:"public_key"`
-	StorageEnabled    *bool                  `json:"storage_enabled,omitempty"`
-	AutoCreateAddress *bool                  `json:"auto_create_address,omitempty"`
+	UserID            uuid.UUID               `json:"user_id"`
+	Domain            string                  `json:"domain"`
+	PublicKey         string                  `json:"public_key"`
+	StorageEnabled    *bool                   `json:"storage_enabled,omitempty"`
+	AutoCreateAddress *bool                   `json:"auto_create_address,omitempty"`
 	WebhookConfig     *entities.WebhookConfig `json:"webhook_config,omitempty"`
 }
 

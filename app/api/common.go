@@ -13,13 +13,13 @@ import (
 )
 
 var (
-	ErrUnauthorized    = errors.New("unauthorized")
-	ErrNotFound        = errors.New("not found")
-	ErrBadRequest      = errors.New("bad request")
-	ErrForbidden       = errors.New("forbidden")
-	ErrConflict        = errors.New("conflict")
-	ErrValidation      = errors.New("validation error")
-	ErrInternalServer  = errors.New("internal server error")
+	ErrUnauthorized   = errors.New("unauthorized")
+	ErrNotFound       = errors.New("not found")
+	ErrBadRequest     = errors.New("bad request")
+	ErrForbidden      = errors.New("forbidden")
+	ErrConflict       = errors.New("conflict")
+	ErrValidation     = errors.New("validation error")
+	ErrInternalServer = errors.New("internal server error")
 )
 
 // parseUUID parses a string into a UUID
@@ -151,15 +151,15 @@ func sanitizeError(err error, code int) string {
 
 	// Sanitize database errors
 	if strings.Contains(errStr, "database") ||
-	   strings.Contains(errStr, "postgres") ||
-	   strings.Contains(errStr, "connection") {
+		strings.Contains(errStr, "postgres") ||
+		strings.Contains(errStr, "connection") {
 		return "service temporarily unavailable"
 	}
 
 	// Sanitize file system errors
 	if strings.Contains(errStr, "permission denied") ||
-	   strings.Contains(errStr, "access denied") ||
-	   strings.Contains(errStr, "file not found") {
+		strings.Contains(errStr, "access denied") ||
+		strings.Contains(errStr, "file not found") {
 		return "access denied"
 	}
 

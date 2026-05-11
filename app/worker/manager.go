@@ -8,43 +8,44 @@ import (
 
 	"mailvault/domain/validation"
 
-	"github.com/gofrs/uuid/v5"
 	"log/slog"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 // Manager coordinates validation workers, scheduler, and job distribution
 type Manager struct {
-	workerPool    *WorkerPool
-	queue         Queue
-	scheduler     *JobScheduler
-	useCase       ValidationUseCase
-	dnsService    validation.DNSService
-	config        WorkerConfig
-	logger        *slog.Logger
-	running       bool
-	mutex         sync.RWMutex
-	stopCh        chan struct{}
-	doneCh        chan struct{}
-	stats         ManagerStats
+	workerPool *WorkerPool
+	queue      Queue
+	scheduler  *JobScheduler
+	useCase    ValidationUseCase
+	dnsService validation.DNSService
+	config     WorkerConfig
+	logger     *slog.Logger
+	running    bool
+	mutex      sync.RWMutex
+	stopCh     chan struct{}
+	doneCh     chan struct{}
+	stats      ManagerStats
 }
 
 // WorkerConfig contains configuration for the worker manager
 type WorkerConfig struct {
 	// Worker pool settings
-	WorkerCount     int           `json:"worker_count"`
-	QueueSize       int           `json:"queue_size"`
-	QueueType       string        `json:"queue_type"` // "priority" or "fifo"
+	WorkerCount int    `json:"worker_count"`
+	QueueSize   int    `json:"queue_size"`
+	QueueType   string `json:"queue_type"` // "priority" or "fifo"
 
 	// Scheduling settings
-	CheckInterval   time.Duration `json:"check_interval"`
-	MaxRetries      int           `json:"max_retries"`
+	CheckInterval time.Duration `json:"check_interval"`
+	MaxRetries    int           `json:"max_retries"`
 
 	// Validation settings
 	ValidationConfig validation.ValidationConfig `json:"validation_config"`
 
 	// Monitoring settings
-	StatsInterval   time.Duration `json:"stats_interval"`
-	Enabled         bool          `json:"enabled"`
+	StatsInterval time.Duration `json:"stats_interval"`
+	Enabled       bool          `json:"enabled"`
 }
 
 // DefaultWorkerConfig returns a default worker configuration
@@ -63,14 +64,14 @@ func DefaultWorkerConfig() WorkerConfig {
 
 // ManagerStats contains statistics about the worker manager
 type ManagerStats struct {
-	StartTime          time.Time `json:"start_time"`
-	JobsProcessed      int64     `json:"jobs_processed"`
-	JobsSuccessful     int64     `json:"jobs_successful"`
-	JobsFailed         int64     `json:"jobs_failed"`
-	JobsRetried        int64     `json:"jobs_retried"`
-	DomainsValidated   int64     `json:"domains_validated"`
+	StartTime          time.Time     `json:"start_time"`
+	JobsProcessed      int64         `json:"jobs_processed"`
+	JobsSuccessful     int64         `json:"jobs_successful"`
+	JobsFailed         int64         `json:"jobs_failed"`
+	JobsRetried        int64         `json:"jobs_retried"`
+	DomainsValidated   int64         `json:"domains_validated"`
 	AverageProcessTime time.Duration `json:"average_process_time"`
-	LastStatsUpdate    time.Time `json:"last_stats_update"`
+	LastStatsUpdate    time.Time     `json:"last_stats_update"`
 }
 
 // NewManager creates a new worker manager
@@ -121,7 +122,7 @@ func NewManager(
 // Start starts the worker manager
 func (m *Manager) Start(ctx context.Context) error {
 	if !m.config.Enabled {
-		m.logger.Info( "Worker manager is disabled")
+		m.logger.Info("Worker manager is disabled")
 		return nil
 	}
 
@@ -132,7 +133,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		return fmt.Errorf("worker manager is already running")
 	}
 
-	m.logger.Info( "Starting worker manager",
+	m.logger.Info("Starting worker manager",
 		"worker_count", m.config.WorkerCount,
 		"queue_size", m.config.QueueSize,
 		"queue_type", m.config.QueueType,
@@ -161,7 +162,7 @@ func (m *Manager) Stop() error {
 		return nil
 	}
 
-	m.logger.Info( "Stopping worker manager")
+	m.logger.Info("Stopping worker manager")
 
 	// Signal stop
 	close(m.stopCh)
@@ -175,7 +176,7 @@ func (m *Manager) Stop() error {
 	<-m.doneCh
 
 	m.running = false
-	m.logger.Info( "Worker manager stopped")
+	m.logger.Info("Worker manager stopped")
 
 	return nil
 }
@@ -193,7 +194,7 @@ func (m *Manager) QueueValidationJob(job *validation.ValidationJob) error {
 		return fmt.Errorf("worker manager is not running")
 	}
 
-	m.logger.Info( "Queueing validation job",
+	m.logger.Info("Queueing validation job",
 		"job_id", job.ID,
 		"domain_id", job.DomainID,
 		"domain_name", job.DomainName,
@@ -210,7 +211,7 @@ func (m *Manager) ScheduleValidationJob(job *validation.ValidationJob, scheduleT
 		return fmt.Errorf("worker manager is not running")
 	}
 
-	m.logger.Info( "Scheduling validation job",
+	m.logger.Info("Scheduling validation job",
 		"job_id", job.ID,
 		"domain_id", job.DomainID,
 		"domain_name", job.DomainName,
@@ -266,10 +267,10 @@ func (m *Manager) GetDetailedStats() DetailedStats {
 
 // DetailedStats contains comprehensive statistics
 type DetailedStats struct {
-	Manager       ManagerStats     `json:"manager"`
-	WorkerPool    WorkerPoolStats  `json:"worker_pool"`
-	ScheduledJobs int              `json:"scheduled_jobs"`
-	QueueSize     int              `json:"queue_size"`
+	Manager       ManagerStats    `json:"manager"`
+	WorkerPool    WorkerPoolStats `json:"worker_pool"`
+	ScheduledJobs int             `json:"scheduled_jobs"`
+	QueueSize     int             `json:"queue_size"`
 }
 
 // run is the main management loop
@@ -301,7 +302,7 @@ func (m *Manager) performMaintenanceTasks(ctx context.Context) {
 
 	// Log current status
 	stats := m.GetDetailedStats()
-	m.logger.Info( "Worker manager status",
+	m.logger.Info("Worker manager status",
 		"running_workers", stats.WorkerPool.RunningWorkers,
 		"total_workers", stats.WorkerPool.TotalWorkers,
 		"queue_size", stats.QueueSize,
@@ -316,7 +317,7 @@ func (m *Manager) performMaintenanceTasks(ctx context.Context) {
 func (m *Manager) checkForPendingValidations(ctx context.Context) {
 	// This would query the database for domains that need validation
 	// For now, we'll just log that we're checking
-	m.logger.Debug( "Checking for pending domain validations")
+	m.logger.Debug("Checking for pending domain validations")
 
 	// In a real implementation, you would:
 	// 1. Query the validation repository for domains needing validation
@@ -346,7 +347,7 @@ func (m *Manager) statsCollector(ctx context.Context) {
 			return
 		case <-ticker.C:
 			stats := m.GetDetailedStats()
-			m.logger.Info( "Worker manager statistics",
+			m.logger.Info("Worker manager statistics",
 				"uptime", time.Since(stats.Manager.StartTime),
 				"jobs_processed", stats.Manager.JobsProcessed,
 				"jobs_successful", stats.Manager.JobsSuccessful,

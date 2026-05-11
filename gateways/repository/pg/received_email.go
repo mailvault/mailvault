@@ -383,28 +383,6 @@ func (r *ReceivedEmailRepository) Delete(ctx context.Context, id uuid.UUID) erro
 	return nil
 }
 
-func (r *ReceivedEmailRepository) scanReceivedEmail(row pgx.Row) (*entities.ReceivedEmail, error) {
-	var e entities.ReceivedEmail
-
-	err := row.Scan(
-		&e.ID,
-		&e.EmailAddressID,
-		&e.SequenceNumber,
-		&e.FromAddress,
-		&e.Subject,
-		&e.EncryptedBody,
-		&e.ReceivedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sql.ErrNoRows
-		}
-		return nil, err
-	}
-
-	return &e, nil
-}
 
 func (r *ReceivedEmailRepository) scanReceivedEmailFromRows(rows pgx.Rows) (*entities.ReceivedEmail, error) {
 	var e entities.ReceivedEmail
@@ -416,28 +394,6 @@ func (r *ReceivedEmailRepository) scanReceivedEmailFromRows(rows pgx.Rows) (*ent
 		&e.FromAddress,
 		&e.Subject,
 		&e.EncryptedBody,
-		&e.ReceivedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &e, nil
-}
-
-func (r *ReceivedEmailRepository) scanReceivedEmailWithDetailsFromRows(rows pgx.Rows) (*entities.ReceivedEmail, error) {
-	var e entities.ReceivedEmail
-
-	err := rows.Scan(
-		&e.ID,
-		&e.EmailAddressID,
-		&e.SequenceNumber,
-		&e.FromAddress,
-		&e.Subject,
-		&e.EncryptedBody,
-		&e.DomainName,
-		&e.EmailAddress,
 		&e.ReceivedAt,
 	)
 

@@ -20,9 +20,9 @@ type Provider interface {
 
 // CreateUserResponse contains user creation result and confirmation status
 type CreateUserResponse struct {
-	UserID           string // Auth provider user ID
-	RequiresConfirm  bool   // Whether email confirmation is required
-	AccessToken      string // Only set if auto-confirmed
+	UserID          string // Auth provider user ID
+	RequiresConfirm bool   // Whether email confirmation is required
+	AccessToken     string // Only set if auto-confirmed
 }
 
 type CreateUserRequest struct {
