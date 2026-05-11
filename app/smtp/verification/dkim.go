@@ -13,6 +13,10 @@ import (
 type DKIMVerifier struct {
 	resolver string
 	timeout  time.Duration
+	// LookupTXT is the DNS TXT resolver used to fetch DKIM public keys. Tests
+	// inject a fake resolver here to avoid hitting the network. When nil the
+	// underlying library falls back to net.LookupTXT.
+	LookupTXT func(domain string) ([]string, error)
 }
 
 // NewDKIMVerifier creates a new DKIM verifier
@@ -31,7 +35,9 @@ func NewDKIMVerifier(resolver string) *DKIMVerifier {
 func (v *DKIMVerifier) Verify(ctx context.Context, emailCtx EmailContext) DKIMResult {
 	// Use go-msgauth to verify DKIM signatures on the raw message
 	// We intentionally pass the raw bytes to preserve folding/canonicalization
-	verifs, err := dkim.Verify(bytes.NewReader(emailCtx.Body))
+	verifs, err := dkim.VerifyWithOptions(bytes.NewReader(emailCtx.Body), &dkim.VerifyOptions{
+		LookupTXT: v.LookupTXT,
+	})
 
 	// Map per-signature results first even if there is a global error
 	mapped := make([]DKIMSignatureResult, 0, len(verifs))

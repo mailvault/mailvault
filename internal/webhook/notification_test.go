@@ -165,6 +165,60 @@ func TestNotificationService_SuccessfulSyncDelivery(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&hits))
 }
 
+// TestNotificationService_FanOutToMultipleEndpoints exercises the dispatcher's
+// behaviour when a domain has more than one active webhook configuration.
+// Every configured endpoint should receive the event exactly once.
+func TestNotificationService_FanOutToMultipleEndpoints(t *testing.T) {
+	var hitsA, hitsB int32
+	serverA := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hitsA, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer serverA.Close()
+	serverB := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hitsB, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer serverB.Close()
+
+	fix := newNotificationFixture(t, []*entities.WebhookConfiguration{
+		enabledWebhookConfig(serverA.URL),
+		enabledWebhookConfig(serverB.URL),
+	})
+
+	received, addr, verResult := fix.sampleEvent()
+	require.NoError(t, fix.service.NotifyIncomingEmail(context.Background(), received, fix.domain, addr, verResult, false))
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&hitsA), "endpoint A should receive exactly one delivery")
+	assert.Equal(t, int32(1), atomic.LoadInt32(&hitsB), "endpoint B should receive exactly one delivery")
+}
+
+// TestNotificationService_PartialFailureSucceedsWhenSomeEndpointsAccept
+// covers the contract that one bad endpoint must not poison delivery to other
+// healthy endpoints attached to the same domain.
+func TestNotificationService_PartialFailureSucceedsWhenSomeEndpointsAccept(t *testing.T) {
+	bad := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "down", http.StatusInternalServerError)
+	}))
+	defer bad.Close()
+	var goodHits int32
+	good := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&goodHits, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer good.Close()
+
+	fix := newNotificationFixture(t, []*entities.WebhookConfiguration{
+		enabledWebhookConfig(bad.URL),
+		enabledWebhookConfig(good.URL),
+	})
+
+	received, addr, verResult := fix.sampleEvent()
+	// One endpoint succeeding is enough — overall return is nil.
+	require.NoError(t, fix.service.NotifyIncomingEmail(context.Background(), received, fix.domain, addr, verResult, false))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&goodHits))
+}
+
 func TestNotificationService_AllDeliveriesFail_ReturnsError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "boom", http.StatusInternalServerError)
