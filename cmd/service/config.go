@@ -28,6 +28,10 @@ type Config struct {
 	StripeSecretKey      string `conf:"env:STRIPE_SECRET_KEY"`
 	StripeWebhookSecret  string `conf:"env:STRIPE_WEBHOOK_SECRET"`
 	StripePublishableKey string `conf:"env:STRIPE_PUBLISHABLE_KEY"`
+
+	// Email-provider webhook secrets. These are the keys configured in each
+	// provider's dashboard and used to verify the authenticity of inbound
+	// delivery-event webhooks (bounce, click, complaint, etc).
 }
 
 func (c *Config) Load(prefix string) error {

@@ -7,6 +7,7 @@ import (
 	"mailvault/app/api"
 	"mailvault/app/api/middleware"
 	v1 "mailvault/app/api/v1"
+	apiwebhooks "mailvault/app/api/v1/webhooks"
 	authDomain "mailvault/domain/auth"
 	"mailvault/domain/billing"
 	domainpkg "mailvault/domain/domain"
@@ -145,8 +146,13 @@ func main() {
 		Logger:               log,
 		StripeSecretKey:      cfg.StripeSecretKey,
 		StripeWebhookSecret:  cfg.StripeWebhookSecret,
-		HealthChecker:        dbPool,    // optimized database pool implements the Ping interface
-		MetricsMiddleware:    metricsMw, // Pass metrics middleware for business metrics
+		ProviderWebhookSecrets: apiwebhooks.WebhookSecrets{
+			Resend:            cfg.ResendWebhookSecret,
+			SendGridPublicKey: cfg.SendGridWebhookSecret,
+			Mailgun:           cfg.MailgunWebhookSecret,
+		},
+		HealthChecker:     dbPool,    // optimized database pool implements the Ping interface
+		MetricsMiddleware: metricsMw, // Pass metrics middleware for business metrics
 	}
 
 	router := api.Router()

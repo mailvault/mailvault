@@ -45,6 +45,8 @@ type ApiHandlers struct {
 	// Stripe configuration (forwarded to billing handlers)
 	StripeSecretKey     string
 	StripeWebhookSecret string
+	// Provider webhook secrets (forwarded to webhook handlers)
+	ProviderWebhookSecrets webhooks.WebhookSecrets
 	// For health checks
 	HealthChecker HealthChecker
 	// For metrics collection
@@ -437,7 +439,7 @@ func (h *ApiHandlers) Readiness(w http.ResponseWriter, r *http.Request) {
 func (h *ApiHandlers) handleProviderWebhook(providerType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Initialize the webhook handler
-		webhookHandler := webhooks.NewProviderWebhookHandler(h.WebhookUseCase, h.Logger)
+		webhookHandler := webhooks.NewProviderWebhookHandlerWithSecrets(h.WebhookUseCase, h.Logger, h.ProviderWebhookSecrets)
 
 		// Route to the appropriate provider handler based on provider type
 		switch providerType {

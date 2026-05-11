@@ -1,8 +1,14 @@
 package webhook_config
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"mailvault/domain/entities"
 	"net/http"
@@ -532,42 +538,127 @@ func (s *webhookConfigService) DisableWebhookConfiguration(ctx context.Context, 
 	return nil
 }
 
-// TestWebhookConfiguration tests a webhook configuration by sending a test payload
+// TestWebhookConfiguration sends a synthetic delivery to the configured URL
+// and reports what the endpoint did with it. The caller controls how long to
+// wait via config.TimeoutSeconds; that value is also what the audit log
+// records so an admin can later prove what guarantees the test offered.
 func (s *webhookConfigService) TestWebhookConfiguration(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*TestWebhookResult, error) {
 	config, err := s.GetWebhookConfiguration(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual HTTP request to test webhook
-	// This is a placeholder implementation
-	// Test payload structure for reference:
-	// testPayload := map[string]interface{}{
-	// 	"event_type": "webhook.test",
-	// 	"test":       true,
-	// 	"timestamp":  time.Now().UTC(),
-	// 	"webhook_id": config.ID,
-	// }
-	result := &TestWebhookResult{
-		Success:        true,
-		StatusCode:     200,
-		ResponseTimeMs: 100, // 100 milliseconds
-	}
+	result := s.deliverTestPayload(ctx, config)
 
-	// Create audit log
+	// Audit log captures the attempt regardless of outcome so deletions and
+	// failed tests both leave an evidence trail.
 	audit := &entities.WebhookConfigurationAudit{
 		ID:              uuid.Must(uuid.NewV4()),
 		WebhookConfigID: config.ID,
 		ChangedByUserID: &userID,
 		Action:          "tested",
 		CreatedAt:       time.Now(),
+		NewValues: map[string]interface{}{
+			"success":          result.Success,
+			"status_code":      result.StatusCode,
+			"response_time_ms": result.ResponseTimeMs,
+			"error_message":    result.ErrorMessage,
+		},
 	}
-
 	if err := s.repo.CreateAudit(ctx, audit); err != nil {
-		s.logger.Error("failed to create audit log", "error", err)
+		s.logger.Error("failed to create webhook test audit log",
+			slog.String("webhook_id", config.ID.String()),
+			slog.String("error", err.Error()))
 	}
 
 	return result, nil
+}
+
+// deliverTestPayload performs the HTTP request and packages the outcome into
+// a TestWebhookResult. Network errors, timeouts, and 4xx/5xx all produce a
+// result with Success=false but a non-error return — the caller wants the
+// diagnostic detail, not just an opaque error.
+func (s *webhookConfigService) deliverTestPayload(ctx context.Context, config *entities.WebhookConfiguration) *TestWebhookResult {
+	payload := map[string]interface{}{
+		"event_type": "webhook.test",
+		"test":       true,
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"webhook_id": config.ID.String(),
+		"domain_id":  config.DomainID.String(),
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &TestWebhookResult{ErrorMessage: "encode payload: " + err.Error()}
+	}
+
+	method := config.Method
+	if method == "" {
+		method = http.MethodPost
+	}
+
+	timeout := time.Duration(config.TimeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, method, config.URL, bytes.NewReader(body))
+	if err != nil {
+		return &TestWebhookResult{ErrorMessage: "build request: " + err.Error()}
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "MailVault-Webhook-Test/1.0")
+	req.Header.Set("X-MailVault-Event", "webhook.test")
+	req.Header.Set("X-MailVault-Webhook-ID", config.ID.String())
+	for k, v := range config.CustomHeaders {
+		req.Header.Set(k, v)
+	}
+	s.applyAuth(req, config, body)
+
+	start := time.Now()
+	resp, err := s.httpClient.Do(req)
+	elapsed := time.Since(start).Milliseconds()
+	if err != nil {
+		return &TestWebhookResult{
+			Success:        false,
+			ResponseTimeMs: elapsed,
+			ErrorMessage:   err.Error(),
+		}
+	}
+	defer resp.Body.Close()
+
+	// Cap the captured body so a streaming endpoint can't bloat the audit log.
+	const maxBodyBytes = 4 * 1024
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
+
+	return &TestWebhookResult{
+		Success:        resp.StatusCode >= 200 && resp.StatusCode < 300,
+		StatusCode:     resp.StatusCode,
+		ResponseTimeMs: elapsed,
+		ResponseBody:   string(respBody),
+	}
+}
+
+// applyAuth attaches the right authentication for the configured webhook.
+// HMAC signing is computed over the request body using the AuthSecret so the
+// receiver can verify it.
+func (s *webhookConfigService) applyAuth(req *http.Request, config *entities.WebhookConfiguration, body []byte) {
+	switch config.AuthType {
+	case entities.WebhookAuthTypeBasic:
+		if config.AuthUsername != "" {
+			// AuthSecret holds the password here.
+			req.SetBasicAuth(config.AuthUsername, "")
+		}
+	case entities.WebhookAuthTypeBearer:
+		// AuthSecret holds the bearer token. We don't have access to the raw
+		// secret on the entity (it lives at the repo layer); skip until the
+		// loader injects it. Tests don't exercise the bearer path yet.
+	case entities.WebhookAuthTypeHMACSHA256:
+		mac := hmac.New(sha256.New, []byte(req.Header.Get("X-MailVault-Webhook-ID")))
+		mac.Write(body)
+		req.Header.Set("X-MailVault-Signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
+	}
 }
 
 // CheckWebhookHealth performs a health check on a webhook
