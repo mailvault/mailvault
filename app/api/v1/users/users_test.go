@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/users/mocks"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api/v1/users/mocks"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"

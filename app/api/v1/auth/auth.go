@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"mailvault/app/api"
-	"mailvault/domain/auth"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api"
+	"github.com/mailvault/mailvault/domain/auth"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -174,17 +174,32 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Authenticate with auth provider (validate credentials)
-	_, err := h.authProvider.Login(r.Context(), req.Email, req.Password)
+	accessToken, err := h.authProvider.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		slog.Error("failed to login", "error", err)
 		api.ErrorResponse(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
-	// Get user from database
-	user, err := h.userUseCase.GetUserByEmail(r.Context(), req.Email)
+	// Resolve the provider's user record so we have the stable AuthProviderID.
+	authUser, err := h.authProvider.ValidateToken(r.Context(), accessToken)
 	if err != nil {
-		slog.Error("failed to get user from database", "error", err)
+		slog.Error("failed to validate token after login", "error", err)
+		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Get or create the local user record. Supabase is the source of truth
+	// for identity; the local DB just mirrors the user. Auto-creating here
+	// lets pre-existing Supabase users sign in after a fresh DB or migration.
+	user, err := h.userUseCase.GetOrCreateUserByAuthProvider(
+		r.Context(),
+		h.authProvider.Provider(),
+		authUser.AuthProviderID,
+		authUser.Email,
+	)
+	if err != nil {
+		slog.Error("failed to get or create user in our database", "error", err)
 		api.ErrorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}

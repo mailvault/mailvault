@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"mailvault/app/api"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"

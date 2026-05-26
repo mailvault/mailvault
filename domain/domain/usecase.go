@@ -9,22 +9,24 @@ import (
 	"strings"
 	"time"
 
-	"mailvault/domain/entities"
-	"mailvault/domain/user"
-	"mailvault/internal/encryption"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/extensions"
+	"github.com/mailvault/mailvault/internal/encryption"
 
 	"github.com/gofrs/uuid/v5"
 )
 
 type UseCase struct {
-	repo     Repository
-	userRepo user.Repository
+	repo    Repository
+	limiter extensions.DomainLimiter
 }
 
-func NewUseCase(repo Repository, userRepo user.Repository) *UseCase {
+// NewUseCase builds the domain use case. The limiter argument controls quota
+// enforcement; pass extensions.NoopDomainLimiter{} for unrestricted (OSS) builds.
+func NewUseCase(repo Repository, limiter extensions.DomainLimiter) *UseCase {
 	return &UseCase{
-		repo:     repo,
-		userRepo: userRepo,
+		repo:    repo,
+		limiter: limiter,
 	}
 }
 
@@ -70,22 +72,9 @@ func (uc *UseCase) CreateDomain(ctx context.Context, req CreateDomainInput) (*en
 	// Normalize domain (lowercase)
 	normalizedDomain := strings.ToLower(req.Domain)
 
-	// Get user to check account type and domain limits
-	user, err := uc.userRepo.GetByID(ctx, req.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-
-	// Check domain limit based on user plan
-	userDomains, err := uc.repo.GetByUserID(ctx, req.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user domains: %w", err)
-	}
-
-	domainLimit := user.GetDomainLimit()
-	if domainLimit > 0 && len(userDomains) >= domainLimit {
-		return nil, fmt.Errorf("domain limit exceeded: %s plan can have maximum %d domain(s), you currently have %d",
-			user.UserPlan, domainLimit, len(userDomains))
+	// Check quota via the injected limiter (no-op in OSS builds).
+	if err := uc.limiter.CheckCanCreateDomain(ctx, req.UserID); err != nil {
+		return nil, err
 	}
 
 	// Check if domain already exists

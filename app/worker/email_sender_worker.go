@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"mailvault/domain/email_sending"
-	"mailvault/internal/providers"
+	"github.com/mailvault/mailvault/domain/email_sending"
+	"github.com/mailvault/mailvault/internal/providers"
 
 	"log/slog"
 

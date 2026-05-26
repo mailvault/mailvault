@@ -2,7 +2,7 @@ package webhook_config
 
 import (
 	"context"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )

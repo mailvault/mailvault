@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"mailvault/domain/entities"
-	"mailvault/domain/webhook_config"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/webhook_config"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"

@@ -10,24 +10,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"mailvault/app/api/v1/send/mocks"
-	billingdomain "mailvault/domain/billing"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api/v1/send/mocks"
+	"github.com/mailvault/mailvault/domain/entities"
 
-	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"
 )
-
-// noopBillingUseCase is a test double that always allows operations.
-type noopBillingUseCase struct{}
-
-func (n *noopBillingUseCase) CheckLimit(_ context.Context, _ uuid.UUID, _ entities.UsageMetric) (*billingdomain.CheckLimitResult, error) {
-	return &billingdomain.CheckLimitResult{Allowed: true, Unlimited: true}, nil
-}
-
-func (n *noopBillingUseCase) IncrementUsage(_ context.Context, _ uuid.UUID, _ entities.UsageMetric, _ int64) error {
-	return nil
-}
 
 func TestSendHandlers_SendEmail_Success(t *testing.T) {
 	t.Parallel()
@@ -38,7 +25,7 @@ func TestSendHandlers_SendEmail_Success(t *testing.T) {
 			return &entities.Domain{Domain: "example.com"}, nil
 		},
 	}
-	h := NewSendHandlers(mock, &noopBillingUseCase{}, slog.Default())
+	h := NewSendHandlers(mock, slog.Default())
 
 	reqBody, _ := json.Marshal(SendEmailRequest{
 		From:     "noreply@example.com",
@@ -64,7 +51,7 @@ func TestSendHandlers_SendEmail_Success(t *testing.T) {
 func TestSendHandlers_SendEmail_MissingAPIKey(t *testing.T) {
 	t.Parallel()
 
-	h := NewSendHandlers(&mocks.UseCaseMock{}, &noopBillingUseCase{}, slog.Default())
+	h := NewSendHandlers(&mocks.UseCaseMock{}, slog.Default())
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/send", bytes.NewReader([]byte(`{}`)))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -79,7 +66,7 @@ func TestSendHandlers_SendEmail_InvalidFromDomain(t *testing.T) {
 	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return &entities.Domain{Domain: "example.com"}, nil
 	}}
-	h := NewSendHandlers(mock, &noopBillingUseCase{}, slog.Default())
+	h := NewSendHandlers(mock, slog.Default())
 
 	reqBody, _ := json.Marshal(SendEmailRequest{From: "noreply@other.com", To: []string{"x@y.com"}, Subject: "Hello", TextBody: "Body"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/send", bytes.NewReader(reqBody))
@@ -97,7 +84,7 @@ func TestSendHandlers_SendEmail_BodyMissing(t *testing.T) {
 	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return &entities.Domain{Domain: "example.com"}, nil
 	}}
-	h := NewSendHandlers(mock, &noopBillingUseCase{}, slog.Default())
+	h := NewSendHandlers(mock, slog.Default())
 
 	reqBody, _ := json.Marshal(SendEmailRequest{From: "noreply@example.com", To: []string{"x@y.com"}, Subject: "Hello"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/send", bytes.NewReader(reqBody))
@@ -115,7 +102,7 @@ func TestSendHandlers_SendEmail_InvalidJSON(t *testing.T) {
 	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return &entities.Domain{Domain: "example.com"}, nil
 	}}
-	h := NewSendHandlers(mock, &noopBillingUseCase{}, slog.Default())
+	h := NewSendHandlers(mock, slog.Default())
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/send", bytes.NewReader([]byte("{")))
 	req.Header.Set("Authorization", "Bearer pm_api_key")
@@ -132,7 +119,7 @@ func TestSendHandlers_SendEmail_InvalidAPIKey(t *testing.T) {
 	mock := &mocks.UseCaseMock{GetDomainByAPIKeyFunc: func(ctx context.Context, apiKey string) (*entities.Domain, error) {
 		return nil, errors.New("invalid key")
 	}}
-	h := NewSendHandlers(mock, &noopBillingUseCase{}, slog.Default())
+	h := NewSendHandlers(mock, slog.Default())
 
 	reqBody, _ := json.Marshal(SendEmailRequest{From: "noreply@example.com", To: []string{"x@y.com"}, Subject: "Hello", TextBody: "Body"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/send", bytes.NewReader(reqBody))

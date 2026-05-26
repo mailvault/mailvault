@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/domain/email"
-	"mailvault/domain/email/mocks"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/email/mocks"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"

@@ -2,7 +2,7 @@ package domains
 
 import (
 	"log/slog"
-	"mailvault/app/api"
+	"github.com/mailvault/mailvault/app/api"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"

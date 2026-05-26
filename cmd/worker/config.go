@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"mailvault/app/worker"
-	"mailvault/domain/validation"
+	"github.com/mailvault/mailvault/app/worker"
+	"github.com/mailvault/mailvault/domain/validation"
 
 	"github.com/ardanlabs/conf/v3"
 	_ "github.com/joho/godotenv/autoload"

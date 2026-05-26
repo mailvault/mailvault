@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"time"
 
-	"mailvault/domain/email_provider"
-	"mailvault/domain/entities"
-	"mailvault/internal/providers"
+	"github.com/mailvault/mailvault/domain/email_provider"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/internal/providers"
 
 	"github.com/gofrs/uuid/v5"
 )

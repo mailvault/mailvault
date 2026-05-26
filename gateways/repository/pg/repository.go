@@ -3,14 +3,14 @@ package pg
 import (
 	"context"
 
-	"mailvault/domain/billing"
-	domain "mailvault/domain/domain"
-	"mailvault/domain/email"
-	"mailvault/domain/email_provider"
-	"mailvault/domain/email_sending"
-	"mailvault/domain/user"
-	"mailvault/domain/validation"
-	"mailvault/domain/webhook_config"
+	"github.com/mailvault/mailvault/domain/auth/local"
+	domain "github.com/mailvault/mailvault/domain/domain"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/email_provider"
+	"github.com/mailvault/mailvault/domain/email_sending"
+	"github.com/mailvault/mailvault/domain/user"
+	"github.com/mailvault/mailvault/domain/validation"
+	"github.com/mailvault/mailvault/domain/webhook_config"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -35,8 +35,8 @@ type Repository struct {
 	ValidationRepo       validation.Repository
 	EmailProviderRepo    email_provider.Repository
 	EmailProviderLogRepo email_provider.LogRepository
-	BillingRepo          billing.Repository
 	WebhookConfigRepo    webhook_config.Repository
+	LocalCredsRepo       local.CredentialsRepo
 }
 
 // NewRepository creates a new Repository instance with all sub-repositories
@@ -51,8 +51,8 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 		ValidationRepo:       NewValidationRepository(db),
 		EmailProviderRepo:    NewEmailProviderRepository(db),
 		EmailProviderLogRepo: NewEmailProviderLogRepository(db),
-		BillingRepo:          NewBillingRepository(db),
 		WebhookConfigRepo:    NewWebhookConfigRepository(db),
+		LocalCredsRepo:       NewLocalCredentialsRepository(db),
 	}
 }
 
@@ -68,8 +68,8 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 		ValidationRepo:       NewValidationRepository(tx),
 		EmailProviderRepo:    NewEmailProviderRepository(tx),
 		EmailProviderLogRepo: NewEmailProviderLogRepository(tx),
-		BillingRepo:          NewBillingRepository(tx),
 		WebhookConfigRepo:    NewWebhookConfigRepository(tx),
+		LocalCredsRepo:       NewLocalCredentialsRepository(tx),
 	}
 }
 

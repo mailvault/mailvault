@@ -1,7 +1,7 @@
 package verification
 
 import (
-	"mailvault/internal/utils"
+	"github.com/mailvault/mailvault/internal/utils"
 
 	"github.com/emersion/go-msgauth/authres"
 )

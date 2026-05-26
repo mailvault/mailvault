@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/entities"
 	"net/http"
 	"time"
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"mailvault/domain/email_sending"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/email_sending"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"

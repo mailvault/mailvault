@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"mailvault/domain/entities"
-	"mailvault/domain/smtp_stats"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/smtp_stats"
 	
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

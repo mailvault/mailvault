@@ -1,4 +1,4 @@
-module mailvault
+module github.com/mailvault/mailvault
 
 go 1.26.0
 
@@ -31,9 +31,6 @@ require (
 	github.com/resend/resend-go/v2 v2.25.0
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	github.com/stretchr/testify v1.11.1
-	github.com/stripe/stripe-go/v82 v82.5.1
-	github.com/supabase-community/auth-go v1.4.0
-	github.com/supabase-community/supabase-go v0.0.5-0.20250912034549-9f6d333f052a
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.51.0
@@ -41,9 +38,6 @@ require (
 
 //replace github.com/guilhermebr/gox/postgres v0.0.0 => ../gox/postgres
 //replace github.com/guilhermebr/gox/logger v0.0.0 => ../gox/logger
-
-// Replace with local SDK during development
-replace github.com/guilhermebr/mailvault-go-sdk v0.1.0 => ../mailvault-go-sdk
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
@@ -92,7 +86,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -125,11 +118,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/supabase-community/functions-go v0.1.0 // indirect
-	github.com/supabase-community/postgrest-go v0.0.11 // indirect
-	github.com/supabase-community/storage-go v0.8.1 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
-	github.com/tomnomnom/linkheader v0.0.0-20250811210735-e5fe3b51442e // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect

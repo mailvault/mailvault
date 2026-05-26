@@ -4,27 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mailvault/app/api"
-	"mailvault/app/api/middleware"
-	v1 "mailvault/app/api/v1"
-	apiwebhooks "mailvault/app/api/v1/webhooks"
-	authDomain "mailvault/domain/auth"
-	"mailvault/domain/billing"
-	domainpkg "mailvault/domain/domain"
-	"mailvault/domain/email"
-	"mailvault/domain/user"
-	"mailvault/domain/webhook_config"
-	"mailvault/gateways/repository/pg"
-	"mailvault/internal/database"
-	"mailvault/internal/webhook"
-	"net/http"
-	"runtime"
+	"os"
 	"time"
 
-	_ "mailvault/docs" // swagger docs
+	"github.com/mailvault/mailvault/app/service"
+	"github.com/mailvault/mailvault/gateways/repository/pg"
 
-	goxhttp "github.com/guilhermebr/gox/http"
-	"github.com/guilhermebr/gox/logger"
+	authDomain "github.com/mailvault/mailvault/domain/auth"
 )
 
 // Injected on build time by ldflags.
@@ -34,156 +20,28 @@ var (
 )
 
 func main() {
-	ctx := context.Background()
+	// Pass build metadata through to the service package so it shows up in logs.
+	service.BuildCommit = BuildCommit
+	service.BuildTime = BuildTime
 
-	var cfg Config
+	var cfg service.Config
 	if err := cfg.Load(""); err != nil {
 		panic(fmt.Errorf("loading config: %w", err))
 	}
 
-	// Logger
-	log, err := logger.NewLogger("")
-	if err != nil {
-		panic(fmt.Errorf("creating logger: %w", err))
-	}
-
-	log = log.With(
-		slog.String("environment", cfg.Environment),
-		slog.String("build_commit", BuildCommit),
-		slog.String("build_time", BuildTime),
-		slog.Int("go_max_procs", runtime.GOMAXPROCS(0)),
-		slog.Int("runtime_num_cpu", runtime.NumCPU()),
-	)
-
-	// Optimized Database Connection Pool
-	dbPool, err := database.NewOptimizedPool(ctx, "", log)
-	if err != nil {
-		log.Error("failed to setup optimized database pool",
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-	defer dbPool.Close()
-
-	err = dbPool.Ping(ctx)
-	if err != nil {
-		log.Error("failed to reach database",
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-
-	// Log database statistics for monitoring
-	if cfg.EnableDatabaseMetrics {
-		stats := dbPool.GetStats()
-		log.Info("Database pool statistics",
-			slog.Any("stats", stats),
-		)
-	}
-
-	repo := pg.NewRepository(dbPool.Pool)
-
-	// Authentication provider
-	// ------------------------------------------
-	authProvider, err := authDomain.NewAuthProvider(authDomain.Config{
-		Provider:       cfg.AuthProvider,
-		SupabaseURL:    cfg.SupabaseURL,
-		SupabaseAPIKey: cfg.SupabaseAPIKey,
-	})
-	if err != nil {
-		log.Error("failed to setup auth provider",
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-
-	// Webhook system
-	// ------------------------------------------
-	webhookClient := webhook.NewHTTPClient(webhook.DefaultClientConfig())
-	webhookNotifier := webhook.NewIncomingEmailNotificationService(webhook.NotificationServiceConfig{
-		HTTPClient:  webhookClient,
-		EnableAsync: true, // Enable async processing for better performance
-	})
-
-	// Use cases and their dependencies
-	// ------------------------------------------
-	userUseCase := user.NewUseCase(repo.UserRepo)
-	domainUseCase := domainpkg.NewUseCase(repo.DomainRepo, repo.UserRepo)
-	emailUseCase := email.NewUseCase(repo.EmailAddressRepo, repo.ReceivedEmailRepo, repo.DomainRepo, webhook.NewNotificationServiceAdapter(webhookNotifier))
-	billingUseCase := billing.NewUseCase(repo.BillingRepo, log)
-	webhookConfigUseCase := webhook_config.NewUseCase(repo.WebhookConfigRepo, repo.DomainRepo, log)
-
-	// Initialize metrics middleware for separate server
-	metricsMw := middleware.NewMetricsMiddleware(middleware.DefaultMetricsConfig())
-
-	// Start metrics server in separate goroutine
-	go func() {
-		metricsHandler := metricsMw.PrometheusHandler()
-		http.Handle("/metrics", metricsHandler)
-
-		log.Info("Starting metrics server",
-			slog.String("address", cfg.MetricsAddress),
-		)
-
-		if err := http.ListenAndServe(cfg.MetricsAddress, nil); err != nil {
-			log.Error("Metrics server failed",
-				slog.String("error", err.Error()),
-			)
-		}
-	}()
-
-	// Handlers V1
-	apiV1 := v1.ApiHandlers{
-		AuthProvider:         authProvider,
-		UserUseCase:          userUseCase,
-		AuthUseCase:          userUseCase,
-		DomainUseCase:        domainUseCase,
-		EmailUseCase:         emailUseCase,
-		BillingUseCase:       billingUseCase,
-		WebhookConfigUseCase: webhookConfigUseCase,
-		AuthSecretKey:        cfg.AuthSecretKey,
-		AuthTokenTTL:         cfg.AuthTokenTTL,
-		Logger:               log,
-		StripeSecretKey:      cfg.StripeSecretKey,
-		StripeWebhookSecret:  cfg.StripeWebhookSecret,
-		ProviderWebhookSecrets: apiwebhooks.WebhookSecrets{
-			Resend:            cfg.ResendWebhookSecret,
-			SendGridPublicKey: cfg.SendGridWebhookSecret,
-			Mailgun:           cfg.MailgunWebhookSecret,
+	err := service.Run(context.Background(), service.Options{
+		Config: cfg,
+		AuthProviderBuilder: func(repo *pg.Repository) (authDomain.Provider, error) {
+			tokenTTL, err := time.ParseDuration(cfg.AuthTokenTTL)
+			if err != nil {
+				return nil, fmt.Errorf("parse AUTH_TOKEN_TTL: %w", err)
+			}
+			return newAuthProvider(cfg, tokenTTL, repo)
 		},
-		HealthChecker:     dbPool,    // optimized database pool implements the Ping interface
-		MetricsMiddleware: metricsMw, // Pass metrics middleware for business metrics
+		// OSS defaults: extensions are no-op. Self-hosters get unlimited everything.
+	})
+	if err != nil {
+		slog.Default().Error("service failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
-
-	router := api.Router()
-	apiV1.Routes(router)
-
-	// SERVER
-	// ------------------------------------------
-	log.Info("server starting",
-		slog.String("address", cfg.ApiAddress),
-		slog.String("environment", cfg.Environment),
-	)
-
-	// Configure server with graceful shutdown using gox/http
-	serverConfig := goxhttp.Config{
-		Address:           cfg.ApiAddress,
-		ReadHeaderTimeout: 60 * time.Second,
-		ReadTimeout:       120 * time.Second,
-		WriteTimeout:      120 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ShutdownTimeout:   30 * time.Second,
-	}
-
-	httpServer := goxhttp.NewServerWithConfig("api", router, serverConfig, log)
-
-	log.Info("server address", slog.String("address", httpServer.Address()))
-
-	if err := httpServer.StartWithGracefulShutdown(); err != nil {
-		log.Error("server failed",
-			slog.String("error", err.Error()),
-		)
-	}
-
-	log.Info("server shutdown completed")
 }

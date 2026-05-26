@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/domain/entities"
-	"mailvault/domain/user/mocks"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/user/mocks"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"

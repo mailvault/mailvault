@@ -3,16 +3,26 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
-	"mailvault/domain/domain/mocks"
-	"mailvault/domain/entities"
-	userMocks "mailvault/domain/user/mocks"
+	"github.com/mailvault/mailvault/domain/domain/mocks"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/extensions"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"
 )
+
+// stubLimiter is a test double that returns the configured error.
+type stubLimiter struct {
+	err error
+}
+
+func (s stubLimiter) CheckCanCreateDomain(_ context.Context, _ uuid.UUID) error {
+	return s.err
+}
 
 func TestCreateDomain(t *testing.T) {
 	ctx := context.Background()
@@ -22,23 +32,9 @@ func TestCreateDomain(t *testing.T) {
 	publicKey := "x25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
 	t.Run("successful creation", func(t *testing.T) {
-		// Create fresh mocks for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
-		// Setup mocks
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains
-		}
 		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
 			return nil, sql.ErrNoRows
 		}
@@ -72,39 +68,24 @@ func TestCreateDomain(t *testing.T) {
 		assert.Len(t, mockRepo.CreateCalls(), 1)
 	})
 
-	t.Run("freemium domain limit exceeded", func(t *testing.T) {
-		// Create fresh mocks for each test case
+	t.Run("limit exceeded returns limiter error", func(t *testing.T) {
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		limitErr := fmt.Errorf("domain limit exceeded: free plan can have maximum 1 domain(s), you currently have 1")
+		uc := NewUseCase(mockRepo, stubLimiter{err: limitErr})
 
-		// Setup mocks - freemium user with 1 existing domain (at limit)
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{
-				{ID: uuid.Must(uuid.NewV4()), Domain: "existing.com", UserID: userID},
-			}, nil // 1 existing domain (freemium limit is 1)
-		}
-
-		// Execute
 		result, err := uc.CreateDomain(ctx, CreateDomainInput{
 			UserID:    userID,
 			Domain:    domain,
 			PublicKey: publicKey,
 		})
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "domain limit exceeded")
 		assert.Contains(t, err.Error(), "free plan can have maximum 1 domain(s)")
+		// Should not have reached the existence check or creation.
+		assert.Len(t, mockRepo.GetByDomainCalls(), 0)
+		assert.Len(t, mockRepo.CreateCalls(), 0)
 	})
 
 	t.Run("validation errors", func(t *testing.T) {
@@ -137,10 +118,8 @@ func TestCreateDomain(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				// Create fresh mock for each validation test case
 				mockRepo := &mocks.RepositoryMock{}
-				mockUserRepo := &userMocks.RepositoryMock{}
-				uc := NewUseCase(mockRepo, mockUserRepo)
+				uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 				result, err := uc.CreateDomain(ctx, tc.input)
 				assert.Error(t, err)
@@ -151,28 +130,14 @@ func TestCreateDomain(t *testing.T) {
 	})
 
 	t.Run("domain already exists", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		existingDomain := &entities.Domain{
 			ID:     uuid.Must(uuid.NewV4()),
 			Domain: domain,
 		}
 
-		// Setup user mock
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains for limit check
-		}
 		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
 			return existingDomain, nil
 		}
@@ -192,28 +157,14 @@ func TestCreateDomain(t *testing.T) {
 	})
 
 	t.Run("with webhook config", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		webhookConfig := &entities.WebhookConfig{
 			URL:     "https://example.com/webhook",
 			Enabled: true,
 		}
 
-		// Setup user mock
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains
-		}
 		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
 			return nil, sql.ErrNoRows
 		}
@@ -239,25 +190,11 @@ func TestCreateDomain(t *testing.T) {
 	})
 
 	t.Run("storage disabled", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		storageEnabled := false
 
-		// Setup user mock
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains
-		}
 		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
 			return nil, sql.ErrNoRows
 		}
@@ -286,10 +223,8 @@ func TestGetDomainByID(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		expectedDomain := &entities.Domain{
 			ID:     domainID,
@@ -311,10 +246,8 @@ func TestGetDomainByID(t *testing.T) {
 	})
 
 	t.Run("empty domain ID", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		result, err := uc.GetDomainByID(ctx, uuid.Nil)
 
@@ -324,10 +257,8 @@ func TestGetDomainByID(t *testing.T) {
 	})
 
 	t.Run("domain not found", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		mockRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.Domain, error) {
 			return nil, sql.ErrNoRows
@@ -348,10 +279,8 @@ func TestUpdateDomain(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 
 	t.Run("successful update", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		existingDomain := &entities.Domain{
 			ID:                 domainID,
@@ -387,10 +316,8 @@ func TestUpdateDomain(t *testing.T) {
 	})
 
 	t.Run("empty domain ID", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		result, err := uc.UpdateDomain(ctx, uuid.Nil, UpdateDomainInput{})
 
@@ -407,10 +334,8 @@ func TestDeleteDomain(t *testing.T) {
 	otherUserID := uuid.Must(uuid.NewV4())
 
 	t.Run("successful deletion", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		domain := &entities.Domain{
 			ID:     domainID,
@@ -434,10 +359,8 @@ func TestDeleteDomain(t *testing.T) {
 	})
 
 	t.Run("unauthorized deletion", func(t *testing.T) {
-		// Create fresh mock for each test case
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		domain := &entities.Domain{
 			ID:     domainID,
@@ -505,33 +428,22 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 	// Valid x25519 public key format
 	publicKey := "x25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
-	t.Run("create domain with auto-create enabled", func(t *testing.T) {
-		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
-
-		autoCreateAddress := true
-
-		// Setup mocks
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains
-		}
+	setupMocks := func(mockRepo *mocks.RepositoryMock) {
 		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
 			return nil, sql.ErrNoRows
 		}
 		mockRepo.CreateFunc = func(ctx context.Context, domain *entities.Domain) error {
 			return nil
 		}
+	}
 
-		// Execute
+	t.Run("create domain with auto-create enabled", func(t *testing.T) {
+		mockRepo := &mocks.RepositoryMock{}
+		setupMocks(mockRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
+
+		autoCreateAddress := true
+
 		result, err := uc.CreateDomain(ctx, CreateDomainInput{
 			UserID:            userID,
 			Domain:            domain,
@@ -539,7 +451,6 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 			AutoCreateAddress: &autoCreateAddress,
 		})
 
-		// Assert
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.True(t, result.AutoCreateAddress)
@@ -547,31 +458,11 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 
 	t.Run("create domain with auto-create disabled", func(t *testing.T) {
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		setupMocks(mockRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		autoCreateAddress := false
 
-		// Setup mocks
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains
-		}
-		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
-			return nil, sql.ErrNoRows
-		}
-		mockRepo.CreateFunc = func(ctx context.Context, domain *entities.Domain) error {
-			return nil
-		}
-
-		// Execute
 		result, err := uc.CreateDomain(ctx, CreateDomainInput{
 			UserID:            userID,
 			Domain:            domain,
@@ -579,7 +470,6 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 			AutoCreateAddress: &autoCreateAddress,
 		})
 
-		// Assert
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.False(t, result.AutoCreateAddress)
@@ -587,36 +477,15 @@ func TestCreateDomainWithAutoCreateAddress(t *testing.T) {
 
 	t.Run("create domain with default auto-create (false)", func(t *testing.T) {
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		setupMocks(mockRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
-		// Setup mocks
-		mockUserRepo.GetByIDFunc = func(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-			return &entities.User{
-				ID:          userID,
-				Email:       "test@example.com",
-				AccountType: entities.AccountTypeUser,
-				UserPlan:    entities.UserPlanFree,
-			}, nil
-		}
-		mockRepo.GetByUserIDFunc = func(ctx context.Context, userID uuid.UUID) ([]*entities.Domain, error) {
-			return []*entities.Domain{}, nil // No existing domains
-		}
-		mockRepo.GetByDomainFunc = func(ctx context.Context, domain string) (*entities.Domain, error) {
-			return nil, sql.ErrNoRows
-		}
-		mockRepo.CreateFunc = func(ctx context.Context, domain *entities.Domain) error {
-			return nil
-		}
-
-		// Execute without AutoCreateAddress field
 		result, err := uc.CreateDomain(ctx, CreateDomainInput{
 			UserID:    userID,
 			Domain:    domain,
 			PublicKey: publicKey,
 		})
 
-		// Assert
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.False(t, result.AutoCreateAddress) // Default should be false
@@ -629,8 +498,7 @@ func TestUpdateDomainAutoCreateAddress(t *testing.T) {
 
 	t.Run("update auto-create emails setting", func(t *testing.T) {
 		mockRepo := &mocks.RepositoryMock{}
-		mockUserRepo := &userMocks.RepositoryMock{}
-		uc := NewUseCase(mockRepo, mockUserRepo)
+		uc := NewUseCase(mockRepo, extensions.NoopDomainLimiter{})
 
 		existingDomain := &entities.Domain{
 			ID:                 domainID,

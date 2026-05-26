@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/domain/validation"
+	"github.com/mailvault/mailvault/domain/validation"
 
 	"github.com/gofrs/uuid/v5"
 )

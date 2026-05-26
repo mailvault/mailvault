@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/emails/mocks"
-	"mailvault/domain/email"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api/v1/emails/mocks"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"

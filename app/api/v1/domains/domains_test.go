@@ -10,31 +10,19 @@ import (
 	"testing"
 	"time"
 
-	billingdomain "mailvault/domain/billing"
-	domainpkg "mailvault/domain/domain"
-	"mailvault/domain/entities"
+	domainpkg "github.com/mailvault/mailvault/domain/domain"
+	"github.com/mailvault/mailvault/domain/entities"
 
-	"mailvault/app/api/v1/domains/mocks"
+	"github.com/mailvault/mailvault/app/api/v1/domains/mocks"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-// noopBillingUseCase is a test double that always allows operations.
-type noopBillingUseCase struct{}
-
-func (n *noopBillingUseCase) CheckLimit(_ context.Context, _ uuid.UUID, _ entities.UsageMetric) (*billingdomain.CheckLimitResult, error) {
-	return &billingdomain.CheckLimitResult{Allowed: true, Unlimited: true}, nil
-}
-
-func (n *noopBillingUseCase) IncrementUsage(_ context.Context, _ uuid.UUID, _ entities.UsageMetric, _ int64) error {
-	return nil
-}
-
 func TestDomainsHandlers_CreateDomain(t *testing.T) {
 	mockUseCase := &mocks.UseCaseMock{}
-	handler := NewDomainsHandlers(mockUseCase, &noopBillingUseCase{}, slog.Default())
+	handler := NewDomainsHandlers(mockUseCase, slog.Default())
 
 	userID := uuid.Must(uuid.NewV4())
 	domainName := "test.com"
@@ -191,7 +179,7 @@ func TestDomainsHandlers_CreateDomain(t *testing.T) {
 
 func TestDomainsHandlers_GetDomains(t *testing.T) {
 	mockUseCase := &mocks.UseCaseMock{}
-	handler := NewDomainsHandlers(mockUseCase, &noopBillingUseCase{}, slog.Default())
+	handler := NewDomainsHandlers(mockUseCase, slog.Default())
 
 	userID := uuid.Must(uuid.NewV4())
 
@@ -292,7 +280,7 @@ func TestDomainsHandlers_GetDomains(t *testing.T) {
 
 func TestDomainsHandlers_GetDomain(t *testing.T) {
 	mockUseCase := &mocks.UseCaseMock{}
-	handler := NewDomainsHandlers(mockUseCase, &noopBillingUseCase{}, slog.Default())
+	handler := NewDomainsHandlers(mockUseCase, slog.Default())
 
 	userID := uuid.Must(uuid.NewV4())
 	domainID := uuid.Must(uuid.NewV4())
@@ -409,7 +397,7 @@ func TestDomainsHandlers_GetDomain(t *testing.T) {
 
 func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 	mockUseCase := &mocks.UseCaseMock{}
-	handler := NewDomainsHandlers(mockUseCase, &noopBillingUseCase{}, slog.Default())
+	handler := NewDomainsHandlers(mockUseCase, slog.Default())
 
 	userID := uuid.Must(uuid.NewV4())
 	domainID := uuid.Must(uuid.NewV4())
@@ -471,7 +459,7 @@ func TestDomainsHandlers_UpdateDomain(t *testing.T) {
 
 func TestDomainsHandlers_DeleteDomain(t *testing.T) {
 	mockUseCase := &mocks.UseCaseMock{}
-	handler := NewDomainsHandlers(mockUseCase, &noopBillingUseCase{}, slog.Default())
+	handler := NewDomainsHandlers(mockUseCase, slog.Default())
 
 	userID := uuid.Must(uuid.NewV4())
 	domainID := uuid.Must(uuid.NewV4())
@@ -527,7 +515,7 @@ func TestDomainsHandlers_DeleteDomain(t *testing.T) {
 }
 
 func TestDomainsHandlers_mapDomainToResult(t *testing.T) {
-	handler := NewDomainsHandlers(&mocks.UseCaseMock{}, &noopBillingUseCase{}, slog.Default())
+	handler := NewDomainsHandlers(&mocks.UseCaseMock{}, slog.Default())
 
 	t.Run("without webhook config", func(t *testing.T) {
 		domain := &entities.Domain{

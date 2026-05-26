@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"mailvault/app/worker"
-	"mailvault/domain/entities"
-	"mailvault/domain/validation"
-	"mailvault/gateways/repository/pg"
-	"mailvault/internal/database"
+	"github.com/mailvault/mailvault/app/worker"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/validation"
+	"github.com/mailvault/mailvault/gateways/repository/pg"
+	"github.com/mailvault/mailvault/internal/database"
 
 	"github.com/guilhermebr/gox/logger"
 )

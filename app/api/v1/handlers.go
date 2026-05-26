@@ -4,24 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"mailvault/app/api/middleware"
-	"mailvault/app/api/v1/admin"
-	"mailvault/app/api/v1/auth"
-	apibilling "mailvault/app/api/v1/billing"
-	"mailvault/app/api/v1/domains"
-	"mailvault/app/api/v1/emails"
-	"mailvault/app/api/v1/providers"
-	"mailvault/app/api/v1/send"
-	"mailvault/app/api/v1/users"
-	"mailvault/app/api/v1/webhook_configs"
-	"mailvault/app/api/v1/webhooks"
-	"mailvault/domain/smtp_stats"
+	"github.com/mailvault/mailvault/app/api/middleware"
+	"github.com/mailvault/mailvault/app/api/v1/admin"
+	"github.com/mailvault/mailvault/app/api/v1/auth"
+	"github.com/mailvault/mailvault/app/api/v1/domains"
+	"github.com/mailvault/mailvault/app/api/v1/emails"
+	"github.com/mailvault/mailvault/app/api/v1/providers"
+	"github.com/mailvault/mailvault/app/api/v1/send"
+	"github.com/mailvault/mailvault/app/api/v1/users"
+	"github.com/mailvault/mailvault/app/api/v1/webhook_configs"
+	"github.com/mailvault/mailvault/app/api/v1/webhooks"
+	"github.com/mailvault/mailvault/domain/smtp_stats"
 	"net/http"
 	"time"
 
-	authDomain "mailvault/domain/auth"
+	authDomain "github.com/mailvault/mailvault/domain/auth"
 
-	userDomain "mailvault/domain/user"
+	userDomain "github.com/mailvault/mailvault/domain/user"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -37,14 +36,10 @@ type ApiHandlers struct {
 	WebhookUseCase       webhooks.ProviderWebhookUseCase // For processing provider webhooks
 	SMTPStatsUseCase     *smtp_stats.UseCase
 	UserAdminUseCase     *userDomain.UseCase
-	BillingUseCase       apibilling.UseCase
 	WebhookConfigUseCase webhook_configs.UseCase
 	AuthSecretKey        string
 	AuthTokenTTL         string
 	Logger               *slog.Logger
-	// Stripe configuration (forwarded to billing handlers)
-	StripeSecretKey     string
-	StripeWebhookSecret string
 	// Provider webhook secrets (forwarded to webhook handlers)
 	ProviderWebhookSecrets webhooks.WebhookSecrets
 	// For health checks
@@ -75,11 +70,10 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 	// Parse JWT TTL
 	authHandlers := auth.NewAuthHandlers(h.AuthProvider, h.AuthUseCase, []byte(h.AuthSecretKey), h.AuthTokenTTL)
 	usersHandlers := users.NewUsersHandlers(h.UserUseCase)
-	domainsHandlers := domains.NewDomainsHandlers(h.DomainUseCase, h.BillingUseCase, h.Logger)
+	domainsHandlers := domains.NewDomainsHandlers(h.DomainUseCase, h.Logger)
 	emailsHandlers := emails.NewEmailsHandlers(h.EmailUseCase)
 	providersHandlers := providers.NewProvidersHandlers(h.ProviderUseCase)
-	sendHandlers := send.NewSendHandlers(h.DomainUseCase, h.BillingUseCase, h.Logger)
-	billingHandlers := apibilling.NewBillingHandlers(h.BillingUseCase, h.StripeSecretKey, h.StripeWebhookSecret, h.Logger)
+	sendHandlers := send.NewSendHandlers(h.DomainUseCase, h.Logger)
 	var webhookConfigHandlers *webhook_configs.WebhookConfigHandlers
 	if h.WebhookConfigUseCase != nil {
 		webhookConfigHandlers = webhook_configs.NewWebhookConfigHandlers(h.WebhookConfigUseCase, h.Logger)
@@ -223,24 +217,6 @@ func (h *ApiHandlers) Routes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(rateLimitMw.EmailSendRateLimit())
 			r.Post("/send", sendHandlers.SendEmail)
-		})
-
-		// Public billing plans (no auth required)
-		r.Get("/plans", billingHandlers.ListPlans)
-
-		// Protected billing endpoints
-		r.Route("/billing", func(r chi.Router) {
-			// Webhook is public — Stripe signs the payload instead.
-			r.Post("/webhook", billingHandlers.HandleWebhook)
-
-			r.Group(func(r chi.Router) {
-				r.Use(authMiddleware.RequireAuth)
-				r.Use(rateLimitMw.UserRateLimit())
-				r.Get("/subscription", billingHandlers.GetSubscription)
-				r.Get("/usage", billingHandlers.GetUsage)
-				r.Post("/checkout", billingHandlers.CreateCheckout)
-				r.Post("/portal", billingHandlers.CreatePortal)
-			})
 		})
 	})
 	// Provider webhook endpoints (public, no auth required)

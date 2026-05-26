@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"mailvault/internal/utils"
+	"github.com/mailvault/mailvault/internal/utils"
 )
 
 // Config holds all verification configuration

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"mailvault/app/api"
-	"mailvault/app/api/middleware"
-	"mailvault/domain/email_provider"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api"
+	"github.com/mailvault/mailvault/app/api/middleware"
+	"github.com/mailvault/mailvault/domain/email_provider"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"

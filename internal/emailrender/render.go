@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"mailvault/domain/entities"
-	"mailvault/internal/encryption"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/internal/encryption"
 )
 
 // RenderEngine is the main interface for email rendering

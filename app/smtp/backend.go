@@ -1,33 +1,24 @@
 package smtp
 
 import (
-	"context"
 	"log/slog"
 	"time"
 
-	"mailvault/app/smtp/verification"
-	billingdomain "mailvault/domain/billing"
-	domainUseCase "mailvault/domain/domain"
-	"mailvault/domain/email"
-	"mailvault/domain/entities"
-	"mailvault/domain/smtp_stats"
+	"github.com/mailvault/mailvault/app/smtp/verification"
+	domainUseCase "github.com/mailvault/mailvault/domain/domain"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/extensions"
+	"github.com/mailvault/mailvault/domain/smtp_stats"
 
 	"github.com/emersion/go-smtp"
-	"github.com/gofrs/uuid/v5"
 )
-
-// BillingUseCase defines the billing operations required by the SMTP backend.
-type BillingUseCase interface {
-	CheckLimit(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric) (*billingdomain.CheckLimitResult, error)
-	IncrementUsage(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric, amount int64) error
-}
 
 // Backend implements SMTP server backend
 type Backend struct {
 	domainUseCase    *domainUseCase.UseCase
 	emailUseCase     *email.UseCase
 	smtpStatsUseCase *smtp_stats.UseCase
-	billingUseCase   BillingUseCase
+	usageTracker     extensions.UsageTracker
 	verifier         *verification.Verifier
 	metrics          *SMTPMetrics
 	logger           *slog.Logger
@@ -42,8 +33,9 @@ type ForwardingConfig struct {
 	Hostname string
 }
 
-// NewBackend creates a new SMTP backend
-func NewBackend(domainUseCase *domainUseCase.UseCase, emailUseCase *email.UseCase, smtpStatsUseCase *smtp_stats.UseCase, billingUseCase BillingUseCase, logger *slog.Logger) *Backend {
+// NewBackend creates a new SMTP backend. Pass extensions.NoopUsageTracker{} in
+// OSS builds; commercial overlays inject a billing-backed tracker.
+func NewBackend(domainUseCase *domainUseCase.UseCase, emailUseCase *email.UseCase, smtpStatsUseCase *smtp_stats.UseCase, usageTracker extensions.UsageTracker, logger *slog.Logger) *Backend {
 	// Create verifier with default configuration
 	verifierConfig := verification.DefaultConfig()
 	verifier := verification.NewVerifier(verifierConfig, logger)
@@ -57,7 +49,7 @@ func NewBackend(domainUseCase *domainUseCase.UseCase, emailUseCase *email.UseCas
 		domainUseCase:    domainUseCase,
 		emailUseCase:     emailUseCase,
 		smtpStatsUseCase: smtpStatsUseCase,
-		billingUseCase:   billingUseCase,
+		usageTracker:     usageTracker,
 		verifier:         verifier,
 		metrics:          metrics,
 		logger:           logger,

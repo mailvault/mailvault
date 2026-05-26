@@ -4,9 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	billingdomain "mailvault/domain/billing"
-	domainpkg "mailvault/domain/domain"
-	"mailvault/domain/entities"
+	domainpkg "github.com/mailvault/mailvault/domain/domain"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -24,24 +23,18 @@ type UseCase interface {
 	GetDomainByName(ctx context.Context, domainName string) (*entities.Domain, error)
 }
 
-// BillingUseCase defines the billing operations required by domain handlers.
-type BillingUseCase interface {
-	CheckLimit(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric) (*billingdomain.CheckLimitResult, error)
-	IncrementUsage(ctx context.Context, userID uuid.UUID, metric entities.UsageMetric, amount int64) error
-}
-
-// DomainsHandlers contains domain-related endpoints
+// DomainsHandlers contains domain-related endpoints. Quota enforcement (if any)
+// lives in the domain use case via the extensions.DomainLimiter it receives;
+// the HTTP handler doesn't do its own plan checks.
 type DomainsHandlers struct {
-	domainUseCase  UseCase
-	billingUseCase BillingUseCase
-	logger         *slog.Logger
+	domainUseCase UseCase
+	logger        *slog.Logger
 }
 
-func NewDomainsHandlers(domainUseCase UseCase, billingUseCase BillingUseCase, logger *slog.Logger) *DomainsHandlers {
+func NewDomainsHandlers(domainUseCase UseCase, logger *slog.Logger) *DomainsHandlers {
 	return &DomainsHandlers{
-		domainUseCase:  domainUseCase,
-		billingUseCase: billingUseCase,
-		logger:         logger,
+		domainUseCase: domainUseCase,
+		logger:        logger,
 	}
 }
 

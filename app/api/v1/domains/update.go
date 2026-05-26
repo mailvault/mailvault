@@ -2,9 +2,9 @@ package domains
 
 import (
 	"encoding/json"
-	"mailvault/app/api"
-	domainpkg "mailvault/domain/domain"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api"
+	domainpkg "github.com/mailvault/mailvault/domain/domain"
+	"github.com/mailvault/mailvault/domain/entities"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"

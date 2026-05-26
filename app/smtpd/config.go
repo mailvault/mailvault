@@ -1,4 +1,7 @@
-package main
+// Package smtpd exposes the reusable SMTP-daemon wiring used by both the OSS
+// and commercial (SaaS) build of MailVault. cmd/smtpd binaries call Run(opts)
+// and inject build-specific extensions (quota limiter, usage tracker).
+package smtpd
 
 import (
 	"errors"
@@ -8,27 +11,22 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-// Config holds SMTP server configuration
+// Config is the shared SMTP server configuration used by both OSS and SaaS builds.
 type Config struct {
 	Environment string `conf:"env:ENVIRONMENT,default:development"`
 	Addr        string `conf:"env:SMTP_ADDR,default:127.0.0.1:2525"`
 	Domain      string `conf:"env:SMTP_DOMAIN,default:localhost"`
 	Debug       bool   `conf:"env:SMTP_DEBUG,default:true"`
 
-	// TLS Configuration
-	TLSMode string `conf:"env:SMTP_TLS_MODE,default:off"` // off, cert
-	TLSCert string `conf:"env:SMTP_TLS_CERT"`
-	TLSKey  string `conf:"env:SMTP_TLS_KEY"`
-	// If true, the listener will expect TLS from the start (implicit TLS, e.g. port 465).
-	// If false and TLSMode is cert, STARTTLS will be offered on the plaintext connection (e.g. port 25/587).
-	TLSImplicit bool `conf:"env:SMTP_TLS_IMPLICIT,default:false"`
+	TLSMode     string `conf:"env:SMTP_TLS_MODE,default:off"`
+	TLSCert     string `conf:"env:SMTP_TLS_CERT"`
+	TLSKey      string `conf:"env:SMTP_TLS_KEY"`
+	TLSImplicit bool   `conf:"env:SMTP_TLS_IMPLICIT,default:false"`
 
-	// Database optimization settings
 	EnableDatabaseMetrics bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
 
-	// Forwarding configuration
-	// ForwardingRelayAddr is the SMTP relay address used to forward emails.
-	// Leave empty to disable forwarding (default).
+	// ForwardingRelayAddr is the SMTP relay used to forward incoming emails
+	// to external mailboxes. Leave empty to disable forwarding.
 	ForwardingRelayAddr string `conf:"env:SMTP_FORWARDING_RELAY_ADDR"`
 }
 

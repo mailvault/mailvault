@@ -5,8 +5,8 @@ package mocks
 
 import (
 	"context"
-	"mailvault/domain/auth"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/auth"
+	"github.com/mailvault/mailvault/domain/entities"
 	"sync"
 )
 

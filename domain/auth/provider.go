@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/entities"
 )
 
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/provider.go . Provider

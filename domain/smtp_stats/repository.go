@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 )

@@ -5,8 +5,8 @@ package mocks
 
 import (
 	"context"
-	"mailvault/domain/entities"
-	"mailvault/domain/webhook_config"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/webhook_config"
 	"sync"
 
 	"github.com/gofrs/uuid/v5"

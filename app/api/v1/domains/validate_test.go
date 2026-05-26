@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/domains/mocks"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api/v1/domains/mocks"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"
@@ -18,7 +19,7 @@ import (
 
 func setupValidateHandler() (*DomainsHandlers, *mocks.UseCaseMock) {
 	mockUseCase := &mocks.UseCaseMock{}
-	handler := NewDomainsHandlers(mockUseCase, nil, nil)
+	handler := NewDomainsHandlers(mockUseCase, slog.Default())
 	return handler, mockUseCase
 }
 

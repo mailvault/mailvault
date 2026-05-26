@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/api/v1/auth/mocks"
-	domainauth "mailvault/domain/auth"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/api/v1/auth/mocks"
+	domainauth "github.com/mailvault/mailvault/domain/auth"
+	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"

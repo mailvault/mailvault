@@ -3,9 +3,9 @@ package webhook
 import (
 	"context"
 
-	"mailvault/app/smtp/verification"
-	"mailvault/domain/email"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/smtp/verification"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/entities"
 )
 
 // NotificationServiceAdapter adapts IncomingEmailNotificationService to the email.WebhookNotifier interface

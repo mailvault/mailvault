@@ -1,4 +1,7 @@
-package main
+// Package service exposes the reusable API-server wiring used by both the OSS
+// and commercial (SaaS) build of MailVault. cmd/ binaries call Run(opts) and
+// inject build-specific extensions (auth provider, quota limiter, billing routes).
+package service
 
 import (
 	"errors"
@@ -8,6 +11,9 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+// Config is the shared configuration for the API service. Both OSS and SaaS
+// builds use this same struct; defaults are tuned for self-hosted OSS so that
+// "AUTH_PROVIDER unset" picks the built-in local provider.
 type Config struct {
 	Environment    string `conf:"env:ENVIRONMENT,default:development"`
 	DatabaseEngine string `conf:"env:DATABASE_ENGINE,default:postgres"`
@@ -15,25 +21,20 @@ type Config struct {
 	ApiBaseURL     string `conf:"env:API_BASE_URL,default:http://localhost:3000"`
 	AuthSecretKey  string `conf:"env:AUTH_SECRET_KEY,default:dev-secret-change-me"`
 	AuthTokenTTL   string `conf:"env:AUTH_TOKEN_TTL,default:24h"`
-	AuthProvider   string `conf:"env:AUTH_PROVIDER,default:basic"`
+	AuthProvider   string `conf:"env:AUTH_PROVIDER,default:local"`
 
-	// Metrics server configuration
 	MetricsAddress string `conf:"env:METRICS_ADDRESS,default::8080"`
 
-	// Database optimization settings
 	EnableDatabaseMetrics      bool `conf:"env:ENABLE_DATABASE_METRICS,default:true"`
 	EnableQueryInstrumentation bool `conf:"env:ENABLE_QUERY_INSTRUMENTATION,default:true"`
 
-	// Stripe billing configuration
 	StripeSecretKey      string `conf:"env:STRIPE_SECRET_KEY"`
 	StripeWebhookSecret  string `conf:"env:STRIPE_WEBHOOK_SECRET"`
 	StripePublishableKey string `conf:"env:STRIPE_PUBLISHABLE_KEY"`
 
-	// Email-provider webhook secrets. These are the keys configured in each
-	// provider's dashboard and used to verify the authenticity of inbound
-	// delivery-event webhooks (bounce, click, complaint, etc).
 }
 
+// Load populates the Config from environment variables (with optional prefix).
 func (c *Config) Load(prefix string) error {
 	if help, err := conf.Parse(prefix, c); err != nil {
 		if errors.Is(err, conf.ErrHelpWanted) {

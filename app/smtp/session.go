@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"mailvault/app/smtp/verification"
-	"mailvault/domain/email"
-	"mailvault/domain/entities"
-	"mailvault/internal/encryption"
-	"mailvault/internal/utils"
+	"github.com/mailvault/mailvault/app/smtp/verification"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/internal/encryption"
+	"github.com/mailvault/mailvault/internal/utils"
 
 	"github.com/emersion/go-smtp"
 	"github.com/gofrs/uuid/v5"
@@ -269,7 +269,7 @@ func (s *Session) processEmail(recipient string, body []byte) error {
 		billingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := s.backend.billingUseCase.IncrementUsage(billingCtx, domain.UserID, entities.UsageMetricEmailsReceived, 1); err != nil {
+		if err := s.backend.usageTracker.IncrementUsage(billingCtx, domain.UserID, entities.UsageMetricEmailsReceived, 1); err != nil {
 			s.logger.Warn("Failed to increment emails_received usage",
 				"error", err,
 				"domain", domainName,

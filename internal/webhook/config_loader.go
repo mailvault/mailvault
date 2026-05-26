@@ -3,8 +3,8 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"mailvault/domain/entities"
-	"mailvault/domain/webhook_config"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/webhook_config"
 )
 
 // ConfigLoader loads webhook configurations from both new and legacy sources

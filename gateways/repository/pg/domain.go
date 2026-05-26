@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	domain "mailvault/domain/domain"
-	"mailvault/domain/entities"
+	domain "github.com/mailvault/mailvault/domain/domain"
+	"github.com/mailvault/mailvault/domain/entities"
 	"time"
 
 	"github.com/gofrs/uuid/v5"

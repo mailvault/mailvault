@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"mailvault/app/smtp/verification"
-	"mailvault/domain/entities"
-	"mailvault/domain/webhook_config"
-	"mailvault/domain/webhook_config/mocks"
+	"github.com/mailvault/mailvault/app/smtp/verification"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/webhook_config"
+	"github.com/mailvault/mailvault/domain/webhook_config/mocks"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/stretchr/testify/assert"

@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"mailvault/app/api/middleware"
+	"github.com/mailvault/mailvault/app/api/middleware"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"

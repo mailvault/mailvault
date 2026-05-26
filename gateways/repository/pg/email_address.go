@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"mailvault/domain/email"
-	"mailvault/domain/entities"
-	"mailvault/internal/utils"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/internal/utils"
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"

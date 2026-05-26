@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mailvault/domain/validation"
+	"github.com/mailvault/mailvault/domain/validation"
 
 	"log/slog"
 

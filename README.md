@@ -367,5 +367,4 @@ This project is licensed under the [MIT License](https://opensource.org/licenses
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/guilhermebr/mailvault/issues)
-- Project Website: [mailvault.sh](https://mailvault.sh)
+- Issues: [GitHub Issues](https://github.com/mailvault/mailvault/issues)

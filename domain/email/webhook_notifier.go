@@ -3,8 +3,8 @@ package email
 import (
 	"context"
 
-	"mailvault/app/smtp/verification"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/smtp/verification"
+	"github.com/mailvault/mailvault/domain/entities"
 )
 
 // WebhookNotifier defines the interface for sending webhook notifications for incoming emails

@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"mailvault/app/smtp/verification"
-	"mailvault/domain/entities"
+	"github.com/mailvault/mailvault/app/smtp/verification"
+	"github.com/mailvault/mailvault/domain/entities"
 )
 
 // IncomingEmailNotificationService handles webhook notifications for incoming emails

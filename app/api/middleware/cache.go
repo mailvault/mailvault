@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"mailvault/internal/cache"
+	"github.com/mailvault/mailvault/internal/cache"
 )
 
 // CacheConfig holds caching middleware configuration

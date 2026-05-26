@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"mailvault/app/api"
-	"mailvault/domain/email"
-	"mailvault/domain/entities"
-	"mailvault/internal/emailrender"
+	"github.com/mailvault/mailvault/app/api"
+	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/internal/emailrender"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"

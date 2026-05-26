@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"mailvault/app/api"
-	"mailvault/app/api/models"
-	"mailvault/domain/entities"
-	"mailvault/domain/webhook_config"
+	"github.com/mailvault/mailvault/app/api"
+	"github.com/mailvault/mailvault/app/api/models"
+	"github.com/mailvault/mailvault/domain/entities"
+	"github.com/mailvault/mailvault/domain/webhook_config"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid/v5"
