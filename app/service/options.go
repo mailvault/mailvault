@@ -2,6 +2,7 @@ package service
 
 import (
 	authDomain "github.com/mailvault/mailvault/domain/auth"
+	"github.com/mailvault/mailvault/domain/email_sending"
 	"github.com/mailvault/mailvault/domain/extensions"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
 
@@ -21,16 +22,18 @@ type Options struct {
 	AuthProviderBuilder func(repo *pg.Repository) (authDomain.Provider, error)
 
 	// DomainLimiterBuilder is optional. Defaults to extensions.NoopDomainLimiter{}.
-	// SaaS builds typically supply billing.NewDomainLimiter(...).
 	DomainLimiterBuilder func(repo *pg.Repository) extensions.DomainLimiter
 
 	// UsageTrackerBuilder is optional. Defaults to extensions.NoopUsageTracker{}.
-	// SaaS builds supply the billing UseCase (which already satisfies the
-	// interface) so that received-email events are metered.
 	UsageTrackerBuilder func(repo *pg.Repository) extensions.UsageTracker
 
-	// AdditionalRoutes is an optional hook called after the OSS API v1 routes
-	// have been mounted on the router. SaaS uses it to register billing
-	// endpoints without OSS having to know about them.
+	// SenderBuilder is optional. Defaults to a local-SMTP-relay implementation
+	// built from cfg.OutboundSMTP* — fine for self-hosters running Postfix on
+	// the same machine. Overlays can return their own sender (e.g. multi-
+	// provider router) without OSS having to know about the implementations.
+	SenderBuilder func(repo *pg.Repository) email_sending.Sender
+
+	// AdditionalRoutes is an optional hook called after the API v1 routes
+	// have been mounted on the router.
 	AdditionalRoutes func(r chi.Router)
 }

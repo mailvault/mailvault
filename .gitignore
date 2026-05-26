@@ -14,9 +14,9 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-tmp/ 
+# Dependency directories (not committed; use `go mod download` / `go mod vendor` locally)
+vendor/
+tmp/
 build/
 bin/
 
@@ -26,6 +26,11 @@ go.work.sum
 
 # env file
 .env
+
+# Editor / IDE / AI-pairing local configs
+.claude/
+.idea/
+.vscode/
 
 # Compiled binaries (root and stray locations)
 /service

@@ -8,7 +8,7 @@ RUN apk add --no-cache git make bash build-base jq
 COPY Makefile ./
 
 # Copy migration files
-COPY internal/repository/pg/migrations ./internal/repository/pg/migrations/
+COPY gateways/repository/pg/migrations ./gateways/repository/pg/migrations/
 
 # Install migrate tool
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest

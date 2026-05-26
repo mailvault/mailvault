@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/mailvault/mailvault/domain/email_sending"
-	"github.com/mailvault/mailvault/internal/providers"
 
 	"log/slog"
 
@@ -19,7 +18,6 @@ type EmailSenderWorker struct {
 	id           int
 	queue        EmailQueue
 	emailUseCase *email_sending.UseCase
-	emailSender  providers.EmailSender
 	logger       *slog.Logger
 	running      bool
 	mutex        sync.RWMutex
@@ -98,7 +96,6 @@ func NewEmailSenderWorker(
 	id int,
 	queue EmailQueue,
 	emailUseCase *email_sending.UseCase,
-	emailSender providers.EmailSender,
 	config EmailWorkerConfig,
 	logger *slog.Logger,
 ) *EmailSenderWorker {
@@ -106,7 +103,6 @@ func NewEmailSenderWorker(
 		id:           id,
 		queue:        queue,
 		emailUseCase: emailUseCase,
-		emailSender:  emailSender,
 		config:       config,
 		logger:       logger,
 		stopCh:       make(chan struct{}),
@@ -415,7 +411,6 @@ func NewEmailWorkerPool(
 	workerCount int,
 	queue EmailQueue,
 	emailUseCase *email_sending.UseCase,
-	emailSender providers.EmailSender,
 	config EmailWorkerConfig,
 	logger *slog.Logger,
 ) *EmailWorkerPool {
@@ -425,7 +420,6 @@ func NewEmailWorkerPool(
 			i+1,
 			queue,
 			emailUseCase,
-			emailSender,
 			config,
 			logger,
 		)

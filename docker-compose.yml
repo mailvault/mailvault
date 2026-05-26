@@ -1,14 +1,21 @@
-version: '3.8'
+# Local dev stack: Postgres + MailVault API + SMTP daemon.
+#
+# Outbound mail (POST /api/v1/send) defaults to delivering through a local
+# SMTP relay — this compose file does NOT bring one up. If you need to test
+# outbound delivery, point OUTBOUND_SMTP_ADDR at a running relay/smart-host.
+#
+# Usage:
+#   cp .env.example .env   # adjust as needed
+#   docker compose up -d
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: mailvault-postgres
     environment:
-      - POSTGRES_DB=mailvault
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_DB: ${DATABASE_NAME:-mailvault}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -16,42 +23,46 @@ services:
     networks:
       - mailvault
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-mailvault}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: mailvault-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - mailvault
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-
-  # MailVault API Service
   api:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: mailvault-api
     environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/mailvault?sslmode=disable
-      - REDIS_URL=redis://redis:6379/0
-      - API_ADDRESS=:3000
-      - METRICS_ADDRESS=:8080
-      - AUTH_PROVIDER=supabase
-      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY:-dev-secret-change-me}
-      - ENABLE_DATABASE_METRICS=true
-      - ENABLE_QUERY_INSTRUMENTATION=true
+      ENVIRONMENT: production
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_NAME: ${DATABASE_NAME:-mailvault}
+      DATABASE_SSLMODE: disable
+      API_ADDRESS: "0.0.0.0:3000"
+      METRICS_ADDRESS: ":8080"
+      AUTH_PROVIDER: local
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-dev-secret-change-me-at-least-32-bytes}
+      AUTH_TOKEN_TTL: ${AUTH_TOKEN_TTL:-24h}
+      # Outbound mail relay used by POST /api/v1/send. Default targets the
+      # host's local MTA; in compose there is no MTA inside the network, so
+      # /send will fail until you point this at one (e.g. host gateway, or a
+      OUTBOUND_SMTP_ADDR: ${OUTBOUND_SMTP_ADDR:-host.docker.internal:25}
+      OUTBOUND_SMTP_HOSTNAME: ${OUTBOUND_SMTP_HOSTNAME:-mailvault.local}
+      OUTBOUND_SMTP_TLS_MODE: ${OUTBOUND_SMTP_TLS_MODE:-none}
+      OUTBOUND_SMTP_USERNAME: ${OUTBOUND_SMTP_USERNAME:-}
+      OUTBOUND_SMTP_PASSWORD: ${OUTBOUND_SMTP_PASSWORD:-}
+      ENABLE_DATABASE_METRICS: "true"
+      ENABLE_QUERY_INSTRUMENTATION: "true"
     ports:
-      - "3000:3000"  # API endpoints
-      - "8080:8080"  # Metrics endpoint
+      - "3000:3000"   # REST API
+      - "8080:8080"   # Prometheus metrics
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
     networks:
       - mailvault
     restart: unless-stopped
@@ -62,35 +73,35 @@ services:
       retries: 3
       start_period: 40s
 
-  # MailVault SMTP Server
-  smtp:
+  smtpd:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: builder
-    container_name: mailvault-smtp
-    command: ["./smtpd"]
+      dockerfile: Dockerfile.smtpd
+    container_name: mailvault-smtpd
     environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/mailvault?sslmode=disable
-      - SMTP_ADDR=:25
-      - SMTP_METRICS_PORT=8081
-      - SMTP_DOMAIN=${SMTP_DOMAIN:-mail.localhost}
+      ENVIRONMENT: production
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_NAME: ${DATABASE_NAME:-mailvault}
+      DATABASE_SSLMODE: disable
+      SMTP_ADDR: ":25"
+      SMTP_DOMAIN: ${SMTP_DOMAIN:-mail.localhost}
+      SMTP_TLS_MODE: ${SMTP_TLS_MODE:-off}
+      SMTP_FORWARDING_RELAY_ADDR: ${SMTP_FORWARDING_RELAY_ADDR:-}
+      ENABLE_DATABASE_METRICS: "true"
     ports:
-      - "25:25"     # SMTP port
-      - "8081:8081" # SMTP metrics port
+      - "25:25"       # SMTP
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
     networks:
       - mailvault
     restart: unless-stopped
-    volumes:
-      - ./certs:/app/certs:ro  # SSL certificates if needed
 
 volumes:
   postgres_data:
-  redis_data:
 
 networks:
   mailvault:

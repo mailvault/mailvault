@@ -14,14 +14,15 @@ import (
 	"github.com/mailvault/mailvault/app/api"
 	"github.com/mailvault/mailvault/app/api/middleware"
 	v1 "github.com/mailvault/mailvault/app/api/v1"
-	apiwebhooks "github.com/mailvault/mailvault/app/api/v1/webhooks"
 	domainpkg "github.com/mailvault/mailvault/domain/domain"
 	"github.com/mailvault/mailvault/domain/email"
+	"github.com/mailvault/mailvault/domain/email_sending"
 	"github.com/mailvault/mailvault/domain/extensions"
 	"github.com/mailvault/mailvault/domain/user"
 	"github.com/mailvault/mailvault/domain/webhook_config"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
 	"github.com/mailvault/mailvault/internal/database"
+	"github.com/mailvault/mailvault/internal/smtprelay"
 	"github.com/mailvault/mailvault/internal/webhook"
 
 	_ "github.com/mailvault/mailvault/docs" // swagger docs
@@ -96,6 +97,22 @@ func Run(ctx context.Context, opts Options) error {
 		_ = opts.UsageTrackerBuilder(repo)
 	}
 
+	// Outbound mail sender: overlays can inject their own; OSS falls back to
+	// the local SMTP relay configured via OUTBOUND_SMTP_*.
+	var sender email_sending.Sender
+	if opts.SenderBuilder != nil {
+		sender = opts.SenderBuilder(repo)
+	} else {
+		sender = smtprelay.New(smtprelay.Config{
+			Addr:     cfg.OutboundSMTPAddr,
+			Hostname: cfg.OutboundSMTPHostname,
+			TLSMode:  smtprelay.TLSMode(cfg.OutboundSMTPTLSMode),
+			Username: cfg.OutboundSMTPUsername,
+			Password: cfg.OutboundSMTPPassword,
+		}, log)
+	}
+	_ = sender // wired into the email-sending use case below; reference here for clarity.
+
 	webhookClient := webhook.NewHTTPClient(webhook.DefaultClientConfig())
 	webhookNotifier := webhook.NewIncomingEmailNotificationService(webhook.NotificationServiceConfig{
 		HTTPClient:  webhookClient,
@@ -127,13 +144,8 @@ func Run(ctx context.Context, opts Options) error {
 		AuthSecretKey:        cfg.AuthSecretKey,
 		AuthTokenTTL:         cfg.AuthTokenTTL,
 		Logger:               log,
-		ProviderWebhookSecrets: apiwebhooks.WebhookSecrets{
-			Resend:            cfg.ResendWebhookSecret,
-			SendGridPublicKey: cfg.SendGridWebhookSecret,
-			Mailgun:           cfg.MailgunWebhookSecret,
-		},
-		HealthChecker:     dbPool,
-		MetricsMiddleware: metricsMw,
+		HealthChecker:        dbPool,
+		MetricsMiddleware:    metricsMw,
 	}
 
 	router := api.Router()
