@@ -20,9 +20,10 @@ import (
 
 // fakeAuthProvider is a lightweight stub for auth.Provider
 type fakeAuthProvider struct {
-	provider       string
-	createUserFunc func(email, password string) (string, error)
-	loginFunc      func(email, password string) (string, error)
+	provider          string
+	createUserFunc    func(email, password string) (string, error)
+	loginFunc         func(email, password string) (string, error)
+	validateTokenFunc func(token string) (*entities.User, error)
 }
 
 func (f *fakeAuthProvider) Provider() string { return f.provider }
@@ -36,8 +37,11 @@ func (f *fakeAuthProvider) CreateUser(_ context.Context, email, password string)
 func (f *fakeAuthProvider) Login(_ context.Context, email, password string) (string, error) {
 	return f.loginFunc(email, password)
 }
-func (f *fakeAuthProvider) ValidateToken(_ context.Context, _ string) (*entities.User, error) {
-	return nil, errors.New("not implemented")
+func (f *fakeAuthProvider) ValidateToken(_ context.Context, token string) (*entities.User, error) {
+	if f.validateTokenFunc == nil {
+		return nil, errors.New("not implemented")
+	}
+	return f.validateTokenFunc(token)
 }
 func (f *fakeAuthProvider) GetUserByID(_ context.Context, _ string) (*entities.User, error) {
 	return nil, errors.New("not implemented")
@@ -175,10 +179,17 @@ func TestAuthHandlers_Login_Success(t *testing.T) {
 			assert.Equal(t, "password123", password)
 			return "prov-token", nil
 		},
+		validateTokenFunc: func(token string) (*entities.User, error) {
+			assert.Equal(t, "prov-token", token)
+			return &entities.User{AuthProviderID: "prov-id", Email: "user@example.com"}, nil
+		},
 	}
 	userMock := &mocks.UseCaseMock{
-		GetUserByEmailFunc: func(ctx context.Context, email string) (*entities.User, error) {
-			return &entities.User{ID: userID, Email: email, AuthProvider: "stub", CreatedAt: now}, nil
+		GetOrCreateUserByAuthProviderFunc: func(ctx context.Context, provider, providerID, email string) (*entities.User, error) {
+			assert.Equal(t, "stub", provider)
+			assert.Equal(t, "prov-id", providerID)
+			assert.Equal(t, "user@example.com", email)
+			return &entities.User{ID: userID, Email: email, AuthProvider: provider, CreatedAt: now}, nil
 		},
 	}
 
