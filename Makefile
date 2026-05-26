@@ -89,7 +89,7 @@ lint:
 # GoSec 
 # ###########
 
-.PHONY: gosec 
+.PHONY: gosec
 gosec:
 	${GO_BIN_PATH}/gosec ./...
 

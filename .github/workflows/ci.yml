@@ -1,5 +1,6 @@
-# CI workflow for mailvault backend
-# Runs lint, test, build, govulncheck and a security scan on push to main and
+# CI for the MailVault backend (API + SMTP daemon + worker).
+# Runs lint, unit + integration tests, build, govulncheck, and a security scan
+# on every push to main and on every PR.
 
 name: CI
 
@@ -17,11 +18,9 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
@@ -41,11 +40,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
@@ -57,21 +54,18 @@ jobs:
         run: make generate
 
       - name: Run tests
-        # -short skips the dockertest pg repo tests; CI runs them as a
-        # separate integration job below. Race detection is enabled for the
-        # unit tier because flaky goroutine bugs in worker/queue are exactly
-        # what we want to catch here.
+        # -short skips the dockertest pg-repo tests (run separately below).
+        # Race detection on the unit tier surfaces goroutine bugs in the worker/queue
+        # path that are easy to miss otherwise.
         run: go test -v -short -race -cover ./...
 
   integration:
     name: Integration (Postgres)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
@@ -90,11 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, test]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
@@ -112,11 +104,9 @@ jobs:
     name: Vulnerability check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
@@ -128,14 +118,12 @@ jobs:
         run: govulncheck ./...
 
   security:
-    name: Security Scan
+    name: Security scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
