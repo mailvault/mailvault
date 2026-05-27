@@ -3,6 +3,7 @@ package verification
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -68,7 +69,7 @@ func LoadConfigFromFile(filename string) (Config, error) {
 		return config, nil
 	}
 
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return config, nil // Use defaults if file doesn't exist
@@ -91,7 +92,7 @@ func SaveConfigToFile(config Config, filename string) error {
 		return err
 	}
 
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filepath.Clean(filename), data, 0o600)
 }
 
 // Policy represents a verification policy for different email types

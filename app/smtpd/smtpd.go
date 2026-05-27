@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/mailvault/mailvault/app/smtp"
 	domainUseCase "github.com/mailvault/mailvault/domain/domain"
@@ -115,7 +116,8 @@ func Run(ctx context.Context, opts Options) error {
 	go func() {
 		http.Handle("/metrics", backend.GetMetrics().PrometheusHandler())
 		log.Info("Starting metrics server on :8080")
-		if err := http.ListenAndServe(":8080", nil); err != nil {
+		srv := &http.Server{Addr: ":8080", ReadHeaderTimeout: 10 * time.Second}
+		if err := srv.ListenAndServe(); err != nil {
 			log.Error("Metrics server failed", slog.String("error", err.Error()))
 		}
 	}()

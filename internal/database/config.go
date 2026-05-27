@@ -42,7 +42,7 @@ type Config struct {
 func DefaultConfig() Config {
 	// Calculate optimal pool size based on CPU cores
 	maxCores := runtime.NumCPU()
-	maxPoolSize := int32(maxCores * 4) // 4 connections per CPU core
+	maxPoolSize := int32(maxCores * 4) // #nosec G115 -- NumCPU*4 fits int32 on any realistic machine
 	if maxPoolSize < 10 {
 		maxPoolSize = 10 // Minimum reasonable pool size
 	}

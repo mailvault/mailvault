@@ -212,7 +212,7 @@ func (qe *QueryExecutor) WithTx(ctx context.Context, fn func(*InstrumentedTx) er
 
 	defer func() {
 		if p := recover(); p != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			panic(p)
 		}
 	}()

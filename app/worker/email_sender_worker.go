@@ -355,7 +355,7 @@ func (w *EmailSenderWorker) handleJobFailure(job *EmailSendingJob, err error, du
 // scheduleRetry schedules a job for retry
 func (w *EmailSenderWorker) scheduleRetry(job *EmailSendingJob) {
 	// Calculate exponential backoff delay
-	backoffDelay := w.config.RetryInterval * time.Duration(1<<uint(job.Attempts-1))
+	backoffDelay := w.config.RetryInterval * time.Duration(1<<uint(job.Attempts-1)) // #nosec G115 -- Attempts is bounded by MaxRetries (small)
 	if backoffDelay > 1*time.Hour {
 		backoffDelay = 1 * time.Hour // Cap at 1 hour
 	}

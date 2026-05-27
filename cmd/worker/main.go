@@ -127,7 +127,7 @@ func main() {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"status":"healthy","service":"worker"}`))
+			_, _ = w.Write([]byte(`{"status":"healthy","service":"worker"}`))
 		})
 
 		// Worker stats endpoint
@@ -168,7 +168,7 @@ func main() {
 				stats.ScheduledJobs,
 			)
 
-			w.Write([]byte(response))
+			_, _ = w.Write([]byte(response))
 		})
 
 		// Worker configuration endpoint
@@ -192,7 +192,7 @@ func main() {
 				workerConfig.Enabled,
 			)
 
-			w.Write([]byte(response))
+			_, _ = w.Write([]byte(response))
 		})
 
 		log.Info("Starting metrics server",

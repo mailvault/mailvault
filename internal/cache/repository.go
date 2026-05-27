@@ -115,9 +115,9 @@ func (rc *RepositoryCache) InvalidateUser(ctx context.Context, userID uuid.UUID,
 	}
 
 	// Delete both ID and email-based cache entries
-	rc.cache.Delete(ctx, fmt.Sprintf("user:id:%s", userID.String()))
+	_ = rc.cache.Delete(ctx, fmt.Sprintf("user:id:%s", userID.String()))
 	if email != "" {
-		rc.cache.Delete(ctx, fmt.Sprintf("user:email:%s", email))
+		_ = rc.cache.Delete(ctx, fmt.Sprintf("user:email:%s", email))
 	}
 
 	return nil
@@ -222,13 +222,13 @@ func (rc *RepositoryCache) InvalidateDomain(ctx context.Context, domain *entitie
 	}
 
 	// Delete domain cache entries
-	rc.cache.Delete(ctx, fmt.Sprintf("domain:id:%s", domain.ID.String()))
-	rc.cache.Delete(ctx, fmt.Sprintf("domain:name:%s", domain.Domain))
-	rc.cache.Delete(ctx, fmt.Sprintf("domain:apikey:%s", domain.APIKey))
+	_ = rc.cache.Delete(ctx, fmt.Sprintf("domain:id:%s", domain.ID.String()))
+	_ = rc.cache.Delete(ctx, fmt.Sprintf("domain:name:%s", domain.Domain))
+	_ = rc.cache.Delete(ctx, fmt.Sprintf("domain:apikey:%s", domain.APIKey))
 
 	// Invalidate user domains list
 	if userID != uuid.Nil {
-		rc.cache.Delete(ctx, fmt.Sprintf("domains:user:%s", userID.String()))
+		_ = rc.cache.Delete(ctx, fmt.Sprintf("domains:user:%s", userID.String()))
 	}
 
 	return nil
@@ -315,13 +315,13 @@ func (rc *RepositoryCache) InvalidateEmailAddress(ctx context.Context, emailAddr
 	}
 
 	// Delete email address cache entries
-	rc.cache.Delete(ctx, fmt.Sprintf("email:id:%s", emailAddr.ID.String()))
+	_ = rc.cache.Delete(ctx, fmt.Sprintf("email:id:%s", emailAddr.ID.String()))
 	if address != "" {
-		rc.cache.Delete(ctx, fmt.Sprintf("email:address:%s", address))
+		_ = rc.cache.Delete(ctx, fmt.Sprintf("email:address:%s", address))
 	}
 
 	// Invalidate domain email addresses list
-	rc.cache.Delete(ctx, fmt.Sprintf("emails:domain:%s", emailAddr.DomainID.String()))
+	_ = rc.cache.Delete(ctx, fmt.Sprintf("emails:domain:%s", emailAddr.DomainID.String()))
 
 	return nil
 }

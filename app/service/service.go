@@ -129,7 +129,8 @@ func Run(ctx context.Context, opts Options) error {
 	go func() {
 		http.Handle("/metrics", metricsMw.PrometheusHandler())
 		log.Info("Starting metrics server", slog.String("address", cfg.MetricsAddress))
-		if err := http.ListenAndServe(cfg.MetricsAddress, nil); err != nil {
+		srv := &http.Server{Addr: cfg.MetricsAddress, ReadHeaderTimeout: 10 * time.Second}
+		if err := srv.ListenAndServe(); err != nil {
 			log.Error("Metrics server failed", slog.String("error", err.Error()))
 		}
 	}()

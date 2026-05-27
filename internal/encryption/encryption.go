@@ -98,7 +98,7 @@ func Encrypt(data []byte, recipientPublicKey []byte) (*EncryptedData, error) {
 	}
 
 	// Encrypt the data
-	ciphertext := cipher.Seal(nil, nonce, data, nil)
+	ciphertext := cipher.Seal(nil, nonce, data, nil) // #nosec G407 -- nonce is generated via crypto/rand above, not hardcoded
 
 	return &EncryptedData{
 		EphemeralPublicKey: ephemeralKeyPair.PublicKey,

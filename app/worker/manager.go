@@ -170,7 +170,9 @@ func (m *Manager) Stop() error {
 	// Stop components
 	m.scheduler.Stop()
 	m.workerPool.Stop()
-	m.queue.Close()
+	if err := m.queue.Close(); err != nil {
+		m.logger.Error("queue close failed", "error", err)
+	}
 
 	// Wait for management goroutines to finish
 	<-m.doneCh

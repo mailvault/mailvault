@@ -184,7 +184,7 @@ func (se *SentEmail) MarkAsDelivered() {
 }
 
 // MarkAsFailed updates the status to failed and sets error information
-func (se *SentEmail) MarkAsFailed(errorMessage string) error {
+func (se *SentEmail) MarkAsFailed(errorMessage string) {
 	se.Status = EmailSendStatusFailed
 	se.ErrorMessage = &errorMessage
 	now := time.Now()
@@ -196,8 +196,6 @@ func (se *SentEmail) MarkAsFailed(errorMessage string) error {
 		nextRetry := se.calculateNextRetryTime()
 		se.NextRetryAt = &nextRetry
 	}
-
-	return nil
 }
 
 // MarkAsBounced updates the status to bounced

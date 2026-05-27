@@ -92,6 +92,7 @@ func setupCertTLS(cfg Config, logger *slog.Logger) (*tls.Config, error) {
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		ServerName:   cfg.Domain,
+		MinVersion:   tls.VersionTLS12,
 	}, nil
 }
 

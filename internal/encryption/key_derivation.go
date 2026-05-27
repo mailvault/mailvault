@@ -79,7 +79,7 @@ func EncryptPrivateKeyWithPassword(privateKey []byte, password string) (string, 
 		return "", fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
-	ciphertext := aead.Seal(nil, nonce, privateKey, nil)
+	ciphertext := aead.Seal(nil, nonce, privateKey, nil) // #nosec G407 -- nonce is generated via crypto/rand above, not hardcoded
 
 	// Encode fields for storage
 	result := EncryptedPrivateKey{

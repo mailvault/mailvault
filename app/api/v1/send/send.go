@@ -146,7 +146,7 @@ func generateMessageID() string {
 
 	// Generate random bytes
 	bytes := make([]byte, 8)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 	randomHex := hex.EncodeToString(bytes)
 
 	// Format: mv_<timestamp>_<random>

@@ -164,7 +164,7 @@ func (wm *WorkerManager) processJob(job *validation.ValidationJob, attempt int) 
 	if err != nil {
 		wm.totalFailed.Add(1)
 		if attempt < wm.config.MaxRetries {
-			delay := wm.config.BaseRetryDelay * time.Duration(1<<uint(attempt))
+			delay := wm.config.BaseRetryDelay * time.Duration(1<<uint(attempt)) // #nosec G115 -- attempt is bounded by MaxRetries (small)
 			select {
 			case <-wm.stopCh:
 				return

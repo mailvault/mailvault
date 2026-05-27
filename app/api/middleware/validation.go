@@ -69,7 +69,7 @@ func NewValidationMiddleware(config ValidationConfig) *ValidationMiddleware {
 
 	// Register user-provided custom validators
 	for tag, fn := range config.CustomValidators {
-		v.RegisterValidation(tag, fn)
+		_ = v.RegisterValidation(tag, fn)
 	}
 
 	return middleware
@@ -373,7 +373,7 @@ func (m *ValidationMiddleware) containsCommandInjectionPattern(value string) boo
 // registerBuiltinValidators registers custom validation rules
 func (m *ValidationMiddleware) registerBuiltinValidators() {
 	// Domain name validator
-	m.validator.RegisterValidation("domain", func(fl validator.FieldLevel) bool {
+	_ = m.validator.RegisterValidation("domain", func(fl validator.FieldLevel) bool {
 		domain := fl.Field().String()
 		if domain == "" {
 			return false
@@ -385,7 +385,7 @@ func (m *ValidationMiddleware) registerBuiltinValidators() {
 	})
 
 	// Email list validator
-	m.validator.RegisterValidation("email_list", func(fl validator.FieldLevel) bool {
+	_ = m.validator.RegisterValidation("email_list", func(fl validator.FieldLevel) bool {
 		if fl.Field().Kind() != reflect.Slice {
 			return false
 		}
@@ -402,7 +402,7 @@ func (m *ValidationMiddleware) registerBuiltinValidators() {
 	})
 
 	// Safe string validator (no special characters that could be dangerous)
-	m.validator.RegisterValidation("safe_string", func(fl validator.FieldLevel) bool {
+	_ = m.validator.RegisterValidation("safe_string", func(fl validator.FieldLevel) bool {
 		value := fl.Field().String()
 		// Allow alphanumeric, spaces, hyphens, underscores, and basic punctuation
 		safeRegex := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.@,!?()]+$`)
@@ -410,7 +410,7 @@ func (m *ValidationMiddleware) registerBuiltinValidators() {
 	})
 
 	// Public key validator (basic PEM format check)
-	m.validator.RegisterValidation("public_key", func(fl validator.FieldLevel) bool {
+	_ = m.validator.RegisterValidation("public_key", func(fl validator.FieldLevel) bool {
 		value := fl.Field().String()
 		return strings.HasPrefix(value, "-----BEGIN PUBLIC KEY-----") &&
 			strings.HasSuffix(value, "-----END PUBLIC KEY-----")

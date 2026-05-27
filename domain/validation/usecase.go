@@ -90,10 +90,10 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) (*Ful
 		completedAt := time.Now()
 		validationRecord.CompletedAt = &completedAt
 
-		uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
+		_ = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
 
 		errorMsg := fmt.Sprintf("DNS validation failed: %v", err)
-		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
+		_ = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
 		return nil, fmt.Errorf("DNS validation failed: %w", err)
 	}
 
@@ -122,7 +122,7 @@ func (uc *UseCase) ValidateDomain(ctx context.Context, domainID uuid.UUID) (*Ful
 		errorMsg := fmt.Sprintf("Validation failed - MX: %t, TXT: %t",
 			result.MXValidation.Valid, result.TXTValidation.Valid)
 		validationRecord.ErrorMessage = &errorMsg
-		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
+		_ = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
 	}
 
 	err = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
@@ -177,7 +177,7 @@ func (uc *UseCase) ValidateMXRecords(ctx context.Context, domainID uuid.UUID) er
 		completedAt := time.Now()
 		validationRecord.CompletedAt = &completedAt
 
-		uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
+		_ = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
 		return fmt.Errorf("MX validation failed: %w", err)
 	}
 
@@ -258,7 +258,7 @@ func (uc *UseCase) ValidateTXTRecord(ctx context.Context, domainID uuid.UUID) er
 		completedAt := time.Now()
 		validationRecord.CompletedAt = &completedAt
 
-		uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
+		_ = uc.validationRepo.UpdateValidationRecord(ctx, validationRecord)
 		return fmt.Errorf("TXT validation failed: %w", err)
 	}
 
@@ -499,17 +499,17 @@ func (uc *UseCase) RetryValidation(ctx context.Context, domainID uuid.UUID) (*Fu
 	result, err := uc.dnsService.ValidateFullDomain(ctx, domain.Domain, domain.VerificationToken, &uc.config)
 	if err != nil {
 		errorMsg := err.Error()
-		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
+		_ = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
 		return nil, fmt.Errorf("DNS validation failed: %w", err)
 	}
 
 	if result.OverallValid {
-		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusVerified, nil)
+		_ = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusVerified, nil)
 	} else {
 		errorMsg := fmt.Sprintf("Validation failed - MX: %t, TXT: %t",
 			result.MXValidation != nil && result.MXValidation.Valid,
 			result.TXTValidation != nil && result.TXTValidation.Valid)
-		uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
+		_ = uc.UpdateValidationStatus(ctx, domainID, VerificationStatusFailed, &errorMsg)
 	}
 
 	return result, nil

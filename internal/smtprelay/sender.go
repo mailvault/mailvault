@@ -166,7 +166,8 @@ func (s *Sender) tlsConfig() *tls.Config {
 	}
 	return &tls.Config{
 		ServerName:         host,
-		InsecureSkipVerify: s.cfg.InsecureSkipVerify,
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: s.cfg.InsecureSkipVerify, // #nosec G402 -- gated by config; only true for dev/test relays
 	}
 }
 

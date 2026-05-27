@@ -3,7 +3,7 @@ package middleware
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -253,7 +253,7 @@ func (m *CacheMiddleware) generateCacheKey(r *http.Request) string {
 
 	// Create hash of the key parts
 	keyString := strings.Join(keyParts, "|")
-	hash := md5.Sum([]byte(keyString))
+	hash := sha256.Sum256([]byte(keyString))
 
 	return "http_response:" + hex.EncodeToString(hash[:])
 }
@@ -310,7 +310,7 @@ func (m *CacheMiddleware) serveCachedResponse(w http.ResponseWriter, cachedResp 
 
 	// Write status and body
 	w.WriteHeader(cachedResp.StatusCode)
-	w.Write(cachedResp.Body)
+	_, _ = w.Write(cachedResp.Body)
 }
 
 // cacheResponseWriter captures response data for caching
