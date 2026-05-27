@@ -383,6 +383,19 @@ func TestWorkerManager_QueueFullError(t *testing.T) {
 	logger, _ := logger.NewLogger("")
 	useCase := &mockValidationUseCase{}
 
+	// Block the worker on a channel so the first dequeued job pins the
+	// worker and the queue holds the next job without draining.
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	useCase.overrideFunc = func(_ context.Context, _ uuid.UUID) (*validation.FullValidationResult, error) {
+		select {
+		case started <- struct{}{}:
+		default:
+		}
+		<-release
+		return &validation.FullValidationResult{OverallValid: true}, nil
+	}
+
 	config := ManagerConfig{
 		WorkerCount:       1,
 		QueueSize:         1, // Very small queue
@@ -398,37 +411,40 @@ func TestWorkerManager_QueueFullError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
-	defer manager.Stop()
+	// Release before Stop so blocked workers can finish; otherwise Stop hangs.
+	defer func() {
+		close(release)
+		manager.Stop()
+	}()
 
-	// Fill the queue
-	job1 := &validation.ValidationJob{
-		ID:         uuid.Must(uuid.NewV4()),
-		DomainID:   uuid.Must(uuid.NewV4()),
-		DomainName: "test1.com",
-		Type:       validation.ValidationTypeFullValidation,
-		Priority:   100,
-		Attempts:   0,
-		CreatedAt:  time.Now(),
+	newJob := func(name string) *validation.ValidationJob {
+		return &validation.ValidationJob{
+			ID:         uuid.Must(uuid.NewV4()),
+			DomainID:   uuid.Must(uuid.NewV4()),
+			DomainName: name,
+			Type:       validation.ValidationTypeFullValidation,
+			Priority:   100,
+			CreatedAt:  time.Now(),
+		}
 	}
 
-	err = manager.QueueJob(job1)
-	if err != nil {
+	// Queue job1; the worker pops it and blocks inside the validator.
+	if err := manager.QueueJob(newJob("test1.com")); err != nil {
 		t.Fatalf("First QueueJob() should succeed, error = %v", err)
 	}
-
-	// Try to add another job to full queue
-	job2 := &validation.ValidationJob{
-		ID:         uuid.Must(uuid.NewV4()),
-		DomainID:   uuid.Must(uuid.NewV4()),
-		DomainName: "test2.com",
-		Type:       validation.ValidationTypeFullValidation,
-		Priority:   100,
-		Attempts:   0,
-		CreatedAt:  time.Now(),
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("worker did not pick up job1 within 2s")
 	}
 
-	err = manager.QueueJob(job2)
-	if err == nil {
+	// Queue job2; fills the queue (1/1) since the worker is still blocked.
+	if err := manager.QueueJob(newJob("test2.com")); err != nil {
+		t.Fatalf("Second QueueJob() should succeed (queue empty after worker took job1), error = %v", err)
+	}
+
+	// Queue job3; should fail because the queue is now full.
+	if err := manager.QueueJob(newJob("test3.com")); err == nil {
 		t.Error("QueueJob() should return error when queue is full")
 	}
 }
