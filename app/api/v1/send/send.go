@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -141,14 +142,12 @@ func (h *SendHandlers) isFromAddressValid(fromAddress, domainName string) bool {
 
 // generateMessageID generates a unique message ID
 func generateMessageID() string {
-	// Generate timestamp prefix
 	timestamp := time.Now().Unix()
 
-	// Generate random bytes
 	bytes := make([]byte, 8)
 	_, _ = rand.Read(bytes)
 	randomHex := hex.EncodeToString(bytes)
 
-	// Format: mv_<timestamp>_<random>
-	return "mv_" + strings.ToLower(hex.EncodeToString([]byte{byte(timestamp)})) + "_" + randomHex
+	// Format: mv_<unix-hex>_<random>
+	return "mv_" + strconv.FormatInt(timestamp, 16) + "_" + randomHex
 }

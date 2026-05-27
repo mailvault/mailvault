@@ -291,8 +291,8 @@ func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, req ProcessIncoming
 	// Trigger webhook if configured (don't block email processing on webhook failures)
 	if uc.webhookNotifier != nil && req.Domain != nil && req.EmailAddress != nil {
 		go func() {
-			// Use a separate context with timeout for webhook delivery
-			webhookCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			// Detach from request cancellation but keep request-scoped values (trace IDs, etc.).
+			webhookCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 			defer cancel()
 
 			if err := uc.webhookNotifier.NotifyIncomingEmail(
@@ -312,7 +312,7 @@ func (uc *UseCase) ProcessIncomingEmail(ctx context.Context, req ProcessIncoming
 	// Forward email if the destination address has forwarding enabled
 	if uc.emailForwarder != nil && req.EmailAddress != nil && req.EmailAddress.HasForwarding() {
 		go func() {
-			fwdCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			fwdCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 			defer cancel()
 
 			recipientAddr := ""
