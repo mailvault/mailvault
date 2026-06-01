@@ -15,7 +15,7 @@ import (
 	"github.com/mailvault/mailvault/domain/entities"
 	"github.com/mailvault/mailvault/domain/validation"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
-	"github.com/mailvault/mailvault/internal/database"
+	"github.com/guilhermebr/gox/postgres"
 
 	goxhttp "github.com/guilhermebr/gox/http"
 	"github.com/guilhermebr/gox/logger"
@@ -58,7 +58,7 @@ func main() {
 	)
 
 	// Database Connection Pool
-	dbPool, err := database.NewOptimizedPool(ctx, "", log)
+	dbPool, err := postgres.NewOptimized(ctx, "", log)
 	if err != nil {
 		log.Error("failed to setup optimized database pool",
 			slog.String("error", err.Error()),

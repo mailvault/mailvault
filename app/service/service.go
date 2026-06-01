@@ -21,7 +21,7 @@ import (
 	"github.com/mailvault/mailvault/domain/user"
 	"github.com/mailvault/mailvault/domain/webhook_config"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
-	"github.com/mailvault/mailvault/internal/database"
+	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/internal/smtprelay"
 	"github.com/mailvault/mailvault/internal/webhook"
 
@@ -59,7 +59,7 @@ func Run(ctx context.Context, opts Options) error {
 		slog.Int("runtime_num_cpu", runtime.NumCPU()),
 	)
 
-	dbPool, err := database.NewOptimizedPool(ctx, "", log)
+	dbPool, err := postgres.NewOptimized(ctx, "", log)
 	if err != nil {
 		return fmt.Errorf("setup database pool: %w", err)
 	}

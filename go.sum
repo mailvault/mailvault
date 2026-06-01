@@ -148,6 +148,8 @@ github.com/guilhermebr/gox/jwt v0.0.0-20260601202258-c64004ef17bf h1:TxU9IcHIr/H
 github.com/guilhermebr/gox/jwt v0.0.0-20260601202258-c64004ef17bf/go.mod h1:sIsqla728g2KEctmHO15eKJzfpa0xz4f7StrnofjDu4=
 github.com/guilhermebr/gox/logger v0.0.0-20250831215043-ec0209dbdb77 h1:wgXkpiC/hd/Oq59WMj9tvXCH4foSbHyU0v70G7yqsts=
 github.com/guilhermebr/gox/logger v0.0.0-20250831215043-ec0209dbdb77/go.mod h1:R+FKr34zkASJFlL0OhGrlUFemgw7VV2WiidykflJw7I=
+github.com/guilhermebr/gox/postgres v0.0.0-20260601202258-c64004ef17bf h1:N1+qEyUNqQ84oJF3LHpda15fpxgdiH0yTXirjLJCl40=
+github.com/guilhermebr/gox/postgres v0.0.0-20260601202258-c64004ef17bf/go.mod h1:tKY0YdGXMdqbuyFTu+JDWykWwSVEi6T7BpLtVhQ1kT0=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=

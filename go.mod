@@ -18,6 +18,7 @@ require (
 	github.com/guilhermebr/gox/http v0.0.0-20250831215043-ec0209dbdb77
 	github.com/guilhermebr/gox/jwt v0.0.0-20260601202258-c64004ef17bf
 	github.com/guilhermebr/gox/logger v0.0.0-20250831215043-ec0209dbdb77
+	github.com/guilhermebr/gox/postgres v0.0.0-20260601202258-c64004ef17bf
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/joho/godotenv v1.5.1

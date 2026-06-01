@@ -17,7 +17,7 @@ import (
 	"github.com/mailvault/mailvault/domain/extensions"
 	"github.com/mailvault/mailvault/domain/smtp_stats"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
-	"github.com/mailvault/mailvault/internal/database"
+	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/internal/webhook"
 
 	goxhttp "github.com/guilhermebr/gox/http"
@@ -60,7 +60,7 @@ func Run(ctx context.Context, opts Options) error {
 		slog.Int("runtime_num_cpu", runtime.NumCPU()),
 	)
 
-	dbPool, err := database.NewOptimizedPool(ctx, "", log)
+	dbPool, err := postgres.NewOptimized(ctx, "", log)
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
