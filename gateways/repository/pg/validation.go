@@ -20,7 +20,6 @@ func NewValidationRepository(db DBTX) validation.Repository {
 	return &ValidationRepository{db: db}
 }
 
-
 // CreateValidationRecord creates a new validation record
 func (r *ValidationRepository) CreateValidationRecord(ctx context.Context, record *validation.ValidationRecord) error {
 	query := `

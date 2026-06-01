@@ -1,8 +1,8 @@
 package domains
 
 import (
-	"log/slog"
 	"github.com/mailvault/mailvault/app/api"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"

@@ -518,4 +518,3 @@ func TestUseCase_GetPendingValidations(t *testing.T) {
 		assert.True(t, v.CanRetry())
 	}
 }
-

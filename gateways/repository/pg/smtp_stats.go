@@ -9,7 +9,7 @@ import (
 
 	"github.com/mailvault/mailvault/domain/entities"
 	"github.com/mailvault/mailvault/domain/smtp_stats"
-	
+
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -46,7 +46,7 @@ func (r *SMTPStatsRepository) CreateStat(ctx context.Context, stat *entities.SMT
 			$19, $20,
 			$21, $22
 		)`
-	
+
 	_, err := r.db.Exec(ctx, query,
 		stat.ID, stat.DomainID, stat.EmailAddressID, stat.VerifiedAt,
 		stat.SenderIP, stat.SenderDomain, stat.FromAddress,
@@ -57,11 +57,11 @@ func (r *SMTPStatsRepository) CreateStat(ctx context.Context, stat *entities.SMT
 		stat.ReputationScore, stat.IsBlacklisted,
 		stat.FinalAction, stat.IsQuarantined,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("creating SMTP stat: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -73,19 +73,19 @@ func (r *SMTPStatsRepository) GetStatsForDomain(
 	limit, offset int,
 ) ([]entities.SMTPVerificationStat, int64, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{domainID})
-	
+
 	// Get total count
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*) 
 		FROM smtp_verification_stats 
 		WHERE domain_id = $1 %s`, whereClause)
-	
+
 	var total int64
 	err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting stats: %w", err)
 	}
-	
+
 	// Get paginated results
 	args = append(args, limit, offset)
 	dataQuery := fmt.Sprintf(`
@@ -101,18 +101,18 @@ func (r *SMTPStatsRepository) GetStatsForDomain(
 		WHERE domain_id = $1 %s
 		ORDER BY verified_at DESC
 		LIMIT $%d OFFSET $%d`, whereClause, len(args)-1, len(args))
-	
+
 	rows, err := r.db.Query(ctx, dataQuery, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying stats: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var stats []entities.SMTPVerificationStat
 	for rows.Next() {
 		var stat entities.SMTPVerificationStat
 		var senderIP string
-		
+
 		err := rows.Scan(
 			&stat.ID, &stat.DomainID, &stat.EmailAddressID, &stat.VerifiedAt,
 			&senderIP, &stat.SenderDomain, &stat.FromAddress,
@@ -126,14 +126,14 @@ func (r *SMTPStatsRepository) GetStatsForDomain(
 		if err != nil {
 			return nil, 0, fmt.Errorf("scanning stat: %w", err)
 		}
-		
+
 		if senderIP != "" {
 			stat.SenderIP = net.ParseIP(senderIP)
 		}
-		
+
 		stats = append(stats, stat)
 	}
-	
+
 	return stats, total, nil
 }
 
@@ -151,7 +151,7 @@ func (r *SMTPStatsRepository) GetStatsForEmailAddress(
 // GetOverview retrieves overview statistics
 func (r *SMTPStatsRepository) GetOverview(ctx context.Context, filter entities.SMTPStatsFilter) (*entities.SMTPStatsOverview, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			COUNT(*) as total_processed,
@@ -162,9 +162,9 @@ func (r *SMTPStatsRepository) GetOverview(ctx context.Context, filter entities.S
 			COALESCE(AVG(spam_score), 0) as average_spam_score
 		FROM smtp_verification_stats
 		%s`, r.formatWhereClause(whereClause))
-	
+
 	overview := &entities.SMTPStatsOverview{}
-	
+
 	err := r.db.QueryRow(ctx, query, args...).Scan(
 		&overview.TotalProcessed,
 		&overview.AcceptedCount,
@@ -176,20 +176,20 @@ func (r *SMTPStatsRepository) GetOverview(ctx context.Context, filter entities.S
 	if err != nil {
 		return nil, fmt.Errorf("getting overview: %w", err)
 	}
-	
+
 	// Get action breakdown
 	actionQuery := fmt.Sprintf(`
 		SELECT final_action, COUNT(*) 
 		FROM smtp_verification_stats 
 		%s
 		GROUP BY final_action`, r.formatWhereClause(whereClause))
-	
+
 	actionRows, err := r.db.Query(ctx, actionQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting action breakdown: %w", err)
 	}
 	defer actionRows.Close()
-	
+
 	overview.ActionBreakdown = make(map[string]int64)
 	for actionRows.Next() {
 		var action string
@@ -199,7 +199,7 @@ func (r *SMTPStatsRepository) GetOverview(ctx context.Context, filter entities.S
 		}
 		overview.ActionBreakdown[action] = count
 	}
-	
+
 	return overview, nil
 }
 
@@ -210,7 +210,7 @@ func (r *SMTPStatsRepository) GetTimeSeriesData(
 	granularity string,
 ) ([]entities.TimeSeriesPoint, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	var truncateFunc string
 	switch granularity {
 	case "hour":
@@ -224,7 +224,7 @@ func (r *SMTPStatsRepository) GetTimeSeriesData(
 	default:
 		truncateFunc = "date_trunc('day', verified_at)"
 	}
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			%s as timestamp,
@@ -236,13 +236,13 @@ func (r *SMTPStatsRepository) GetTimeSeriesData(
 		%s
 		GROUP BY timestamp
 		ORDER BY timestamp`, truncateFunc, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting time series data: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var points []entities.TimeSeriesPoint
 	for rows.Next() {
 		var point entities.TimeSeriesPoint
@@ -258,14 +258,14 @@ func (r *SMTPStatsRepository) GetTimeSeriesData(
 		}
 		points = append(points, point)
 	}
-	
+
 	return points, nil
 }
 
 // GetActionDistribution retrieves distribution of actions taken
 func (r *SMTPStatsRepository) GetActionDistribution(ctx context.Context, filter entities.SMTPStatsFilter) ([]entities.ActionDistribution, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			final_action,
@@ -275,13 +275,13 @@ func (r *SMTPStatsRepository) GetActionDistribution(ctx context.Context, filter 
 		%s
 		GROUP BY final_action
 		ORDER BY count DESC`, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting action distribution: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var distributions []entities.ActionDistribution
 	for rows.Next() {
 		var dist entities.ActionDistribution
@@ -291,14 +291,14 @@ func (r *SMTPStatsRepository) GetActionDistribution(ctx context.Context, filter 
 		}
 		distributions = append(distributions, dist)
 	}
-	
+
 	return distributions, nil
 }
 
 // GetReputationDistribution retrieves distribution of reputation scores
 func (r *SMTPStatsRepository) GetReputationDistribution(ctx context.Context, filter entities.SMTPStatsFilter) ([]entities.ReputationDistribution, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			CASE 
@@ -314,13 +314,13 @@ func (r *SMTPStatsRepository) GetReputationDistribution(ctx context.Context, fil
 		%s
 		GROUP BY score_range
 		ORDER BY score_range`, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting reputation distribution: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var distributions []entities.ReputationDistribution
 	for rows.Next() {
 		var dist entities.ReputationDistribution
@@ -330,14 +330,14 @@ func (r *SMTPStatsRepository) GetReputationDistribution(ctx context.Context, fil
 		}
 		distributions = append(distributions, dist)
 	}
-	
+
 	return distributions, nil
 }
 
 // GetContentDistribution retrieves distribution of content analysis results
 func (r *SMTPStatsRepository) GetContentDistribution(ctx context.Context, filter entities.SMTPStatsFilter) ([]entities.ContentDistribution, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			content_verdict,
@@ -347,13 +347,13 @@ func (r *SMTPStatsRepository) GetContentDistribution(ctx context.Context, filter
 		%s
 		GROUP BY content_verdict
 		ORDER BY count DESC`, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting content distribution: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var distributions []entities.ContentDistribution
 	for rows.Next() {
 		var dist entities.ContentDistribution
@@ -363,14 +363,14 @@ func (r *SMTPStatsRepository) GetContentDistribution(ctx context.Context, filter
 		}
 		distributions = append(distributions, dist)
 	}
-	
+
 	return distributions, nil
 }
 
 // GetSPFDistribution retrieves distribution of SPF results
 func (r *SMTPStatsRepository) GetSPFDistribution(ctx context.Context, filter entities.SMTPStatsFilter) ([]entities.SPFDistribution, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			spf_result,
@@ -380,13 +380,13 @@ func (r *SMTPStatsRepository) GetSPFDistribution(ctx context.Context, filter ent
 		%s
 		GROUP BY spf_result
 		ORDER BY count DESC`, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting SPF distribution: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var distributions []entities.SPFDistribution
 	for rows.Next() {
 		var dist entities.SPFDistribution
@@ -396,14 +396,14 @@ func (r *SMTPStatsRepository) GetSPFDistribution(ctx context.Context, filter ent
 		}
 		distributions = append(distributions, dist)
 	}
-	
+
 	return distributions, nil
 }
 
 // GetDKIMDistribution retrieves distribution of DKIM validation results
 func (r *SMTPStatsRepository) GetDKIMDistribution(ctx context.Context, filter entities.SMTPStatsFilter) ([]entities.DKIMDistribution, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			dkim_valid,
@@ -413,13 +413,13 @@ func (r *SMTPStatsRepository) GetDKIMDistribution(ctx context.Context, filter en
 		%s
 		GROUP BY dkim_valid
 		ORDER BY count DESC`, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting DKIM distribution: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var distributions []entities.DKIMDistribution
 	for rows.Next() {
 		var dist entities.DKIMDistribution
@@ -429,14 +429,14 @@ func (r *SMTPStatsRepository) GetDKIMDistribution(ctx context.Context, filter en
 		}
 		distributions = append(distributions, dist)
 	}
-	
+
 	return distributions, nil
 }
 
 // GetDMARCDistribution retrieves distribution of DMARC results
 func (r *SMTPStatsRepository) GetDMARCDistribution(ctx context.Context, filter entities.SMTPStatsFilter) ([]entities.DMARCDistribution, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
-	
+
 	query := fmt.Sprintf(`
 		SELECT 
 			dmarc_result,
@@ -446,13 +446,13 @@ func (r *SMTPStatsRepository) GetDMARCDistribution(ctx context.Context, filter e
 		%s
 		GROUP BY dmarc_result
 		ORDER BY count DESC`, r.formatWhereClause(whereClause))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting DMARC distribution: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var distributions []entities.DMARCDistribution
 	for rows.Next() {
 		var dist entities.DMARCDistribution
@@ -462,7 +462,7 @@ func (r *SMTPStatsRepository) GetDMARCDistribution(ctx context.Context, filter e
 		}
 		distributions = append(distributions, dist)
 	}
-	
+
 	return distributions, nil
 }
 
@@ -477,7 +477,7 @@ func (r *SMTPStatsRepository) GetTopSenderDomains(
 }, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
 	args = append(args, limit)
-	
+
 	query := fmt.Sprintf(`
 		SELECT sender_domain, COUNT(*) as count
 		FROM smtp_verification_stats
@@ -486,18 +486,18 @@ func (r *SMTPStatsRepository) GetTopSenderDomains(
 		GROUP BY sender_domain
 		ORDER BY count DESC
 		LIMIT $%d`, r.formatWhereClause(whereClause), len(args))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting top sender domains: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var results []struct {
 		Domain string `json:"domain"`
 		Count  int64  `json:"count"`
 	}
-	
+
 	for rows.Next() {
 		var result struct {
 			Domain string `json:"domain"`
@@ -509,7 +509,7 @@ func (r *SMTPStatsRepository) GetTopSenderDomains(
 		}
 		results = append(results, result)
 	}
-	
+
 	return results, nil
 }
 
@@ -524,7 +524,7 @@ func (r *SMTPStatsRepository) GetTopSenderIPs(
 }, error) {
 	whereClause, args := r.buildWhereClause(filter, []interface{}{})
 	args = append(args, limit)
-	
+
 	query := fmt.Sprintf(`
 		SELECT sender_ip::text, COUNT(*) as count
 		FROM smtp_verification_stats
@@ -533,18 +533,18 @@ func (r *SMTPStatsRepository) GetTopSenderIPs(
 		GROUP BY sender_ip
 		ORDER BY count DESC
 		LIMIT $%d`, r.formatWhereClause(whereClause), len(args))
-	
+
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getting top sender IPs: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var results []struct {
 		IP    string `json:"ip"`
 		Count int64  `json:"count"`
 	}
-	
+
 	for rows.Next() {
 		var result struct {
 			IP    string `json:"ip"`
@@ -556,21 +556,21 @@ func (r *SMTPStatsRepository) GetTopSenderIPs(
 		}
 		results = append(results, result)
 	}
-	
+
 	return results, nil
 }
 
 // DeleteOldStats removes statistics older than the specified duration
 func (r *SMTPStatsRepository) DeleteOldStats(ctx context.Context, olderThan time.Duration) (int64, error) {
 	cutoffTime := time.Now().Add(-olderThan)
-	
+
 	query := `DELETE FROM smtp_verification_stats WHERE verified_at < $1`
-	
+
 	result, err := r.db.Exec(ctx, query, cutoffTime)
 	if err != nil {
 		return 0, fmt.Errorf("deleting old stats: %w", err)
 	}
-	
+
 	return result.RowsAffected(), nil
 }
 
@@ -580,51 +580,51 @@ func (r *SMTPStatsRepository) DeleteOldStats(ctx context.Context, olderThan time
 func (r *SMTPStatsRepository) buildWhereClause(filter entities.SMTPStatsFilter, baseArgs []interface{}) (string, []interface{}) {
 	var conditions []string
 	args := baseArgs
-	
+
 	argIndex := len(baseArgs) + 1
-	
+
 	if filter.DomainID != nil {
 		conditions = append(conditions, fmt.Sprintf("domain_id = $%d", argIndex))
 		args = append(args, *filter.DomainID)
 		argIndex++
 	}
-	
+
 	if filter.EmailAddressID != nil {
 		conditions = append(conditions, fmt.Sprintf("email_address_id = $%d", argIndex))
 		args = append(args, *filter.EmailAddressID)
 		argIndex++
 	}
-	
+
 	if filter.StartDate != nil {
 		conditions = append(conditions, fmt.Sprintf("verified_at >= $%d", argIndex))
 		args = append(args, *filter.StartDate)
 		argIndex++
 	}
-	
+
 	if filter.EndDate != nil {
 		conditions = append(conditions, fmt.Sprintf("verified_at <= $%d", argIndex))
 		args = append(args, *filter.EndDate)
 		argIndex++
 	}
-	
+
 	if filter.FinalAction != "" {
 		conditions = append(conditions, fmt.Sprintf("final_action = $%d", argIndex))
 		args = append(args, filter.FinalAction)
 		argIndex++
 	}
-	
+
 	if filter.SenderDomain != "" {
 		conditions = append(conditions, fmt.Sprintf("sender_domain ILIKE $%d", argIndex))
 		args = append(args, "%"+filter.SenderDomain+"%")
 		argIndex++
 	}
-	
+
 	if filter.MinSpamScore != nil {
 		conditions = append(conditions, fmt.Sprintf("spam_score >= $%d", argIndex))
 		args = append(args, *filter.MinSpamScore)
 		argIndex++
 	}
-	
+
 	if filter.MaxSpamScore != nil {
 		conditions = append(conditions, fmt.Sprintf("spam_score <= $%d", argIndex))
 		args = append(args, *filter.MaxSpamScore)
@@ -634,7 +634,7 @@ func (r *SMTPStatsRepository) buildWhereClause(filter entities.SMTPStatsFilter, 
 	if len(conditions) > 0 {
 		whereClause = "AND " + strings.Join(conditions, " AND ")
 	}
-	
+
 	return whereClause, args
 }
 

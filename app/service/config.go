@@ -19,9 +19,9 @@ type Config struct {
 	DatabaseEngine string `conf:"env:DATABASE_ENGINE,default:postgres"`
 	ApiAddress     string `conf:"env:API_ADDRESS,default:0.0.0.0:3000"`
 	ApiBaseURL     string `conf:"env:API_BASE_URL,default:http://localhost:3000"`
-	AuthSecretKey string `conf:"env:AUTH_SECRET_KEY,default:dev-secret-change-me"`
-	AuthTokenTTL  string `conf:"env:AUTH_TOKEN_TTL,default:24h"`
-	AuthProvider  string `conf:"env:AUTH_PROVIDER,default:local"`
+	AuthSecretKey  string `conf:"env:AUTH_SECRET_KEY,default:dev-secret-change-me"`
+	AuthTokenTTL   string `conf:"env:AUTH_TOKEN_TTL,default:24h"`
+	AuthProvider   string `conf:"env:AUTH_PROVIDER,default:local"`
 
 	MetricsAddress string `conf:"env:METRICS_ADDRESS,default::8080"`
 

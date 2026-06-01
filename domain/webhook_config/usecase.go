@@ -8,9 +8,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/mailvault/mailvault/domain/entities"
 	"io"
 	"log/slog"
-	"github.com/mailvault/mailvault/domain/entities"
 	"net/http"
 	"time"
 

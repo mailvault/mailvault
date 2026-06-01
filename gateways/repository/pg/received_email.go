@@ -383,7 +383,6 @@ func (r *ReceivedEmailRepository) Delete(ctx context.Context, id uuid.UUID) erro
 	return nil
 }
 
-
 func (r *ReceivedEmailRepository) scanReceivedEmailFromRows(rows pgx.Rows) (*entities.ReceivedEmail, error) {
 	var e entities.ReceivedEmail
 
