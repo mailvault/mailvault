@@ -127,10 +127,14 @@ func Run(ctx context.Context, opts Options) error {
 	metricsMw := middleware.NewMetricsMiddleware(middleware.DefaultMetricsConfig())
 
 	go func() {
-		http.Handle("/metrics", metricsMw.PrometheusHandler())
-		log.Info("Starting metrics server", slog.String("address", cfg.MetricsAddress))
-		srv := &http.Server{Addr: cfg.MetricsAddress, ReadHeaderTimeout: 10 * time.Second}
-		if err := srv.ListenAndServe(); err != nil {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", metricsMw.PrometheusHandler())
+		metricsServer := goxhttp.NewServerWithConfig("metrics", mux, goxhttp.Config{
+			Address:           cfg.MetricsAddress,
+			ReadHeaderTimeout: 10 * time.Second,
+			ShutdownTimeout:   5 * time.Second,
+		}, log)
+		if err := metricsServer.Start(); err != nil {
 			log.Error("Metrics server failed", slog.String("error", err.Error()))
 		}
 	}()

@@ -20,6 +20,7 @@ import (
 	"github.com/mailvault/mailvault/internal/database"
 	"github.com/mailvault/mailvault/internal/webhook"
 
+	goxhttp "github.com/guilhermebr/gox/http"
 	"github.com/guilhermebr/gox/logger"
 )
 
@@ -114,10 +115,14 @@ func Run(ctx context.Context, opts Options) error {
 	}
 
 	go func() {
-		http.Handle("/metrics", backend.GetMetrics().PrometheusHandler())
-		log.Info("Starting metrics server on :8080")
-		srv := &http.Server{Addr: ":8080", ReadHeaderTimeout: 10 * time.Second}
-		if err := srv.ListenAndServe(); err != nil {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", backend.GetMetrics().PrometheusHandler())
+		metricsServer := goxhttp.NewServerWithConfig("smtpd-metrics", mux, goxhttp.Config{
+			Address:           ":8080",
+			ReadHeaderTimeout: 10 * time.Second,
+			ShutdownTimeout:   5 * time.Second,
+		}, log)
+		if err := metricsServer.Start(); err != nil {
 			log.Error("Metrics server failed", slog.String("error", err.Error()))
 		}
 	}()

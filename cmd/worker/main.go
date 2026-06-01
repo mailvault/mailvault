@@ -17,6 +17,7 @@ import (
 	"github.com/mailvault/mailvault/gateways/repository/pg"
 	"github.com/mailvault/mailvault/internal/database"
 
+	goxhttp "github.com/guilhermebr/gox/http"
 	"github.com/guilhermebr/gox/logger"
 )
 
@@ -199,16 +200,16 @@ func main() {
 			slog.String("address", cfg.MetricsAddress),
 		)
 
-		server := &http.Server{
-			Addr:              cfg.MetricsAddress,
-			Handler:           mux,
+		server := goxhttp.NewServerWithConfig("worker-metrics", mux, goxhttp.Config{
+			Address:           cfg.MetricsAddress,
 			ReadHeaderTimeout: 30 * time.Second,
 			ReadTimeout:       60 * time.Second,
 			WriteTimeout:      60 * time.Second,
 			IdleTimeout:       30 * time.Second,
-		}
+			ShutdownTimeout:   5 * time.Second,
+		}, log)
 
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.Start(); err != nil {
 			log.Error("Metrics server failed",
 				slog.String("error", err.Error()),
 			)
