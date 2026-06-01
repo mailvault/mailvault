@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/app/api"
 	"github.com/mailvault/mailvault/app/api/middleware"
 	v1 "github.com/mailvault/mailvault/app/api/v1"
@@ -21,7 +22,6 @@ import (
 	"github.com/mailvault/mailvault/domain/user"
 	"github.com/mailvault/mailvault/domain/webhook_config"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
-	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/internal/smtprelay"
 	"github.com/mailvault/mailvault/internal/webhook"
 

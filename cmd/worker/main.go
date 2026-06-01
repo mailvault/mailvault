@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/app/worker"
 	"github.com/mailvault/mailvault/domain/entities"
 	"github.com/mailvault/mailvault/domain/validation"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
-	"github.com/guilhermebr/gox/postgres"
 
 	goxhttp "github.com/guilhermebr/gox/http"
 	"github.com/guilhermebr/gox/logger"

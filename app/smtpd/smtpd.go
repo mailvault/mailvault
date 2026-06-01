@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/app/smtp"
 	domainUseCase "github.com/mailvault/mailvault/domain/domain"
 	"github.com/mailvault/mailvault/domain/email"
 	"github.com/mailvault/mailvault/domain/extensions"
 	"github.com/mailvault/mailvault/domain/smtp_stats"
 	"github.com/mailvault/mailvault/gateways/repository/pg"
-	"github.com/guilhermebr/gox/postgres"
 	"github.com/mailvault/mailvault/internal/webhook"
 
 	goxhttp "github.com/guilhermebr/gox/http"

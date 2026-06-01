@@ -79,10 +79,10 @@ func TestGetDomainStats_ClampsInvalidPaginationToDefaults(t *testing.T) {
 	domainID := uuid.Must(uuid.NewV4())
 
 	cases := []struct {
-		name              string
-		page, pageSize    int
-		wantLimit         int
-		wantOffset        int
+		name           string
+		page, pageSize int
+		wantLimit      int
+		wantOffset     int
 	}{
 		{"both negative", -1, -1, 50, 0},
 		{"page=0", 0, 20, 20, 0},
