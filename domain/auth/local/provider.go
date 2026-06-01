@@ -17,7 +17,7 @@ import (
 	"github.com/mailvault/mailvault/domain/entities"
 
 	"github.com/gofrs/uuid/v5"
-	"github.com/golang-jwt/jwt/v5"
+	goxjwt "github.com/guilhermebr/gox/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -49,10 +49,9 @@ type UserStore interface {
 
 // Provider is the OSS built-in auth provider.
 type Provider struct {
-	creds     CredentialsRepo
-	users     UserStore
-	secretKey []byte
-	tokenTTL  time.Duration
+	creds CredentialsRepo
+	users UserStore
+	jwt   goxjwt.Service
 }
 
 // NewProvider builds the local auth provider. secretKey signs JWTs and must
@@ -65,10 +64,9 @@ func NewProvider(creds CredentialsRepo, users UserStore, secretKey string, token
 		return nil, fmt.Errorf("local auth: tokenTTL must be positive")
 	}
 	return &Provider{
-		creds:     creds,
-		users:     users,
-		secretKey: []byte(secretKey),
-		tokenTTL:  tokenTTL,
+		creds: creds,
+		users: users,
+		jwt:   goxjwt.NewService(secretKey, "mailvault-local", tokenTTL.String()),
 	}, nil
 }
 
@@ -118,7 +116,7 @@ func (p *Provider) CreateUser(ctx context.Context, email, password string) (*aut
 		return nil, fmt.Errorf("storing credentials: %w", err)
 	}
 
-	token, err := p.signToken(userID)
+	token, err := p.signToken(userID, email)
 	if err != nil {
 		return nil, fmt.Errorf("signing token: %w", err)
 	}
@@ -150,7 +148,7 @@ func (p *Provider) Login(ctx context.Context, email, password string) (string, e
 		return "", fmt.Errorf("invalid email or password")
 	}
 
-	return p.signToken(user.ID)
+	return p.signToken(user.ID, user.Email)
 }
 
 // ValidateToken parses and verifies a JWT; returns the corresponding user.
@@ -191,33 +189,12 @@ func (p *Provider) ConfirmEmail(_ context.Context, _, _ string) (string, error) 
 	return "", nil
 }
 
-func (p *Provider) signToken(userID uuid.UUID) (string, error) {
-	now := time.Now()
-	claims := jwt.RegisteredClaims{
-		Subject:   userID.String(),
-		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(p.tokenTTL)),
-		Issuer:    "mailvault-local",
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(p.secretKey)
+func (p *Provider) signToken(userID uuid.UUID, email string) (string, error) {
+	return p.jwt.GenerateToken(userID.String(), email, "")
 }
 
-func (p *Provider) parseToken(tokenStr string) (*jwt.RegisteredClaims, error) {
-	claims := &jwt.RegisteredClaims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return p.secretKey, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("parsing token: %w", err)
-	}
-	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
-	}
-	return claims, nil
+func (p *Provider) parseToken(tokenStr string) (*goxjwt.Claims, error) {
+	return p.jwt.ValidateToken(tokenStr)
 }
 
 func normalizeEmail(email string) string {

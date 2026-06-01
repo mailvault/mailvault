@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/go-chi/render"
-	"github.com/golang-jwt/jwt/v5"
+	goxjwt "github.com/guilhermebr/gox/jwt"
 )
 
 // AuthMiddleware provides JWT authentication middleware
 type AuthMiddleware struct {
-	secret []byte
+	jwt goxjwt.Service
 }
 
 func NewAuthMiddleware(secret string) (*AuthMiddleware, error) {
@@ -21,7 +21,11 @@ func NewAuthMiddleware(secret string) (*AuthMiddleware, error) {
 		return nil, fmt.Errorf("invalid JWT secret: %w", err)
 	}
 
-	return &AuthMiddleware{secret: []byte(secret)}, nil
+	return &AuthMiddleware{
+		// "mailvault" issuer must match the one set by app/api/v1/auth handlers
+		// so tokens issued at login parse here at request time.
+		jwt: goxjwt.NewService(secret, "mailvault", "24h"),
+	}, nil
 }
 
 // validateJWTSecret ensures the JWT secret meets security requirements
@@ -137,28 +141,23 @@ func (m *AuthMiddleware) unauthorizedResponse(w http.ResponseWriter, r *http.Req
 	render.JSON(w, r, ErrorResponse{Error: message})
 }
 
-// parseJWT validates our HS256 token and extracts local user id, email, and account type
+// parseJWT validates our HS256 token and extracts local user id, email, and account type.
 func (m *AuthMiddleware) parseJWT(tokenString string) (string, string, string, error) {
-	type claims struct {
-		Sub         string `json:"sub"`
-		Email       string `json:"email"`
-		AccountType string `json:"account_type,omitempty"`
-		jwt.RegisteredClaims
-	}
-	parsed, err := jwt.ParseWithClaims(tokenString, &claims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return m.secret, nil
-	})
-	if err != nil || !parsed.Valid {
+	claims, err := m.jwt.ValidateToken(tokenString)
+	if err != nil {
 		return "", "", "", err
 	}
-	c, ok := parsed.Claims.(*claims)
-	if !ok || c.Sub == "" {
-		return "", "", "", jwt.ErrTokenInvalidClaims
+	// The gox/jwt service sets RegisteredClaims.Subject = UserID at mint
+	// time; either is fine, prefer Subject for downstream consumers that
+	// already key off "sub".
+	uid := claims.UserID
+	if uid == "" {
+		uid = claims.Subject
 	}
-	return c.Sub, c.Email, c.AccountType, nil
+	if uid == "" {
+		return "", "", "", fmt.Errorf("invalid token claims: missing subject")
+	}
+	return uid, claims.Email, claims.AccountType, nil
 }
 
 // RequireAdmin middleware that requires admin authentication

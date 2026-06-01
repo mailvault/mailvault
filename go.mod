@@ -14,9 +14,9 @@ require (
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/gofrs/uuid/v5 v5.3.2
-	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
 	github.com/guilhermebr/gox/http v0.0.0-20250831215043-ec0209dbdb77
+	github.com/guilhermebr/gox/jwt v0.0.0-20260601202258-c64004ef17bf
 	github.com/guilhermebr/gox/logger v0.0.0-20250831215043-ec0209dbdb77
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jhillyerd/enmime v1.3.0
@@ -73,6 +73,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

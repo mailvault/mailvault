@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/mailvault/mailvault/app/api"
 	"github.com/mailvault/mailvault/domain/auth"
@@ -14,7 +13,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/uuid/v5"
-	"github.com/golang-jwt/jwt/v5"
+	goxjwt "github.com/guilhermebr/gox/jwt"
 )
 
 //go:generate moq -skip-ensure -stub -pkg mocks -out mocks/usecase.go . UseCase
@@ -29,19 +28,15 @@ type AuthHandlers struct {
 	authProvider auth.Provider
 	userUseCase  UseCase
 	validator    *validator.Validate
-	jwtSecret    []byte
-	jwtTTL       time.Duration
+	jwt          goxjwt.Service
 }
 
 func NewAuthHandlers(authProvider auth.Provider, userUseCase UseCase, jwtSecret []byte, authTokenTTL string) *AuthHandlers {
-	jwtTTL := parseJWTTTL(authTokenTTL)
-
 	return &AuthHandlers{
 		authProvider: authProvider,
 		userUseCase:  userUseCase,
 		validator:    validator.New(),
-		jwtSecret:    jwtSecret,
-		jwtTTL:       jwtTTL,
+		jwt:          goxjwt.NewService(string(jwtSecret), "mailvault", authTokenTTL),
 	}
 }
 
@@ -425,26 +420,7 @@ func (h *AuthHandlers) ConfirmEmailWithToken(w http.ResponseWriter, r *http.Requ
 	render.JSON(w, r, response)
 }
 
-// generateJWT creates an HS256 token with local user id
+// generateJWT mints an HS256 token via the gox/jwt service for the given local user.
 func (h *AuthHandlers) generateJWT(userID, email string) (string, error) {
-	claims := jwt.RegisteredClaims{
-		Subject:   userID,
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(h.jwtTTL)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":   claims.Subject,
-		"email": email,
-		"exp":   claims.ExpiresAt.Unix(),
-		"iat":   claims.IssuedAt.Unix(),
-	})
-	return token.SignedString(h.jwtSecret)
-}
-
-// parseJWTTTL converts duration string to time.Duration with fallback
-func parseJWTTTL(s string) time.Duration {
-	if d, err := time.ParseDuration(s); err == nil {
-		return d
-	}
-	return 24 * time.Hour
+	return h.jwt.GenerateToken(userID, email, "")
 }
